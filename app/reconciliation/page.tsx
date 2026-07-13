@@ -131,14 +131,14 @@ export default function ReconciliationPage() {
                 Demo states
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>Preview state</DropdownMenuLabel>
-                <DropdownMenuSeparator />
                 <DropdownMenuRadioGroup
                   value={demoState}
                   onValueChange={(value) =>
                     setDemoState(value as "ready" | "no-bid-form")
                   }
                 >
+                  <DropdownMenuLabel>Preview state</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
                   <DropdownMenuRadioItem value="ready">
                     Reconciliation ready
                   </DropdownMenuRadioItem>
