@@ -1,5 +1,5 @@
 import { PageStub } from "@/components/page-stub"
 
-export default function ReviewPage() {
+export default function Page() {
   return <PageStub title="Human Review" />
 }

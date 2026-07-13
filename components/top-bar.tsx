@@ -1,8 +1,9 @@
 "use client"
 
-import { Search } from "lucide-react"
+import { Bell, Search } from "lucide-react"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
@@ -23,13 +24,20 @@ export function TopBar() {
         />
       </div>
       <div className="ml-auto flex items-center gap-3">
-        <div className="flex flex-col items-end">
-          <span className="text-sm font-medium leading-tight">{demoUser.name}</span>
-          <span className="text-xs text-muted-foreground leading-tight">{demoUser.company}</span>
+        <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
+          <Bell />
+          <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-destructive" />
+        </Button>
+        <Separator orientation="vertical" className="h-6" />
+        <div className="flex items-center gap-2">
+          <Avatar className="size-8">
+            <AvatarFallback className="text-xs">{demoUser.initials}</AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col">
+            <span className="text-sm font-medium leading-tight">{demoUser.name}</span>
+            <span className="text-xs text-muted-foreground leading-tight">{demoUser.company}</span>
+          </div>
         </div>
-        <Avatar className="size-8">
-          <AvatarFallback className="text-xs">{demoUser.initials}</AvatarFallback>
-        </Avatar>
       </div>
     </header>
   )

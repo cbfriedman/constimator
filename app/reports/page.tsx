@@ -1,5 +1,5 @@
 import { PageStub } from "@/components/page-stub"
 
-export default function ReportsPage() {
+export default function Page() {
   return <PageStub title="Reports" />
 }

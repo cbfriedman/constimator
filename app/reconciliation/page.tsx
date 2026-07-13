@@ -1,5 +1,5 @@
 import { PageStub } from "@/components/page-stub"
 
-export default function ReconciliationPage() {
+export default function Page() {
   return <PageStub title="Bid Form Reconciliation" />
 }
