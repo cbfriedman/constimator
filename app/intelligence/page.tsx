@@ -6,16 +6,10 @@ import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { SourceReferenceProvider } from "@/components/intelligence/source-reference"
 import { OverviewTab } from "@/components/intelligence/overview-tab"
+import { SchedulesTab } from "@/components/intelligence/schedules-tab"
 import { BidRequirementsTab } from "@/components/intelligence/bid-requirements-tab"
 import { RisksTab } from "@/components/intelligence/risks-tab"
 import { DocumentsTab } from "@/components/intelligence/documents-tab"
@@ -58,17 +52,7 @@ export default function IntelligencePage() {
                 <OverviewTab />
               </TabsContent>
               <TabsContent value="schedules">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Schedules & Tables</CardTitle>
-                    <CardDescription>
-                      Extracted bid schedules and quantity tables.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">Coming soon.</p>
-                  </CardContent>
-                </Card>
+                <SchedulesTab />
               </TabsContent>
               <TabsContent value="bid-requirements">
                 <BidRequirementsTab />
