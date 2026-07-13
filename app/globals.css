@@ -51,6 +51,8 @@
     --color-warning-foreground: var(--warning-foreground);
     --color-review: var(--review);
     --color-review-foreground: var(--review-foreground);
+    --color-caution: var(--caution);
+    --color-caution-foreground: var(--caution-foreground);
 }
 
 :root {
@@ -73,6 +75,8 @@
     --success-foreground: oklch(0.985 0 0);
     --warning: oklch(0.7 0.15 70);
     --warning-foreground: oklch(0.205 0 0);
+    --caution: oklch(0.82 0.15 95);
+    --caution-foreground: oklch(0.205 0 0);
     --review: oklch(0.5 0.18 295);
     --review-foreground: oklch(0.985 0 0);
     --border: oklch(0.922 0 0);
@@ -114,6 +118,8 @@
     --success-foreground: oklch(0.145 0 0);
     --warning: oklch(0.75 0.15 70);
     --warning-foreground: oklch(0.145 0 0);
+    --caution: oklch(0.85 0.16 95);
+    --caution-foreground: oklch(0.145 0 0);
     --review: oklch(0.65 0.18 295);
     --review-foreground: oklch(0.145 0 0);
     --border: oklch(1 0 0 / 10%);
