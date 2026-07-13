@@ -13,11 +13,14 @@ import {
   UserCheck,
   BarChart3,
   HardHat,
+  Settings,
+  HelpCircle,
 } from "lucide-react"
 
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -27,26 +30,44 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { Badge } from "@/components/ui/badge"
 import { demoProject } from "@/lib/demo-data"
 
 const mainNav = [
-  { title: "Dashboard", href: "/", icon: LayoutDashboard },
+  { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { title: "Projects", href: "/projects", icon: FolderKanban },
 ]
 
-const projectNav = [
-  { title: "Overview", href: "/project/overview", icon: FileText },
-  { title: "Documents", href: "/project/documents", icon: Files },
-  { title: "Schedules & Tables", href: "/project/schedules", icon: Table2 },
-  { title: "Estimate Workspace", href: "/project/estimate", icon: Calculator },
+type NavBadge = { text: string; tone: "danger" | "review" }
+
+const projectNav: {
+  title: string
+  href: string
+  icon: typeof FileText
+  badge?: NavBadge
+}[] = [
+  { title: "Overview", href: "/intelligence", icon: FileText },
+  { title: "Documents", href: "/upload", icon: Files },
+  { title: "Schedules & Tables", href: "/schedules", icon: Table2 },
+  { title: "Estimate Workspace", href: "/estimate", icon: Calculator },
   {
     title: "Bid Form Reconciliation",
-    href: "/project/reconciliation",
+    href: "/reconciliation",
     icon: GitCompareArrows,
-    badge: "3",
+    badge: { text: "3", tone: "danger" },
   },
-  { title: "Human Review", href: "/project/review", icon: UserCheck },
-  { title: "Reports", href: "/project/reports", icon: BarChart3 },
+  {
+    title: "Human Review",
+    href: "/review",
+    icon: UserCheck,
+    badge: { text: "In review", tone: "review" },
+  },
+  { title: "Reports", href: "/reports", icon: BarChart3 },
+]
+
+const footerNav = [
+  { title: "Settings", href: "#", icon: Settings },
+  { title: "Help", href: "#", icon: HelpCircle },
 ]
 
 export function AppSidebar() {
@@ -84,7 +105,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
         <SidebarGroup>
-          <SidebarGroupLabel className="truncate" title={demoProject.name}>
+          <SidebarGroupLabel className="uppercase" title={demoProject.name}>
             {demoProject.name}
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -98,13 +119,39 @@ export function AppSidebar() {
                     <item.icon />
                     <span>{item.title}</span>
                   </SidebarMenuButton>
-                  {item.badge ? <SidebarMenuBadge>{item.badge}</SidebarMenuBadge> : null}
+                  {item.badge ? (
+                    <SidebarMenuBadge
+                      render={
+                        <Badge
+                          className={
+                            item.badge.tone === "danger"
+                              ? "border-transparent bg-destructive text-white"
+                              : "border-transparent bg-review/15 text-review"
+                          }
+                        />
+                      }
+                    >
+                      {item.badge.text}
+                    </SidebarMenuBadge>
+                  ) : null}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter className="border-t border-sidebar-border">
+        <SidebarMenu>
+          {footerNav.map((item) => (
+            <SidebarMenuItem key={item.title}>
+              <SidebarMenuButton render={<Link href={item.href} />}>
+                <item.icon />
+                <span>{item.title}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
+        </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
   )
 }
