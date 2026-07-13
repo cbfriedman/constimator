@@ -6,6 +6,7 @@ import { ArrowLeft } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import { BidCountdownBadge } from "@/components/bid-countdown-badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { demoProject } from "@/lib/demo-data"
 import { reports, type ReportId } from "@/lib/report-data"
@@ -80,7 +81,12 @@ export default function ReportsPage() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex flex-col gap-1 border-b border-border px-6 py-4">
-        <h1 className="text-xl font-semibold text-foreground">Reports</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+            Reports
+          </h1>
+          <BidCountdownBadge />
+        </div>
         <p className="text-sm text-muted-foreground">
           {demoProject.name} · #{demoProject.number}
         </p>

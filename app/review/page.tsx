@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import { BidCountdownBadge } from "@/components/bid-countdown-badge"
 import { RequestReviewCard } from "@/components/review/request-review-card"
 import { ReviewDetail } from "@/components/review/review-detail"
 import { demoProject } from "@/lib/demo-data"
@@ -19,7 +20,12 @@ export default function ReviewPage() {
       <div className="border-b bg-card px-8 py-5">
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-1">
-            <h1 className="text-xl font-semibold text-balance">Human Review</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-semibold tracking-tight text-balance">
+                Human Review
+              </h1>
+              <BidCountdownBadge />
+            </div>
             <p className="text-sm text-muted-foreground">
               {demoProject.name} · #{demoProject.number}
             </p>

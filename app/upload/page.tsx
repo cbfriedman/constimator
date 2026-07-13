@@ -10,7 +10,6 @@ import {
   type UploadDoc,
 } from "@/components/upload/documents-table"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -18,6 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { ProjectHeader } from "@/components/project-header"
 import { demoProject } from "@/lib/demo-data"
 
 const initialDocs: UploadDoc[] = [
@@ -81,22 +81,10 @@ export default function UploadPage() {
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-6 p-6">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight text-balance">
-            {demoProject.name}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Upload plans, specs, addenda, and the official bid form.
-          </p>
-        </div>
-        <Badge
-          variant="outline"
-          className="border-warning/40 bg-warning/10 text-warning"
-        >
-          42 days to bid
-        </Badge>
-      </header>
+      <ProjectHeader
+        title={demoProject.name}
+        subtitle="Upload plans, specs, addenda, and the official bid form."
+      />
 
       {!hasBidForm ? (
         <Alert className="border-warning/40 bg-warning/10">

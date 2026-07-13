@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google"
 
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
+import { ProjectStateProvider } from "@/components/project-state-provider"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
 import { TopBar } from "@/components/top-bar"
@@ -40,13 +41,15 @@ export default function RootLayout({
     >
       <body>
         <ThemeProvider>
-          <SidebarProvider>
-            <AppSidebar />
-            <SidebarInset>
-              <TopBar />
-              <main className="flex-1 overflow-auto">{children}</main>
-            </SidebarInset>
-          </SidebarProvider>
+          <ProjectStateProvider>
+            <SidebarProvider>
+              <AppSidebar />
+              <SidebarInset>
+                <TopBar />
+                <main className="flex-1 overflow-auto">{children}</main>
+              </SidebarInset>
+            </SidebarProvider>
+          </ProjectStateProvider>
           <Toaster />
         </ThemeProvider>
       </body>

@@ -2,13 +2,42 @@
 
 import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { AlertTriangle, FileBarChart, Plus, UserCheck } from "lucide-react"
+import {
+  AlertTriangle,
+  FileBarChart,
+  FileUp,
+  Lock,
+  Plus,
+  SlidersHorizontal,
+  UserCheck,
+} from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { DetailSheet } from "@/components/reconciliation/detail-sheet"
 import { ReconTable } from "@/components/reconciliation/recon-table"
+import { ProjectHeader } from "@/components/project-header"
+import { useProjectState } from "@/components/project-state-provider"
+import { demoProject } from "@/lib/demo-data"
 import { cn } from "@/lib/utils"
 import {
   type FilterKey,
@@ -32,10 +61,11 @@ const chipColorClasses: Record<StatusColor | "neutral", string> = {
 
 export default function ReconciliationPage() {
   const router = useRouter()
+  const { item15Added, setItem15Added } = useProjectState()
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all")
-  const [item15Added, setItem15Added] = useState(false)
   const [selectedRow, setSelectedRow] = useState<ReconRow | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [demoState, setDemoState] = useState<"ready" | "no-bid-form">("ready")
 
   const rows = useMemo<ReconRow[]>(() => {
     return reconciliationRows.map((row) => {
@@ -83,15 +113,64 @@ export default function ReconciliationPage() {
   return (
     <TooltipProvider>
       <div className="flex flex-col gap-6 p-6">
-        <div className="flex flex-col gap-1">
-          <h1 className="font-heading text-2xl font-semibold text-foreground">
-            Bid Form Reconciliation
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Shasta County Roadway Improvements · #24-118
-          </p>
-        </div>
+        <ProjectHeader
+          title="Bid Form Reconciliation"
+          subtitle={`${demoProject.name} · #${demoProject.number}`}
+          actions={
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground"
+                  />
+                }
+              >
+                <SlidersHorizontal data-icon="inline-start" />
+                Demo states
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Preview state</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuRadioGroup
+                  value={demoState}
+                  onValueChange={(value) =>
+                    setDemoState(value as "ready" | "no-bid-form")
+                  }
+                >
+                  <DropdownMenuRadioItem value="ready">
+                    Reconciliation ready
+                  </DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="no-bid-form">
+                    No bid form uploaded
+                  </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          }
+        />
 
+        {demoState === "no-bid-form" ? (
+          <Empty className="min-h-[60vh] border">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Lock />
+              </EmptyMedia>
+              <EmptyTitle>Reconciliation locked</EmptyTitle>
+              <EmptyDescription>
+                Upload the Official Bid Form to unlock reconciliation.
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Button onClick={() => router.push("/upload")}>
+                <FileUp data-icon="inline-start" />
+                Upload the Official Bid Form
+              </Button>
+            </EmptyContent>
+          </Empty>
+        ) : (
+          <>
         {/* Result banner */}
         <div className="flex flex-col gap-4 rounded-lg border bg-card p-4">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
@@ -173,6 +252,8 @@ export default function ReconciliationPage() {
             Generate Reports
           </Button>
         </div>
+          </>
+        )}
       </div>
 
       <DetailSheet

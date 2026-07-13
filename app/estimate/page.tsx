@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation"
 import { Plus, TableProperties } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
+import { BidCountdownBadge } from "@/components/bid-countdown-badge"
 import { Button } from "@/components/ui/button"
 import {
   Select,
@@ -46,15 +47,10 @@ export default function EstimatePage() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-3">
-              <h1 className="text-xl font-semibold text-foreground">
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground">
                 Estimate Workspace
               </h1>
-              <Badge
-                variant="outline"
-                className="border-warning/40 bg-warning/10 text-warning"
-              >
-                42 days to bid
-              </Badge>
+              <BidCountdownBadge />
             </div>
             <p className="text-sm text-muted-foreground">{demoProject.name}</p>
           </div>

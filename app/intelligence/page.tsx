@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
+import { ProjectHeader } from "@/components/project-header"
 import { SourceReferenceProvider } from "@/components/intelligence/source-reference"
 import { OverviewTab } from "@/components/intelligence/overview-tab"
 import { SchedulesTab } from "@/components/intelligence/schedules-tab"
@@ -23,18 +24,16 @@ export default function IntelligencePage() {
       <div className="flex h-full flex-col">
         <div className="flex-1 overflow-auto">
           <div className="mx-auto max-w-6xl px-6 py-8 pb-28">
-            <div className="mb-6 flex flex-col gap-1">
-              <div className="flex items-center gap-3">
-                <h1 className="text-2xl font-semibold tracking-tight">
-                  Project Intelligence
-                </h1>
-                <Badge className="border border-review/30 bg-review/10 text-review">
-                  AI analyzed
-                </Badge>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                {demoProject.name} · #{demoProject.number}
-              </p>
+            <div className="mb-6">
+              <ProjectHeader
+                title="Project Intelligence"
+                subtitle={`${demoProject.name} · #${demoProject.number}`}
+                badges={
+                  <Badge className="border border-review/30 bg-review/10 text-review">
+                    AI analyzed
+                  </Badge>
+                }
+              />
             </div>
 
             <Tabs defaultValue="overview" className="gap-6">

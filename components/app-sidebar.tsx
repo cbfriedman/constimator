@@ -31,6 +31,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { Badge } from "@/components/ui/badge"
+import { useProjectState } from "@/components/project-state-provider"
 import { demoProject } from "@/lib/demo-data"
 
 const mainNav = [
@@ -72,6 +73,7 @@ const footerNav = [
 
 export function AppSidebar() {
   const pathname = usePathname()
+  const { attentionCount } = useProjectState()
 
   return (
     <Sidebar>
@@ -110,32 +112,38 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {projectNav.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton
-                    render={<Link href={item.href} />}
-                    isActive={pathname === item.href}
-                  >
-                    <item.icon />
-                    <span>{item.title}</span>
-                  </SidebarMenuButton>
-                  {item.badge ? (
-                    <SidebarMenuBadge
-                      render={
-                        <Badge
-                          className={
-                            item.badge.tone === "danger"
-                              ? "border-transparent bg-destructive text-white"
-                              : "border-transparent bg-review/15 text-review"
-                          }
-                        />
-                      }
+              {projectNav.map((item) => {
+                const badgeText =
+                  item.href === "/reconciliation" && item.badge
+                    ? String(attentionCount)
+                    : item.badge?.text
+                return (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      render={<Link href={item.href} />}
+                      isActive={pathname === item.href}
                     >
-                      {item.badge.text}
-                    </SidebarMenuBadge>
-                  ) : null}
-                </SidebarMenuItem>
-              ))}
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                    {item.badge ? (
+                      <SidebarMenuBadge
+                        render={
+                          <Badge
+                            className={
+                              item.badge.tone === "danger"
+                                ? "border-transparent bg-destructive text-white"
+                                : "border-transparent bg-review/15 text-review"
+                            }
+                          />
+                        }
+                      >
+                        {badgeText}
+                      </SidebarMenuBadge>
+                    ) : null}
+                  </SidebarMenuItem>
+                )
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
