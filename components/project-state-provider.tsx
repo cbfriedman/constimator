@@ -8,6 +8,14 @@ type ProjectStateValue = {
   setItem15Added: (value: boolean) => void
   /** Reconciliation items still needing attention (3 → 2 once Item 15 is added). */
   attentionCount: number
+  /**
+   * Increments on every demo reset. Used as a React `key` on page content so
+   * page-local state (review stage, applied recommendations, processing
+   * animation) remounts back to its defaults without a hard refresh.
+   */
+  resetKey: number
+  /** Reset all client-side demo state back to its initial values. */
+  reset: () => void
 }
 
 const ProjectStateContext = React.createContext<ProjectStateValue | null>(null)
@@ -18,14 +26,22 @@ export function ProjectStateProvider({
   children: React.ReactNode
 }) {
   const [item15Added, setItem15Added] = React.useState(false)
+  const [resetKey, setResetKey] = React.useState(0)
+
+  const reset = React.useCallback(() => {
+    setItem15Added(false)
+    setResetKey((k) => k + 1)
+  }, [])
 
   const value = React.useMemo<ProjectStateValue>(
     () => ({
       item15Added,
       setItem15Added,
       attentionCount: item15Added ? 2 : 3,
+      resetKey,
+      reset,
     }),
-    [item15Added],
+    [item15Added, resetKey, reset],
   )
 
   return (
@@ -43,4 +59,23 @@ export function useProjectState() {
     )
   }
   return ctx
+}
+
+/**
+ * Wraps the page content and remounts it whenever the demo is reset, so any
+ * page-local component state falls back to its initial values.
+ */
+export function ResettableMain({
+  className,
+  children,
+}: {
+  className?: string
+  children: React.ReactNode
+}) {
+  const { resetKey } = useProjectState()
+  return (
+    <main key={resetKey} className={className}>
+      {children}
+    </main>
+  )
 }
