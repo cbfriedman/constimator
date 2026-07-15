@@ -16,6 +16,10 @@ import {
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { EstimateTable } from "@/components/estimate/estimate-table"
+import {
+  RateDriftBanner,
+  RateSnapshotChip,
+} from "@/components/estimate/rate-snapshot"
 import { demoProject } from "@/lib/demo-data"
 
 const totals = [
@@ -65,6 +69,7 @@ export default function EstimatePage() {
           </Button>
         </div>
       ) : null}
+      <RateDriftBanner />
       <div className="flex flex-col gap-4 border-b bg-card px-6 py-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex flex-col gap-1">
@@ -75,6 +80,7 @@ export default function EstimatePage() {
               <BidCountdownBadge />
             </div>
             <p className="text-sm text-muted-foreground">{demoProject.name}</p>
+            <RateSnapshotChip />
           </div>
           <div className="flex items-center gap-4">
             {totals.map((item) => (

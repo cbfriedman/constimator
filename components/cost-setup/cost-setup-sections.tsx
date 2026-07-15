@@ -56,6 +56,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { SourceBadge } from "@/components/source-badge"
+import { useProjectState } from "@/components/project-state-provider"
 import {
   costSetupSections,
   crewCards,
@@ -176,6 +177,7 @@ export function CostSetupSections({
   registerRef: (id: string, el: HTMLElement | null) => void
 }) {
   const s = costSetupSections
+  const { triggerRateDrift } = useProjectState()
 
   const [labor, setLabor] = React.useState<LaborRate[]>([
     ...laborRates,
@@ -290,6 +292,10 @@ export function CostSetupSections({
     }
 
     appendHistory(`${t.title}: ${oldStr} → ${newStr}`, scopeLabel, note.trim())
+    // Editing a company default drifts existing estimate snapshots.
+    if (!asProject) {
+      triggerRateDrift()
+    }
     toast.success("Rate updated")
     setEditTarget(null)
   }

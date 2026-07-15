@@ -2,12 +2,18 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Lock } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { BidCountdownBadge } from "@/components/bid-countdown-badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import {
   Dialog,
   DialogClose,
@@ -126,6 +132,37 @@ export default function ReportsPage() {
             onExport={handleExport}
             downloads={downloads}
           />
+
+          <div className="flex flex-col gap-2">
+            <span className="text-xs font-medium text-muted-foreground">
+              Export history
+            </span>
+            <div className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-card px-3 py-2">
+              <span className="text-sm font-medium text-foreground">
+                Reconciliation_Report_24-118.pdf
+              </span>
+              <span className="text-xs text-muted-foreground">
+                exported Jul 10, 2026
+              </span>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <span className="ml-auto inline-flex cursor-default items-center gap-1.5 rounded-full border border-border bg-muted/50 px-2 py-0.5 text-xs text-muted-foreground" />
+                    }
+                  >
+                    <Lock className="size-3" />
+                    Locked to Jul 9 rate snapshot
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs">
+                    Exported and approved estimates keep the rates they were
+                    built with. Recalculation creates a new revision; it never
+                    rewrites this file.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          </div>
 
           <div className="flex justify-center rounded-lg bg-muted/40 p-6">
             <div className="w-full max-w-3xl rounded-md border border-border bg-background p-8 shadow-lg">

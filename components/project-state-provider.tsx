@@ -15,6 +15,26 @@ type ProjectStateValue = {
   costSetupComplete: boolean
   setCostSetupComplete: (value: boolean) => void
   /**
+   * The date the current estimate's rate snapshot was captured. Editing a
+   * company rate never changes this; only a recalculation does.
+   */
+  rateSnapshotDate: string
+  /**
+   * Whether company-default rates have changed since the estimate's snapshot
+   * (set by editing a company rate on /cost-setup or the demo trigger).
+   */
+  rateDrift: boolean
+  /** Flag company rates as changed since the snapshot. */
+  triggerRateDrift: () => void
+  /** Whether the user dismissed the drift banner via "Keep Snapshot". */
+  driftDismissed: boolean
+  /** Dismiss the drift banner without changing the snapshot. */
+  dismissDrift: () => void
+  /** Whether the estimate has been recalculated against current rates. */
+  recalculated: boolean
+  /** Recalculate: advance the snapshot to today and clear drift. */
+  recalculate: () => void
+  /**
    * Increments on every demo reset. Used as a React `key` on page content so
    * page-local state (review stage, applied recommendations, processing
    * animation) remounts back to its defaults without a hard refresh.
@@ -23,6 +43,9 @@ type ProjectStateValue = {
   /** Reset all client-side demo state back to its initial values. */
   reset: () => void
 }
+
+const INITIAL_SNAPSHOT_DATE = "Jul 9, 2026"
+const RECALCULATED_SNAPSHOT_DATE = "Jul 14, 2026"
 
 const ProjectStateContext = React.createContext<ProjectStateValue | null>(null)
 
@@ -33,11 +56,37 @@ export function ProjectStateProvider({
 }) {
   const [item15Added, setItem15Added] = React.useState(false)
   const [costSetupComplete, setCostSetupComplete] = React.useState(false)
+  const [rateSnapshotDate, setRateSnapshotDate] = React.useState(
+    INITIAL_SNAPSHOT_DATE,
+  )
+  const [rateDrift, setRateDrift] = React.useState(false)
+  const [driftDismissed, setDriftDismissed] = React.useState(false)
+  const [recalculated, setRecalculated] = React.useState(false)
   const [resetKey, setResetKey] = React.useState(0)
+
+  const triggerRateDrift = React.useCallback(() => {
+    setRateDrift(true)
+    setDriftDismissed(false)
+  }, [])
+
+  const dismissDrift = React.useCallback(() => {
+    setDriftDismissed(true)
+  }, [])
+
+  const recalculate = React.useCallback(() => {
+    setRateSnapshotDate(RECALCULATED_SNAPSHOT_DATE)
+    setRateDrift(false)
+    setDriftDismissed(false)
+    setRecalculated(true)
+  }, [])
 
   const reset = React.useCallback(() => {
     setItem15Added(false)
     setCostSetupComplete(false)
+    setRateSnapshotDate(INITIAL_SNAPSHOT_DATE)
+    setRateDrift(false)
+    setDriftDismissed(false)
+    setRecalculated(false)
     setResetKey((k) => k + 1)
   }, [])
 
@@ -48,10 +97,29 @@ export function ProjectStateProvider({
       attentionCount: item15Added ? 2 : 3,
       costSetupComplete,
       setCostSetupComplete,
+      rateSnapshotDate,
+      rateDrift,
+      triggerRateDrift,
+      driftDismissed,
+      dismissDrift,
+      recalculated,
+      recalculate,
       resetKey,
       reset,
     }),
-    [item15Added, costSetupComplete, resetKey, reset],
+    [
+      item15Added,
+      costSetupComplete,
+      rateSnapshotDate,
+      rateDrift,
+      triggerRateDrift,
+      driftDismissed,
+      dismissDrift,
+      recalculated,
+      recalculate,
+      resetKey,
+      reset,
+    ],
   )
 
   return (
