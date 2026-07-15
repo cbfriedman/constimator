@@ -832,7 +832,10 @@ export function CostSetupSections({
                 </label>
                 {scope === "project" ? (
                   <div className="pl-6">
-                    <Select value={project} onValueChange={setProject}>
+                    <Select
+                      value={project}
+                      onValueChange={(value) => setProject(value ?? projectLabel)}
+                    >
                       <SelectTrigger className="w-full">
                         <SelectValue />
                       </SelectTrigger>
