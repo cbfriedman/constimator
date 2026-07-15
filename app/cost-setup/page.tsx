@@ -67,7 +67,6 @@ export default function CostSetupPage() {
   }
 
   function handleCompleteDemo() {
-    console.log("[v0] handleCompleteDemo fired")
     setCostSetupComplete(true)
     setActiveId("labor-rates")
     refs.current
