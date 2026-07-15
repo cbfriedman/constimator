@@ -8,6 +8,16 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { BidCountdownBadge } from "@/components/bid-countdown-badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { useProjectState } from "@/components/project-state-provider"
 import { demoProject } from "@/lib/demo-data"
 import { reports, type ReportId } from "@/lib/report-data"
 import { ReportPicker } from "@/components/reports/report-picker"
@@ -46,6 +56,8 @@ export default function ReportsPage() {
   })
   const [downloads, setDownloads] = React.useState<DownloadEntry[]>([])
   const downloadId = React.useRef(0)
+  const { costSetupComplete } = useProjectState()
+  const [exportDialogOpen, setExportDialogOpen] = React.useState(false)
 
   function handleSelect(id: ReportId) {
     if (id === selected) return
@@ -59,11 +71,11 @@ export default function ReportsPage() {
     return () => clearTimeout(timer)
   }, [loading])
 
-  function handleExport() {
+  function performExport(preliminary: boolean) {
     const ext = format === "pdf" ? "pdf" : "xlsx"
     const number = demoProject.number
     const name = `${fileSlug[selected]}_${number}.${ext}`
-    toast.success(`${name} ready`)
+    toast.success(`${name} ready${preliminary ? " (marked Preliminary)" : ""}`)
     downloadId.current += 1
     setDownloads((prev) => [
       {
@@ -74,6 +86,14 @@ export default function ReportsPage() {
       },
       ...prev,
     ])
+  }
+
+  function handleExport() {
+    if (!costSetupComplete) {
+      setExportDialogOpen(true)
+      return
+    }
+    performExport(false)
   }
 
   const current = reports.find((r) => r.id === selected)
@@ -134,6 +154,38 @@ export default function ReportsPage() {
           Back to Project
         </Button>
       </div>
+
+      <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Complete cost settings before exporting</DialogTitle>
+            <DialogDescription>
+              Before exporting, complete your cost settings (2 rates and
+              insurance % are missing). Reports must reflect final costs.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setExportDialogOpen(false)
+                router.push("/cost-setup")
+              }}
+            >
+              Go to Cost Setup
+            </Button>
+            <DialogClose
+              render={
+                <Button
+                  onClick={() => performExport(true)}
+                >
+                  Export Anyway (marked Preliminary)
+                </Button>
+              }
+            />
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

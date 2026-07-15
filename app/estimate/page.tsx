@@ -1,11 +1,12 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { Plus, TableProperties } from "lucide-react"
+import { AlertTriangle, Plus, TableProperties } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { BidCountdownBadge } from "@/components/bid-countdown-badge"
 import { Button } from "@/components/ui/button"
+import { useProjectState } from "@/components/project-state-provider"
 import {
   Select,
   SelectContent,
@@ -40,9 +41,30 @@ const filterLabels: Record<string, string> = {
 
 export default function EstimatePage() {
   const router = useRouter()
+  const { costSetupComplete } = useProjectState()
 
   return (
     <div className="flex flex-col">
+      {!costSetupComplete ? (
+        <div className="flex flex-wrap items-center gap-3 border-b border-warning/40 bg-warning/10 px-6 py-3">
+          <AlertTriangle className="size-4 shrink-0 text-warning" />
+          <p className="flex-1 text-sm text-foreground">
+            <span className="font-medium">
+              2 cost settings are missing
+            </span>{" "}
+            (Cement Mason labor rate, Water Truck rate, Insurance %). Totals
+            shown are preliminary.
+          </p>
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-warning/40 bg-warning/10 text-warning hover:bg-warning/20"
+            onClick={() => router.push("/cost-setup")}
+          >
+            Complete Cost Setup
+          </Button>
+        </div>
+      ) : null}
       <div className="flex flex-col gap-4 border-b bg-card px-6 py-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex flex-col gap-1">
@@ -60,14 +82,24 @@ export default function EstimatePage() {
                 <span className="text-xs text-muted-foreground">
                   {item.label}
                 </span>
-                <span
-                  className={
-                    item.emphasized
-                      ? "text-lg font-bold text-foreground tabular-nums"
-                      : "text-sm font-medium text-foreground tabular-nums"
-                  }
-                >
-                  {item.value}
+                <span className="flex items-center gap-2">
+                  <span
+                    className={
+                      item.emphasized
+                        ? "text-lg font-bold text-foreground tabular-nums"
+                        : "text-sm font-medium text-foreground tabular-nums"
+                    }
+                  >
+                    {item.value}
+                  </span>
+                  {item.emphasized && !costSetupComplete ? (
+                    <Badge
+                      variant="outline"
+                      className="border-warning/40 bg-warning/10 text-warning"
+                    >
+                      Preliminary
+                    </Badge>
+                  ) : null}
                 </span>
               </div>
             ))}

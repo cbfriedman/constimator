@@ -74,7 +74,7 @@ const footerNav = [
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const { attentionCount } = useProjectState()
+  const { attentionCount, costSetupComplete } = useProjectState()
 
   return (
     <Sidebar>
@@ -93,17 +93,29 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainNav.map((item) => (
-                <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton
-                    render={<Link href={item.href} />}
-                    isActive={pathname === item.href}
-                  >
-                    <item.icon />
-                    <span>{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {mainNav.map((item) => {
+                const showSetupDot =
+                  item.href === "/cost-setup" && !costSetupComplete
+                return (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      render={<Link href={item.href} />}
+                      isActive={pathname === item.href}
+                    >
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                    {showSetupDot ? (
+                      <SidebarMenuBadge className="border-transparent bg-transparent">
+                        <span
+                          className="size-2 rounded-full bg-warning"
+                          aria-label="Cost setup incomplete"
+                        />
+                      </SidebarMenuBadge>
+                    ) : null}
+                  </SidebarMenuItem>
+                )
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

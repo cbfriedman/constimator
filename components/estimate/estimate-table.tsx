@@ -1,7 +1,12 @@
 "use client"
 
 import * as React from "react"
-import { ChevronDown, ChevronRight, MoreHorizontal } from "lucide-react"
+import {
+  AlertTriangle,
+  ChevronDown,
+  ChevronRight,
+  MoreHorizontal,
+} from "lucide-react"
 
 import {
   Table,
@@ -11,6 +16,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import {
   Dialog,
   DialogClose,
@@ -33,9 +44,16 @@ import { Textarea } from "@/components/ui/textarea"
 import { SourceBadge, type SourceKind } from "@/components/source-badge"
 import { CostBreakdown } from "@/components/estimate/cost-breakdown"
 import { estimateRows } from "@/lib/estimate-data"
+import { useProjectState } from "@/components/project-state-provider"
 import { cn } from "@/lib/utils"
 
+const costWarnings: Record<number, string> = {
+  8: "Crew uses Water Truck — rate not set",
+  15: "Uses Cement Mason — labor rate not set",
+}
+
 export function EstimateTable() {
+  const { costSetupComplete } = useProjectState()
   const [expanded, setExpanded] = React.useState<number | null>(null)
   const [overrides, setOverrides] = React.useState<Record<number, SourceKind>>(
     {},
@@ -73,7 +91,7 @@ export function EstimateTable() {
   }
 
   return (
-    <>
+    <TooltipProvider>
       <div className="overflow-x-auto rounded-lg border bg-card">
         <Table>
           <TableHeader>
@@ -123,8 +141,22 @@ export function EstimateTable() {
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col">
-                        <span className="font-medium text-foreground">
+                        <span className="flex items-center gap-1.5 font-medium text-foreground">
                           {row.description}
+                          {!costSetupComplete && costWarnings[row.id] ? (
+                            <Tooltip>
+                              <TooltipTrigger
+                                aria-label={costWarnings[row.id]}
+                                className="inline-flex text-warning outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <AlertTriangle className="size-4" />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {costWarnings[row.id]}
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : null}
                         </span>
                         {row.note ? (
                           <span className="text-xs text-muted-foreground">
@@ -248,6 +280,6 @@ export function EstimateTable() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </TooltipProvider>
   )
 }
