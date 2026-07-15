@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
   FolderKanban,
+  SlidersHorizontal,
   FileText,
   Files,
   Table2,
@@ -36,6 +37,7 @@ import { demoProject } from "@/lib/demo-data"
 const mainNav = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { title: "Projects", href: "/projects", icon: FolderKanban },
+  { title: "Estimating Defaults", href: "/cost-setup", icon: SlidersHorizontal },
 ]
 
 type NavBadge = { text: string; tone: "danger" | "review" }

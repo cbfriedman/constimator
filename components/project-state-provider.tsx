@@ -9,6 +9,12 @@ type ProjectStateValue = {
   /** Reconciliation items still needing attention (3 → 2 once Item 15 is added). */
   attentionCount: number
   /**
+   * Whether company Estimating Defaults (/cost-setup) are fully configured.
+   * Other pages read this to gate final calculations / report export.
+   */
+  costSetupComplete: boolean
+  setCostSetupComplete: (value: boolean) => void
+  /**
    * Increments on every demo reset. Used as a React `key` on page content so
    * page-local state (review stage, applied recommendations, processing
    * animation) remounts back to its defaults without a hard refresh.
@@ -26,10 +32,12 @@ export function ProjectStateProvider({
   children: React.ReactNode
 }) {
   const [item15Added, setItem15Added] = React.useState(false)
+  const [costSetupComplete, setCostSetupComplete] = React.useState(false)
   const [resetKey, setResetKey] = React.useState(0)
 
   const reset = React.useCallback(() => {
     setItem15Added(false)
+    setCostSetupComplete(false)
     setResetKey((k) => k + 1)
   }, [])
 
@@ -38,10 +46,12 @@ export function ProjectStateProvider({
       item15Added,
       setItem15Added,
       attentionCount: item15Added ? 2 : 3,
+      costSetupComplete,
+      setCostSetupComplete,
       resetKey,
       reset,
     }),
-    [item15Added, resetKey, reset],
+    [item15Added, costSetupComplete, resetKey, reset],
   )
 
   return (
