@@ -7,8 +7,12 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { SectionNav } from "@/components/cost-setup/section-nav"
-import { CostSetupSections } from "@/components/cost-setup/cost-setup-sections"
+import {
+  CostSetupSections,
+  type CostSetupView,
+} from "@/components/cost-setup/cost-setup-sections"
 import { useProjectState } from "@/components/project-state-provider"
+import { cn } from "@/lib/utils"
 import {
   costSetupSections,
   type CostSetupSectionId,
@@ -23,6 +27,7 @@ const ALWAYS_COMPLETE: CostSetupSectionId[] = [
 
 export default function CostSetupPage() {
   const { costSetupComplete, setCostSetupComplete } = useProjectState()
+  const [view, setView] = React.useState<CostSetupView>("project")
   const [activeId, setActiveId] = React.useState<CostSetupSectionId>(
     costSetupSections[0].id,
   )
@@ -117,6 +122,38 @@ export default function CostSetupPage() {
         </AlertDescription>
       </Alert>
 
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        <span className="text-sm font-medium text-muted-foreground">Show:</span>
+        <div
+          role="radiogroup"
+          aria-label="Rate view"
+          className="inline-flex items-center rounded-lg border bg-muted/40 p-0.5"
+        >
+          {(
+            [
+              { value: "company", label: "Company defaults" },
+              { value: "project", label: "This project (with overrides)" },
+            ] as const
+          ).map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              role="radio"
+              aria-checked={view === option.value}
+              onClick={() => setView(option.value)}
+              className={cn(
+                "rounded-[calc(var(--radius)-2px)] px-3 py-1.5 text-sm font-medium transition-colors",
+                view === option.value
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="mt-6 grid gap-8 lg:grid-cols-[240px_1fr]">
         <SectionNav
           activeId={activeId}
@@ -126,6 +163,7 @@ export default function CostSetupPage() {
         />
         <CostSetupSections
           complete={costSetupComplete}
+          view={view}
           registerRef={registerRef}
         />
       </div>
