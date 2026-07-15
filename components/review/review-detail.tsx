@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { StatusPipeline } from "@/components/review/status-pipeline"
+import { useProjectState } from "@/components/project-state-provider"
 
 type Comment = {
   id: string
@@ -65,7 +66,19 @@ const revisionHistory = [
 ]
 
 export function ReviewDetail() {
+  const { recalculated } = useProjectState()
   const [reviewed, setReviewed] = React.useState<Record<string, boolean>>({})
+
+  const history = recalculated
+    ? [
+        {
+          time: "Jul 14, 10:05 AM",
+          text: "Estimate recalculated with current rates",
+          meta: "M. Torres",
+        },
+        ...revisionHistory,
+      ]
+    : revisionHistory
 
   function applyRecommendation(comment: Comment) {
     setReviewed((prev) => ({ ...prev, [comment.id]: true }))
@@ -165,7 +178,7 @@ export function ReviewDetail() {
         </CardHeader>
         <CardContent>
           <ol className="flex flex-col">
-            {revisionHistory.map((entry, index) => (
+            {history.map((entry, index) => (
               <li key={entry.time + entry.text} className="flex flex-col">
                 <div className="flex items-baseline gap-3 py-2">
                   <span className="w-32 shrink-0 text-xs text-muted-foreground">
@@ -176,7 +189,7 @@ export function ReviewDetail() {
                     {entry.meta}
                   </span>
                 </div>
-                {index < revisionHistory.length - 1 ? <Separator /> : null}
+                {index < history.length - 1 ? <Separator /> : null}
               </li>
             ))}
           </ol>
