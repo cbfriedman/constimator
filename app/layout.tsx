@@ -38,11 +38,7 @@ export default function RootLayout({
     >
       <body>
         <ThemeProvider>
-<<<<<<< HEAD
-          {children}
-=======
           <AppShell>{children}</AppShell>
->>>>>>> 7deea6d7db8201d8378e9d13ef9a13f4abdde6ed
           <Toaster />
         </ThemeProvider>
       </body>
