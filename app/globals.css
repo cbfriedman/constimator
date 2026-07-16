@@ -1,4 +1,60 @@
 @import "tailwindcss";
+<<<<<<< HEAD
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --radius: 0.625rem;
+
+  /* Warm off-white background, deep slate ink */
+  --background: oklch(0.98 0.005 85);
+  --foreground: oklch(0.22 0.015 260);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.22 0.015 260);
+
+  /* Safety amber primary with dark ink text */
+  --primary: oklch(0.76 0.16 66);
+  --primary-foreground: oklch(0.24 0.02 60);
+
+  /* Deep slate used for dark sections/surfaces */
+  --secondary: oklch(0.26 0.02 255);
+  --secondary-foreground: oklch(0.97 0.005 85);
+
+  --muted: oklch(0.95 0.008 85);
+  --muted-foreground: oklch(0.48 0.015 260);
+
+  --accent: oklch(0.94 0.02 66);
+  --accent-foreground: oklch(0.3 0.03 60);
+
+  --border: oklch(0.9 0.008 85);
+  --input: oklch(0.9 0.008 85);
+  --ring: oklch(0.76 0.16 66);
+=======
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
@@ -138,10 +194,20 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0);
+>>>>>>> b4634eb12b576bb4756d482e772ea68726e62c70
 }
 
 @layer base {
   * {
+<<<<<<< HEAD
+    border-color: var(--border);
+  }
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    -webkit-font-smoothing: antialiased;
+  }
+=======
     @apply border-border outline-ring/50;
     }
   body {
@@ -150,4 +216,5 @@
   html {
     @apply font-sans;
     }
+>>>>>>> b4634eb12b576bb4756d482e772ea68726e62c70
 }
