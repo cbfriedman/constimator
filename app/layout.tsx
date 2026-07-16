@@ -3,13 +3,6 @@ import { Geist, Geist_Mono } from "next/font/google"
 
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
-import {
-  ProjectStateProvider,
-  ResettableMain,
-} from "@/components/project-state-provider"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
-import { AppSidebar } from "@/components/app-sidebar"
-import { TopBar } from "@/components/top-bar"
 import { Toaster } from "@/components/ui/sonner"
 import { cn } from "@/lib/utils"
 
@@ -44,17 +37,7 @@ export default function RootLayout({
     >
       <body>
         <ThemeProvider>
-          <ProjectStateProvider>
-            <SidebarProvider>
-              <AppSidebar />
-              <SidebarInset>
-                <TopBar />
-                <ResettableMain className="flex-1 overflow-auto">
-                  {children}
-                </ResettableMain>
-              </SidebarInset>
-            </SidebarProvider>
-          </ProjectStateProvider>
+          {children}
           <Toaster />
         </ThemeProvider>
       </body>
