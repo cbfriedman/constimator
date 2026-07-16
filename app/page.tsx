@@ -1,3 +1,31 @@
+<<<<<<< HEAD
+import { SiteHeader } from "@/components/site-header"
+import { Hero } from "@/components/hero"
+import { TrustedBy } from "@/components/trusted-by"
+import { Features } from "@/components/features"
+import { HowItWorks } from "@/components/how-it-works"
+import { AiTakeoff } from "@/components/ai-takeoff"
+import { Proof } from "@/components/proof"
+import { Pricing } from "@/components/pricing"
+import { Cta } from "@/components/cta"
+import { SiteFooter } from "@/components/site-footer"
+
+export default function HomePage() {
+  return (
+    <div className="flex min-h-screen flex-col">
+      <SiteHeader />
+      <main className="flex-1">
+        <Hero />
+        <TrustedBy />
+        <Features />
+        <HowItWorks />
+        <AiTakeoff />
+        <Proof />
+        <Pricing />
+        <Cta />
+      </main>
+      <SiteFooter />
+=======
 import Link from "next/link"
 import {
   ArrowRight,
@@ -377,6 +405,7 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+>>>>>>> 7deea6d7db8201d8378e9d13ef9a13f4abdde6ed
     </div>
   )
 }
