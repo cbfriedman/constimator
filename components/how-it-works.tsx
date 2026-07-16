@@ -1,21 +1,21 @@
 const steps = [
   {
     number: "01",
-    title: "Import the plans",
+    title: "Upload the plans & specs",
     description:
-      "Upload drawings or PDFs and mark up your takeoff on screen. Quantities flow directly into the estimate.",
+      "Pull a project straight from OnlinePlanService.com or drop in the bid documents. Constimator handles the full plan set and specifications.",
   },
   {
     number: "02",
-    title: "Build the estimate",
+    title: "We extract the key parameters",
     description:
-      "Drop in assemblies, apply live material and labor rates, and set your markup. Watch the total and margin update instantly.",
+      "Engineer's estimate, project duration, liquidated damages, bonding, DBE goals, and bid deadlines are read from the documents and organized into one summary.",
   },
   {
     number: "03",
-    title: "Send the proposal",
+    title: "Make the bid / no-bid call",
     description:
-      "Generate a branded proposal, share it online, and let clients review and approve — then push it straight to a job.",
+      "Review the summary against your capacity and appetite, then decide with confidence which projects deserve a full estimate.",
   },
 ]
 
@@ -26,10 +26,11 @@ export function HowItWorks() {
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-semibold uppercase tracking-widest text-primary">How it works</p>
           <h2 className="mt-3 font-display text-3xl font-bold tracking-tight text-balance sm:text-4xl">
-            From plans to signed bid in three steps
+            From plan set to decision in three steps
           </h2>
           <p className="mt-4 text-lg leading-relaxed text-secondary-foreground/70 text-pretty">
-            A workflow designed around how estimators actually work in the field and the office.
+            Stop reading hundreds of pages just to learn a project isn&apos;t worth chasing. Constimator does
+            the first pass for you.
           </p>
         </div>
 

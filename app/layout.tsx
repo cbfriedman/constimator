@@ -15,20 +15,23 @@ const spaceGrotesk = Space_Grotesk({
 })
 
 export const metadata: Metadata = {
-  title: "Constimator — Construction Estimates & Bids, Done Right",
+  title: "Constimator — Bid / No-Bid Analysis for Public Works Contractors",
   description:
-    "Constimator helps contractors and builders create accurate construction estimates, bids, and quotes in minutes. Win more jobs with faster, more precise pricing.",
+    "Constimator reads public works plans and specs and extracts the parameters that drive your bid decision — engineer's estimate, project duration, liquidated damages, bonding, and DBE requirements — in minutes.",
   keywords: [
-    "construction estimating software",
-    "contractor estimates",
-    "construction bids",
-    "cost estimating",
-    "takeoff software",
+    "public works bidding",
+    "bid no bid decision",
+    "construction bid analysis",
+    "engineer's estimate",
+    "liquidated damages",
+    "DBE requirements",
+    "bonding requirements",
+    "plans and specifications",
   ],
   openGraph: {
-    title: "Constimator — Construction Estimates & Bids, Done Right",
+    title: "Constimator — Bid / No-Bid Analysis for Public Works Contractors",
     description:
-      "Create accurate construction estimates, bids, and quotes in minutes. Win more jobs with faster, more precise pricing.",
+      "Extract engineer's estimate, project duration, liquidated damages, bonding, and DBE requirements from plans and specs in minutes. Decide bid or no-bid with confidence.",
     type: "website",
   },
 }

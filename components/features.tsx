@@ -1,41 +1,41 @@
-import { Calculator, FileText, Ruler, Database, TrendingUp, Users } from "lucide-react"
+import { Calendar, AlertTriangle, DollarSign, ShieldCheck, Users, Gavel } from "lucide-react"
 
 const features = [
   {
-    icon: Ruler,
-    title: "Fast digital takeoffs",
+    icon: DollarSign,
+    title: "Engineer's estimate",
     description:
-      "Measure plans on screen and push quantities straight into your estimate. No more paper, scale rulers, or double entry.",
+      "See the agency's estimated construction cost up front, so you can gauge project size and whether it fits your book of work.",
   },
   {
-    icon: Database,
-    title: "Live cost database",
+    icon: Calendar,
+    title: "Project duration",
     description:
-      "Localized material and labor rates that stay current, so every line item reflects what the job actually costs today.",
+      "Pull working-day and calendar-day requirements automatically to check them against your crew's availability.",
   },
   {
-    icon: Calculator,
-    title: "Smart assemblies",
+    icon: AlertTriangle,
+    title: "Liquidated damages",
     description:
-      "Reusable cost assemblies bundle materials, labor, and markup so complex scopes come together in a few clicks.",
+      "Surface the daily penalty for late completion instantly, so schedule risk is priced in before you commit.",
   },
   {
-    icon: FileText,
-    title: "Client-ready proposals",
+    icon: ShieldCheck,
+    title: "Bonding requirements",
     description:
-      "Turn any estimate into a branded, professional proposal your clients can review and approve online.",
-  },
-  {
-    icon: TrendingUp,
-    title: "Margin protection",
-    description:
-      "See profit and margin update in real time as you build the bid, so you never leave money on the table.",
+      "Identify bid, performance, and payment bond thresholds to confirm the job is within your bonding capacity.",
   },
   {
     icon: Users,
-    title: "Team collaboration",
+    title: "DBE / goal requirements",
     description:
-      "Estimators, PMs, and owners work from the same numbers with roles, comments, and full version history.",
+      "Extract disadvantaged business enterprise goals and participation requirements before they become a surprise.",
+  },
+  {
+    icon: Gavel,
+    title: "Bid details & deadlines",
+    description:
+      "Capture bid due dates, prevailing wage, and submission requirements so nothing critical slips through the cracks.",
   },
 ]
 
@@ -44,13 +44,13 @@ export function Features() {
     <section id="features" className="scroll-mt-16">
       <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-widest text-primary">Everything you need</p>
+          <p className="text-sm font-semibold uppercase tracking-widest text-primary">What we extract</p>
           <h2 className="mt-3 font-display text-3xl font-bold tracking-tight text-balance sm:text-4xl">
-            One place to price the whole job
+            The numbers that decide the bid
           </h2>
           <p className="mt-4 text-lg leading-relaxed text-muted-foreground text-pretty">
-            From takeoff to signed proposal, Constimator replaces the spreadsheets and guesswork with a
-            single, accurate workflow.
+            Constimator scans the plans and specifications and pulls the parameters public works
+            contractors need to make a fast, informed go / no-go call.
           </p>
         </div>
 

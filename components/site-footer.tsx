@@ -3,15 +3,15 @@ import { HardHat } from "lucide-react"
 const groups = [
   {
     heading: "Product",
-    links: ["Features", "Pricing", "Takeoffs", "Proposals", "Integrations"],
+    links: ["What we extract", "How it works", "Pricing", "OnlinePlanService", "Integrations"],
   },
   {
     heading: "Company",
-    links: ["About", "Customers", "Careers", "Blog", "Contact"],
+    links: ["About", "Results", "Careers", "Blog", "Contact"],
   },
   {
     heading: "Resources",
-    links: ["Help center", "Estimating guide", "Templates", "API docs", "Status"],
+    links: ["Help center", "Bidding guide", "Public works FAQ", "API docs", "Status"],
   },
 ]
 
@@ -28,7 +28,8 @@ export function SiteFooter() {
               <span className="font-display text-xl font-bold tracking-tight">Constimator</span>
             </a>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">
-              Accurate construction estimates, bids, and proposals — built for the people who build.
+              Bid / no-bid intelligence for public works contractors — the key numbers from your plans and
+              specs, in minutes.
             </p>
           </div>
 

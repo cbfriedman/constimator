@@ -1,4 +1,4 @@
-import { ArrowRight, CheckCircle2, Star } from "lucide-react"
+import { ArrowRight, CheckCircle2, FileSearch } from "lucide-react"
 
 export function Hero() {
   return (
@@ -8,16 +8,17 @@ export function Hero() {
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
               <span className="flex h-1.5 w-1.5 rounded-full bg-primary" aria-hidden="true" />
-              Built for contractors, remodelers &amp; builders
+              Built for public works contractors
             </div>
 
             <h1 className="mt-5 font-display text-4xl font-bold leading-[1.05] tracking-tight text-balance sm:text-5xl lg:text-6xl">
-              Estimates and bids, <span className="text-primary">done right</span> the first time.
+              Decide <span className="text-primary">bid or no-bid</span> in minutes, not days.
             </h1>
 
             <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted-foreground text-pretty">
-              Constimator turns takeoffs, labor, and materials into accurate, professional estimates in
-              minutes — so you price jobs with confidence and win more work.
+              Constimator reads the plans and specs for you, pulling the numbers that make or break a
+              job — engineer&apos;s estimate, project duration, liquidated damages, bonding, and DBE goals — so
+              you know which projects are worth pursuing.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -25,7 +26,7 @@ export function Hero() {
                 href="#"
                 className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition-transform hover:-translate-y-0.5"
               >
-                Start your free trial
+                Analyze your first project
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </a>
               <a
@@ -39,19 +40,15 @@ export function Hero() {
             <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">
                 <CheckCircle2 className="h-4 w-4 text-primary" aria-hidden="true" />
-                14-day free trial
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <CheckCircle2 className="h-4 w-4 text-primary" aria-hidden="true" />
                 No credit card required
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <span className="flex items-center" aria-hidden="true">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-primary text-primary" />
-                  ))}
-                </span>
-                4.9/5 from 1,200+ pros
+                <CheckCircle2 className="h-4 w-4 text-primary" aria-hidden="true" />
+                Works with any plan set
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <FileSearch className="h-4 w-4 text-primary" aria-hidden="true" />
+                Featured on OnlinePlanService.com
               </span>
             </div>
           </div>
@@ -64,12 +61,12 @@ export function Hero() {
                 <span className="h-3 w-3 rounded-full bg-border" aria-hidden="true" />
                 <span className="h-3 w-3 rounded-full bg-border" aria-hidden="true" />
                 <span className="ml-3 text-xs font-medium text-muted-foreground">
-                  Kitchen Remodel — Estimate #1042
+                  Bid Summary — Hwy 12 Culvert Rehabilitation
                 </span>
               </div>
               <img
-                src="/dashboard-preview.png"
-                alt="Constimator dashboard showing a detailed construction estimate with line items, cost breakdown, and total project cost"
+                src="/bid-analysis-preview.png"
+                alt="Constimator bid summary showing engineer's estimate, project duration, liquidated damages, bonding and DBE requirements extracted from the plans, with a bid or no-bid recommendation"
                 className="w-full"
                 width={1200}
                 height={900}

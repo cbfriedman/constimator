@@ -4,10 +4,10 @@ import { useState } from "react"
 import { HardHat, Menu, X } from "lucide-react"
 
 const navLinks = [
-  { label: "Features", href: "#features" },
+  { label: "What we extract", href: "#features" },
   { label: "How it works", href: "#how-it-works" },
   { label: "Pricing", href: "#pricing" },
-  { label: "Customers", href: "#customers" },
+  { label: "Results", href: "#results" },
 ]
 
 export function SiteHeader() {
@@ -46,7 +46,7 @@ export function SiteHeader() {
             href="#"
             className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-transform hover:-translate-y-0.5"
           >
-            Start free trial
+            Get started
           </a>
         </div>
 
@@ -82,7 +82,7 @@ export function SiteHeader() {
                 href="#"
                 className="rounded-md bg-primary px-3 py-2 text-center text-sm font-semibold text-primary-foreground"
               >
-                Start free trial
+                Get started
               </a>
             </div>
           </nav>

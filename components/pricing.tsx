@@ -2,39 +2,45 @@ import { Check } from "lucide-react"
 
 const plans = [
   {
-    name: "Solo",
-    price: "$49",
+    name: "Bidder",
+    price: "$99",
     period: "/mo",
-    description: "For independent contractors pricing their own jobs.",
-    features: ["1 user", "Unlimited estimates", "Digital takeoffs", "Branded proposals", "Email support"],
-    cta: "Start free trial",
+    description: "For independent contractors evaluating a steady flow of projects.",
+    features: [
+      "Up to 10 projects / month",
+      "Full parameter extraction",
+      "Bid / no-bid summaries",
+      "PDF & plan set uploads",
+      "Email support",
+    ],
+    cta: "Get started",
     featured: false,
   },
   {
-    name: "Crew",
-    price: "$129",
+    name: "Contractor",
+    price: "$299",
     period: "/mo",
-    description: "For growing teams that bid together.",
+    description: "For estimating teams chasing public works across agencies.",
     features: [
-      "Up to 5 users",
-      "Everything in Solo",
-      "Cost assemblies library",
-      "Team roles & comments",
-      "Live cost database",
+      "Up to 50 projects / month",
+      "Everything in Bidder",
+      "OnlinePlanService sync",
+      "Team seats & sharing",
+      "Bid calendar & deadlines",
       "Priority support",
     ],
-    cta: "Start free trial",
+    cta: "Get started",
     featured: true,
   },
   {
-    name: "Company",
+    name: "Enterprise",
     price: "Custom",
     period: "",
-    description: "For established firms with advanced needs.",
+    description: "For established firms with high bid volume.",
     features: [
-      "Unlimited users",
-      "Everything in Crew",
-      "Custom rate imports",
+      "Unlimited projects",
+      "Everything in Contractor",
+      "Custom extraction rules",
       "API & integrations",
       "SSO & audit logs",
       "Dedicated manager",
@@ -51,10 +57,10 @@ export function Pricing() {
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-semibold uppercase tracking-widest text-primary">Pricing</p>
           <h2 className="mt-3 font-display text-3xl font-bold tracking-tight text-balance sm:text-4xl">
-            Simple plans that scale with your crew
+            Priced by the projects you evaluate
           </h2>
           <p className="mt-4 text-lg leading-relaxed text-muted-foreground text-pretty">
-            Every plan includes a 14-day free trial. No credit card required to start.
+            Start free, then choose a plan that matches your bid volume. No credit card required to start.
           </p>
         </div>
 
