@@ -3,6 +3,7 @@ import { Hero } from "@/components/hero"
 import { TrustedBy } from "@/components/trusted-by"
 import { Features } from "@/components/features"
 import { HowItWorks } from "@/components/how-it-works"
+import { AiTakeoff } from "@/components/ai-takeoff"
 import { Proof } from "@/components/proof"
 import { Pricing } from "@/components/pricing"
 import { Cta } from "@/components/cta"
@@ -17,6 +18,7 @@ export default function HomePage() {
         <TrustedBy />
         <Features />
         <HowItWorks />
+        <AiTakeoff />
         <Proof />
         <Pricing />
         <Cta />

@@ -6,6 +6,7 @@ import { HardHat, Menu, X } from "lucide-react"
 const navLinks = [
   { label: "What we extract", href: "#features" },
   { label: "How it works", href: "#how-it-works" },
+  { label: "AI takeoff", href: "#takeoff" },
   { label: "Pricing", href: "#pricing" },
   { label: "Results", href: "#results" },
 ]
