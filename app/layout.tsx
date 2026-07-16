@@ -30,7 +30,7 @@ export default function RootLayout({
       lang="en"
       suppressHydrationWarning
       className={cn(
-        "bg-background antialiased",
+        "scroll-smooth bg-background antialiased",
         fontMono.variable,
         "font-sans",
         geist.variable,

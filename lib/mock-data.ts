@@ -1,3 +1,5 @@
+import type { SourceKind } from "@/components/source-badge"
+
 export const demoProject = {
   name: "Shasta County Roadway Improvements",
   owner: "Shasta County Public Works",
@@ -189,73 +191,121 @@ export const processingSummary = [
   { label: "Issues Found", value: "3 items need review", tone: "warning" as const },
 ]
 
-export const homeValueCards = [
+export const homeProblems = [
   {
-    title: "Upload plans, specs, and bid forms",
+    title: "Plans, specs, addenda, and bid forms are scattered",
     description:
-      "Bring the full bid package into one place so estimators start from the same source documents.",
+      "Bid packages arrive as dozens of separate files with no single source of truth before bid day.",
   },
   {
-    title: "Extract schedules and bid requirements",
+    title: "Important bid requirements are easy to miss",
     description:
-      "Pull bid schedules, working days, bonds, and other requirements out of plans and specs.",
+      "Bonds, liquidated damages, prevailing wage, and working-day limits get buried in specification sections.",
   },
   {
-    title: "Build estimates using company labor/equipment rates",
+    title: "Quantities may not match the official bid schedule",
     description:
-      "Apply your crew rates, equipment costs, markups, and production defaults consistently.",
+      "Estimates built from takeoffs and plan sheets can drift from the agency's bid form without anyone noticing.",
   },
   {
-    title: "Reconcile against the official bid form",
+    title: "Company labor and equipment rates must be applied consistently",
     description:
-      "Compare estimate items to the agency bid form so missing or mismatched items surface early.",
+      "Crew, equipment, markup, and overhead rates need to be applied the same way on every bid item, every time.",
   },
   {
-    title: "Request optional human review",
+    title: "Final reports need to be clear and defensible",
     description:
-      "Send flagged items to a reviewer when quantities, scope, or risk need a second set of eyes.",
-  },
-  {
-    title: "Export PDF/Excel reports",
-    description:
-      "Deliver professional estimate, reconciliation, and proposal-ready reports for bid day.",
+      "Proposal packages need to show where every number came from to hold up under scrutiny.",
   },
 ]
 
-export const homeHowItWorks = [
-  { step: 1, title: "Create Project", description: "Capture agency, bid date, and project basics." },
-  { step: 2, title: "Upload Documents", description: "Add plans, specs, addenda, and the official bid form." },
-  { step: 3, title: "AI Reviews Plans & Specs", description: "Constimator reads the package and extracts key data." },
-  { step: 4, title: "Set Company Cost Rates", description: "Confirm labor, equipment, markups, and indirects." },
-  { step: 5, title: "Build Estimate", description: "Organize quantities, crews, and pricing in one workspace." },
-  { step: 6, title: "Reconcile Bid Form", description: "Match your estimate to the official bid schedule." },
-  { step: 7, title: "Review & Export Reports", description: "Resolve flags, get review, and export bid packages." },
+export const homeSolutionSteps = [
+  {
+    step: 1,
+    description: "Upload plans, specifications, addenda, and the official bid form.",
+    linkLabel: "Upload Documents",
+    href: "/upload",
+  },
+  {
+    step: 2,
+    description:
+      "AI extracts project intelligence, schedules, risks, and bid requirements.",
+    linkLabel: "Project Intelligence",
+    href: "/intelligence",
+  },
+  {
+    step: 3,
+    description:
+      "Contractor applies company labor, equipment, markup, bond, and overhead rates.",
+    linkLabel: "Cost Setup",
+    href: "/cost-setup",
+  },
+  {
+    step: 4,
+    description: "Estimate workspace organizes bid items, quantities, and pricing.",
+    linkLabel: "Estimate Workspace",
+    href: "/estimate",
+  },
+  {
+    step: 5,
+    description:
+      "Bid reconciliation compares official quantities, AI quantities, and estimate quantities.",
+    linkLabel: "Bid Reconciliation",
+    href: "/reconciliation",
+  },
 ]
 
-export const homeWhyContractorsCare = [
+export const homeDifferentiatorFlags = [
+  "Missing bid items",
+  "Quantity discrepancies",
+  "Unit mismatches",
+  "Lump sum items requiring manual review",
+  "Low-confidence AI extractions",
+  "Items needing human review",
+]
+
+export const homeCostSetupItems = [
+  "Labor rates",
+  "Equipment rates",
+  "Bond premium",
+  "Overhead",
+  "Profit",
+  "Insurance",
+  "Markups",
+  "Project-specific overrides",
+]
+
+export const homeReportProvenance: { kind: SourceKind; description: string }[] = [
   {
-    title: "Faster bid turnaround",
-    description:
-      "Spend less time hunting through plan sheets and more time pricing work that wins jobs.",
+    kind: "official",
+    description: "Straight from the agency's official bid schedule.",
   },
   {
-    title: "Fewer missed bid items",
-    description:
-      "Reconciliation against the official bid form helps catch missing pay items before submittal.",
+    kind: "ai-extracted",
+    description: "Pulled from plans, specs, and schedules by Constimator.",
   },
   {
-    title: "Quantity discrepancy detection",
-    description:
-      "Surface mismatches between schedules, takeoffs, and the agency form while there is still time to fix them.",
+    kind: "manual",
+    description: "Entered directly by the contractor in the estimate.",
   },
   {
-    title: "Better estimate organization",
-    description:
-      "Keep documents, schedules, costs, and review notes connected for every project.",
+    kind: "reviewed",
+    description: "Confirmed by a human reviewer before export.",
   },
   {
-    title: "Professional reporting",
-    description:
-      "Export clean PDF and Excel reports that look ready for OPS, partners, and bid day packages.",
+    kind: "overridden",
+    description: "Manually replaces an extracted or official quantity.",
   },
+]
+
+export const homeDemoPath = [
+  "Start from this homepage",
+  "Launch Contractor Demo",
+  "Open Shasta County Roadway Improvements",
+  "Review AI Project Intelligence",
+  "Check Cost Setup",
+  "Open Estimate Workspace",
+  "Show Bid Form Reconciliation",
+  "Request Human Review",
+  "Export Reports",
 ]
