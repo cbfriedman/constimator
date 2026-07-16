@@ -67,13 +67,22 @@ export default function IntelligencePage() {
         </div>
 
         <div className="sticky bottom-0 z-10 border-t bg-background/95 supports-backdrop-filter:backdrop-blur">
-          <div className="mx-auto flex max-w-6xl items-center justify-end gap-3 px-6 py-3">
+          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-end gap-2 px-6 py-3">
             <Button
               variant="outline"
               onClick={() => toast.success("Project_Brief_24-118.pdf ready")}
             >
               <Download data-icon="inline-start" />
               Export Project Brief (PDF)
+            </Button>
+            <Button variant="outline" onClick={() => router.push("/upload")}>
+              Upload Documents
+            </Button>
+            <Button variant="outline" onClick={() => router.push("/schedules")}>
+              Schedules &amp; Tables
+            </Button>
+            <Button variant="outline" onClick={() => router.push("/cost-setup")}>
+              Complete Cost Setup
             </Button>
             <Button onClick={() => router.push("/estimate")}>
               Open Estimate Workspace

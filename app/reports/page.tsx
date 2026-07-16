@@ -77,8 +77,8 @@ export default function ReportsPage() {
     return () => clearTimeout(timer)
   }, [loading])
 
-  function performExport(preliminary: boolean) {
-    const ext = format === "pdf" ? "pdf" : "xlsx"
+  function performExport(preliminary: boolean, exportFormat: ExportFormat = format) {
+    const ext = exportFormat === "pdf" ? "pdf" : "xlsx"
     const number = demoProject.number
     const name = `${fileSlug[selected]}_${number}.${ext}`
     toast.success(`${name} ready${preliminary ? " (marked Preliminary)" : ""}`)
@@ -87,19 +87,20 @@ export default function ReportsPage() {
       {
         id: downloadId.current,
         name,
-        size: format === "pdf" ? "1.4 MB" : "486 KB",
+        size: exportFormat === "pdf" ? "1.4 MB" : "486 KB",
         time: "Just now",
       },
       ...prev,
     ])
   }
 
-  function handleExport() {
+  function handleExport(exportFormat?: ExportFormat) {
+    if (exportFormat) setFormat(exportFormat)
     if (!costSetupComplete) {
       setExportDialogOpen(true)
       return
     }
-    performExport(false)
+    performExport(false, exportFormat ?? format)
   }
 
   const current = reports.find((r) => r.id === selected)

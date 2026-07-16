@@ -1,7 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { Building2, Save, Sparkles } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { ArrowRight, Building2, Save, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -26,6 +27,7 @@ const ALWAYS_COMPLETE: CostSetupSectionId[] = [
 ]
 
 export default function CostSetupPage() {
+  const router = useRouter()
   const { costSetupComplete, setCostSetupComplete } = useProjectState()
   const [view, setView] = React.useState<CostSetupView>("project")
   const [activeId, setActiveId] = React.useState<CostSetupSectionId>(
@@ -98,7 +100,7 @@ export default function CostSetupPage() {
             final calculations and report export.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
             onClick={() => toast.success("Defaults saved")}
@@ -108,7 +110,14 @@ export default function CostSetupPage() {
           </Button>
           <Button onClick={handleCompleteDemo} disabled={costSetupComplete}>
             <Sparkles data-icon="inline-start" />
-            Complete Setup (demo)
+            Complete Cost Setup
+          </Button>
+          <Button
+            variant={costSetupComplete ? "default" : "outline"}
+            onClick={() => router.push("/estimate")}
+          >
+            Open Estimate Workspace
+            <ArrowRight data-icon="inline-end" />
           </Button>
         </div>
       </header>

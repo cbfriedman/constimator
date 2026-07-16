@@ -36,7 +36,7 @@ export function ExportBar({
   onFormatChange: (format: ExportFormat) => void
   options: ReportOptions
   onOptionsChange: (options: ReportOptions) => void
-  onExport: () => void
+  onExport: (format?: ExportFormat) => void
   downloads: DownloadEntry[]
 }) {
   return (
@@ -82,10 +82,28 @@ export function ExportBar({
           </div>
         </div>
 
-        <Button onClick={onExport}>
-          <Download data-icon="inline-start" />
-          Export {format === "pdf" ? "PDF" : "Excel"}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant={format === "pdf" ? "default" : "outline"}
+            onClick={() => {
+              onFormatChange("pdf")
+              onExport("pdf")
+            }}
+          >
+            <FileText data-icon="inline-start" />
+            Export PDF
+          </Button>
+          <Button
+            variant={format === "excel" ? "default" : "outline"}
+            onClick={() => {
+              onFormatChange("excel")
+              onExport("excel")
+            }}
+          >
+            <FileSpreadsheet data-icon="inline-start" />
+            Export Excel
+          </Button>
+        </div>
       </div>
 
       {downloads.length > 0 ? (

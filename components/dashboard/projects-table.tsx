@@ -17,6 +17,9 @@ const statusStyles: Record<DashboardProject["status"], string> = {
   reconciliation: "border-transparent bg-warning/15 text-warning",
   estimating: "border-transparent bg-primary/15 text-primary",
   documents: "border-transparent bg-muted text-muted-foreground",
+  ready: "border-transparent bg-success/15 text-success",
+  processing: "border-transparent bg-review/15 text-review",
+  draft: "border-transparent bg-muted text-muted-foreground",
 }
 
 export function ProjectsTable({

@@ -6,7 +6,7 @@ import {
   LayoutDashboard,
   FolderKanban,
   SlidersHorizontal,
-  FileText,
+  Brain,
   Files,
   Table2,
   Calculator,
@@ -16,6 +16,7 @@ import {
   HardHat,
   Settings,
   HelpCircle,
+  BookOpen,
 } from "lucide-react"
 
 import {
@@ -32,45 +33,43 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { useProjectState } from "@/components/project-state-provider"
-import { demoProject } from "@/lib/demo-data"
+import { demoProject } from "@/lib/mock-data"
 
 const mainNav = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { title: "Projects", href: "/projects", icon: FolderKanban },
-  { title: "Estimating Defaults", href: "/cost-setup", icon: SlidersHorizontal },
-]
-
-type NavBadge = { text: string; tone: "danger" | "review" }
-
-const projectNav: {
-  title: string
-  href: string
-  icon: typeof FileText
-  badge?: NavBadge
-}[] = [
-  { title: "Overview", href: "/intelligence", icon: FileText },
-  { title: "Documents", href: "/upload", icon: Files },
+  { title: "Upload Documents", href: "/upload", icon: Files },
+  { title: "Project Intelligence", href: "/intelligence", icon: Brain },
   { title: "Schedules & Tables", href: "/schedules", icon: Table2 },
+  { title: "Cost Setup", href: "/cost-setup", icon: SlidersHorizontal },
   { title: "Estimate Workspace", href: "/estimate", icon: Calculator },
   {
-    title: "Bid Form Reconciliation",
+    title: "Bid Reconciliation",
     href: "/reconciliation",
     icon: GitCompareArrows,
-    badge: { text: "3", tone: "danger" },
+    badge: { text: "3", tone: "danger" as const },
   },
   {
     title: "Human Review",
     href: "/review",
     icon: UserCheck,
-    badge: { text: "In review", tone: "review" },
+    badge: { text: "In review", tone: "review" as const },
   },
   { title: "Reports", href: "/reports", icon: BarChart3 },
 ]
 
 const footerNav = [
+  { title: "OPS Demo Guide", href: "/demo-guide", icon: BookOpen },
   { title: "Settings", href: "#", icon: Settings },
   { title: "Help", href: "#", icon: HelpCircle },
 ]
+
+function isActivePath(pathname: string, href: string) {
+  if (href === "/projects") {
+    return pathname === "/projects" || pathname.startsWith("/projects/")
+  }
+  return pathname === href
+}
 
 export function AppSidebar() {
   const pathname = usePathname()
@@ -79,28 +78,42 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border">
-        <div className="flex items-center gap-2 px-2 py-1.5">
+        <Link
+          href="/"
+          className="flex items-center gap-2 rounded-md px-2 py-1.5 outline-none hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+        >
           <div className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
             <HardHat className="size-5" />
           </div>
           <div className="flex flex-col">
-            <span className="text-sm font-semibold leading-tight">Constimator</span>
-            <span className="text-xs text-muted-foreground leading-tight">AI Estimating</span>
+            <span className="text-sm font-semibold leading-tight">
+              Constimator
+            </span>
+            <span className="text-xs leading-tight text-muted-foreground">
+              AI Estimating
+            </span>
           </div>
-        </div>
+        </Link>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
+          <SidebarGroupLabel className="uppercase">
+            Contractor Workspace
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {mainNav.map((item) => {
                 const showSetupDot =
                   item.href === "/cost-setup" && !costSetupComplete
+                const badgeText =
+                  item.href === "/reconciliation" && item.badge
+                    ? String(attentionCount)
+                    : item.badge?.text
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
                       render={<Link href={item.href} />}
-                      isActive={pathname === item.href}
+                      isActive={isActivePath(pathname, item.href)}
                     >
                       <item.icon />
                       <span>{item.title}</span>
@@ -113,33 +126,7 @@ export function AppSidebar() {
                         />
                       </SidebarMenuBadge>
                     ) : null}
-                  </SidebarMenuItem>
-                )
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel className="uppercase" title={demoProject.name}>
-            {demoProject.name}
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {projectNav.map((item) => {
-                const badgeText =
-                  item.href === "/reconciliation" && item.badge
-                    ? String(attentionCount)
-                    : item.badge?.text
-                return (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      render={<Link href={item.href} />}
-                      isActive={pathname === item.href}
-                    >
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </SidebarMenuButton>
-                    {item.badge ? (
+                    {item.badge && !showSetupDot ? (
                       <SidebarMenuBadge
                         className={
                           item.badge.tone === "danger"
@@ -156,12 +143,25 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel className="uppercase" title={demoProject.name}>
+            Demo Project
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <p className="px-2 text-xs leading-relaxed text-muted-foreground">
+              {demoProject.name} · #{demoProject.number}
+            </p>
+          </SidebarGroupContent>
+        </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border">
         <SidebarMenu>
           {footerNav.map((item) => (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton render={<Link href={item.href} />}>
+              <SidebarMenuButton
+                render={<Link href={item.href} />}
+                isActive={item.href !== "#" && pathname === item.href}
+              >
                 <item.icon />
                 <span>{item.title}</span>
               </SidebarMenuButton>
