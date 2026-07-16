@@ -1,13 +1,6 @@
 import Image from "next/image"
 import { Layers, Ruler, Gauge, UserCheck, Globe, Clock, CheckCircle2 } from "lucide-react"
-
-const trades = [
-  { name: "Earthwork & grading", accuracy: 94 },
-  { name: "Concrete & structures", accuracy: 91 },
-  { name: "Paving & surfacing", accuracy: 93 },
-  { name: "Wet & dry utilities", accuracy: 88 },
-  { name: "Landscape & erosion", accuracy: 90 },
-]
+import { TradeSelector } from "@/components/trade-selector"
 
 const reviewOptions = [
   {
@@ -85,28 +78,34 @@ export function AiTakeoff() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-border bg-card p-6">
-              <div className="flex items-center gap-2">
-                <Gauge className="h-5 w-5 text-primary" aria-hidden="true" />
-                <h3 className="font-display text-base font-semibold">Estimated accuracy by trade</h3>
+            <div className="flex gap-4">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+                <Gauge className="h-5 w-5" aria-hidden="true" />
+              </span>
+              <div>
+                <h3 className="font-display text-lg font-semibold">A confidence score on every trade</h3>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                  Each trade comes back with an estimated accuracy so you know where the AI is strong and where
+                  a human set of eyes will pay off before you commit to a number.
+                </p>
               </div>
-              <ul className="mt-4 flex flex-col gap-3">
-                {trades.map((trade) => (
-                  <li key={trade.name}>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-foreground">{trade.name}</span>
-                      <span className="font-semibold tabular-nums text-foreground">{trade.accuracy}%</span>
-                    </div>
-                    <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-muted">
-                      <div className="h-full rounded-full bg-primary" style={{ width: `${trade.accuracy}%` }} />
-                    </div>
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
-                Confidence scores tell you where the AI is strong and where a human set of eyes will pay off.
-              </p>
             </div>
+          </div>
+        </div>
+
+        <div className="mt-16">
+          <div className="mx-auto max-w-2xl text-center">
+            <p className="text-sm font-semibold uppercase tracking-widest text-primary">Try it</p>
+            <h3 className="mt-3 font-display text-2xl font-bold tracking-tight text-balance sm:text-3xl">
+              Scope a takeoff and price the review
+            </h3>
+            <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground text-pretty">
+              Pick the trades you want covered and watch the sheet count, blended accuracy, and manual-review
+              cost update in real time.
+            </p>
+          </div>
+          <div className="mt-8">
+            <TradeSelector />
           </div>
         </div>
 

@@ -1,4 +1,4 @@
-import { Check } from "lucide-react"
+import { Check, Globe, Clock } from "lucide-react"
 
 const plans = [
   {
@@ -105,6 +105,45 @@ export function Pricing() {
               </a>
             </div>
           ))}
+        </div>
+
+        {/* Manual review add-on */}
+        <div className="mt-8 overflow-hidden rounded-2xl border border-border bg-card">
+          <div className="flex flex-col gap-6 p-8 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-4">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
+                <Globe className="h-6 w-6" aria-hidden="true" />
+              </span>
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h3 className="font-display text-lg font-semibold">Manual review add-on</h3>
+                  <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
+                    Available on every plan
+                  </span>
+                </div>
+                <p className="mt-1 max-w-xl text-sm leading-relaxed text-muted-foreground">
+                  Have Constimator&apos;s specialist team verify any AI takeoff, sheet by sheet, before you
+                  bid. Pay only for the sheets you send &mdash; no subscription required.
+                </p>
+                <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+                  Guaranteed 3-business-day turnaround
+                </p>
+              </div>
+            </div>
+            <div className="shrink-0 text-left sm:text-right">
+              <div className="flex items-baseline gap-1 sm:justify-end">
+                <span className="font-display text-3xl font-bold">$12</span>
+                <span className="text-sm text-muted-foreground">/ sheet</span>
+              </div>
+              <a
+                href="#takeoff"
+                className="mt-3 inline-flex items-center justify-center rounded-md border border-border bg-background px-5 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+              >
+                See how it works
+              </a>
+            </div>
+          </div>
         </div>
       </div>
     </section>
