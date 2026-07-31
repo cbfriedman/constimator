@@ -1,0 +1,21 @@
+{
+  "name": "takeoff-validation",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Standalone script — not part of the Constimator app. Validates whether Claude vision can extract accurate quantities from real plan sets, before deciding whether AI takeoff belongs in the product.",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.115.0",
+    "dotenv": "^17.4.2",
+    "pdf-to-img": "^6.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "tsx": "^4.23.1",
+    "typescript": "^7.0.2"
+  }
+}
