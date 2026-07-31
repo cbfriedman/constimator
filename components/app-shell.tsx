@@ -14,7 +14,13 @@ import type { ProjectStateSnapshot } from "@/lib/project-state-actions"
 
 // Routes rendered without the dashboard sidebar: public marketing pages
 // plus the auth pages, which unauthenticated visitors must be able to reach.
-const NO_SIDEBAR_PATHS = new Set(["/", "/demo-guide", "/sign-in", "/sign-up"])
+const NO_SIDEBAR_PATHS = new Set([
+  "/",
+  "/demo-guide",
+  "/sign-in",
+  "/sign-up",
+  "/maintenance",
+])
 
 export function AppShell({
   children,
@@ -25,10 +31,13 @@ export function AppShell({
 }) {
   const pathname = usePathname()
   const isNoSidebar = NO_SIDEBAR_PATHS.has(pathname)
+  const isMaintenance = pathname === "/maintenance"
 
   return (
     <ProjectStateProvider initialProjectState={initialProjectState}>
-      {isNoSidebar ? (
+      {isMaintenance ? (
+        children
+      ) : isNoSidebar ? (
         <div className="flex min-h-svh flex-col">
           <PrototypeBanner />
           {children}
