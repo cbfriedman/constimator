@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { demoProject } from "@/lib/mock-data"
+import { createProject } from "./actions"
 
 const projectTypes = [
   "Roadway",
@@ -39,13 +40,42 @@ export default function NewProjectPage() {
   const router = useRouter()
   const [name, setName] = useState(demoProject.name)
   const [nameError, setNameError] = useState(false)
+  const [owner, setOwner] = useState(demoProject.owner)
+  const [number, setNumber] = useState(demoProject.number)
+  // demoProject only has formatted display strings for its bid date — this
+  // is the same date ("Aug 22, 2026") as a real <input type="date"> value.
+  const [bidDate, setBidDate] = useState("2026-08-22")
+  const [engineersEstimate, setEngineersEstimate] = useState(
+    demoProject.engineersEstimate,
+  )
+  const [location, setLocation] = useState(demoProject.location)
+  const [projectType, setProjectType] = useState("Roadway")
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  function handleContinue() {
+  async function handleContinue() {
     if (name.trim() === "") {
       setNameError(true)
       return
     }
-    router.push("/upload")
+
+    setIsSubmitting(true)
+    setSubmitError(null)
+    try {
+      const project = await createProject({
+        name,
+        owner,
+        number,
+        bidDate,
+        engineersEstimate,
+        location,
+        projectType,
+      })
+      router.push(`/upload?project=${project.id}`)
+    } catch {
+      setSubmitError("Something went wrong creating the project. Try again.")
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -80,17 +110,30 @@ export default function NewProjectPage() {
 
             <Field>
               <FieldLabel htmlFor="agency">Agency / Owner</FieldLabel>
-              <Input id="agency" defaultValue={demoProject.owner} />
+              <Input
+                id="agency"
+                value={owner}
+                onChange={(e) => setOwner(e.target.value)}
+              />
             </Field>
 
             <Field>
               <FieldLabel htmlFor="project-number">Project Number</FieldLabel>
-              <Input id="project-number" defaultValue={demoProject.number} />
+              <Input
+                id="project-number"
+                value={number}
+                onChange={(e) => setNumber(e.target.value)}
+              />
             </Field>
 
             <Field>
               <FieldLabel htmlFor="bid-date">Bid Date</FieldLabel>
-              <Input id="bid-date" defaultValue="08/22/2026" />
+              <Input
+                id="bid-date"
+                type="date"
+                value={bidDate}
+                onChange={(e) => setBidDate(e.target.value)}
+              />
             </Field>
 
             <Field>
@@ -99,18 +142,26 @@ export default function NewProjectPage() {
               </FieldLabel>
               <Input
                 id="engineers-estimate"
-                defaultValue={demoProject.engineersEstimate}
+                value={engineersEstimate}
+                onChange={(e) => setEngineersEstimate(e.target.value)}
               />
             </Field>
 
             <Field>
               <FieldLabel htmlFor="location">Location</FieldLabel>
-              <Input id="location" defaultValue={demoProject.location} />
+              <Input
+                id="location"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+              />
             </Field>
 
             <Field>
               <FieldLabel htmlFor="project-type">Project Type</FieldLabel>
-              <Select defaultValue="Roadway">
+              <Select
+                value={projectType}
+                onValueChange={(value) => setProjectType(value ?? "Roadway")}
+              >
                 <SelectTrigger id="project-type" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
@@ -133,7 +184,10 @@ export default function NewProjectPage() {
                 rows={3}
                 defaultValue="Prevailing wage. One addendum issued to date."
               />
-              <FieldDescription>Optional.</FieldDescription>
+              <FieldDescription>
+                Optional. Not saved yet — there&apos;s no notes field on the
+                project record.
+              </FieldDescription>
             </Field>
           </FieldGroup>
         </CardContent>
@@ -147,11 +201,21 @@ export default function NewProjectPage() {
         </p>
       </div>
 
+      {submitError ? (
+        <p className="mt-4 text-sm text-destructive">{submitError}</p>
+      ) : null}
+
       <div className="mt-6 flex items-center justify-end gap-3">
-        <Button variant="outline" onClick={() => router.push("/projects")}>
+        <Button
+          variant="outline"
+          onClick={() => router.push("/projects")}
+          disabled={isSubmitting}
+        >
           Cancel
         </Button>
-        <Button onClick={handleContinue}>Continue to Upload Documents</Button>
+        <Button onClick={handleContinue} disabled={isSubmitting}>
+          {isSubmitting ? "Creating…" : "Continue to Upload Documents"}
+        </Button>
       </div>
     </div>
   )
