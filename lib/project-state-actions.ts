@@ -8,6 +8,7 @@ import {
   NoOrgMembershipError,
   UnauthenticatedError,
 } from "@/lib/db/scoped"
+import { getCurrentProject, getOrCreateCurrentEstimate } from "@/lib/current-project"
 import { formatDisplayDate, todayIsoDate } from "@/lib/format-date"
 
 export type ProjectStateSnapshot = {
@@ -24,34 +25,6 @@ export type ProjectStateSnapshot = {
   } | null
 }
 
-type ScopedDb = Awaited<ReturnType<typeof getScopedDb>>
-
-// There's no "start estimating" flow yet that creates an estimate row, and
-// no per-project routing for this app-wide provider to know which project
-// it's for (see step 12's upload page for the pattern that's still missing
-// here) — so this picks the org's most recently created project as a stand-in
-// and lazily creates its estimate row on first read. Revisit once estimate
-// pages are project-scoped.
-async function ensureEstimateForLatestProject(scopedDb: ScopedDb) {
-  const projectRows = await scopedDb.projects.findMany()
-  if (projectRows.length === 0) return null
-
-  const latest = [...projectRows].sort(
-    (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
-  )[0]
-
-  const existing = await scopedDb.estimates.findFirst(
-    eq(estimates.projectId, latest.id),
-  )
-  if (existing) return existing
-
-  const [created] = await scopedDb.estimates.insert({
-    projectId: latest.id,
-    rateSnapshotDate: todayIsoDate(),
-  })
-  return created
-}
-
 // Called from the root layout, so it runs for every route — including the
 // signed-out marketing homepage and /sign-in, neither of which should ever
 // depend on the database being reachable. UnauthenticatedError/
@@ -64,7 +37,10 @@ export async function getProjectStateSnapshot(): Promise<ProjectStateSnapshot | 
     const org = await scopedDb.org.get()
     if (!org) return null
 
-    const estimate = await ensureEstimateForLatestProject(scopedDb)
+    const project = await getCurrentProject(scopedDb)
+    const estimate = project
+      ? await getOrCreateCurrentEstimate(scopedDb, project.id)
+      : null
 
     return {
       costSetupComplete: org.costSetupComplete,

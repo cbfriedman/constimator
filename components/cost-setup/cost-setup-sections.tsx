@@ -60,9 +60,6 @@ import { useProjectState } from "@/components/project-state-provider"
 import {
   costSetupSections,
   crewCards,
-  equipmentRates,
-  laborRates,
-  marginFields,
   money,
   cementMasonRate,
   pct,
@@ -78,6 +75,7 @@ import {
   type Override,
   type RateHistoryEntry,
 } from "@/lib/cost-setup-data"
+import { updateCostItemAction } from "@/app/cost-setup/actions"
 import { cn } from "@/lib/utils"
 
 export type CostSetupView = "company" | "project"
@@ -171,23 +169,29 @@ export function CostSetupSections({
   complete,
   view,
   registerRef,
+  initialLabor,
+  initialEquipment,
+  initialMargins,
 }: {
   complete: boolean
   view: CostSetupView
   registerRef: (id: string, el: HTMLElement | null) => void
+  initialLabor: LaborRate[]
+  initialEquipment: EquipmentRate[]
+  initialMargins: MarginField[]
 }) {
   const s = costSetupSections
   const { triggerRateDrift } = useProjectState()
 
   const [labor, setLabor] = React.useState<LaborRate[]>([
-    ...laborRates,
+    ...initialLabor,
     cementMasonRate,
   ])
   const [equipment, setEquipment] = React.useState<EquipmentRate[]>([
-    ...equipmentRates,
+    ...initialEquipment,
     waterTruckRate,
   ])
-  const [margins, setMargins] = React.useState<MarginField[]>(marginFields)
+  const [margins, setMargins] = React.useState<MarginField[]>(initialMargins)
   const [overrides, setOverrides] = React.useState<Record<string, Override>>({
     ...seededOverrides,
   })
@@ -260,6 +264,16 @@ export function CostSetupSections({
         setLabor((prev) =>
           prev.map((r) => (r.id === t.id ? { ...r, base: nb, fringe: nf } : r)),
         )
+        // cementMasonRate is a client-only placeholder until Complete Setup
+        // is clicked — it has no real cost_item row to persist to.
+        if (t.id !== cementMasonRate.id) {
+          updateCostItemAction({
+            id: t.id,
+            category: "labor",
+            base: nb,
+            fringe: nf,
+          }).catch(() => {})
+        }
       }
     } else if (t.kind === "equipment") {
       const nr = Number.parseFloat(rateInput) || 0
@@ -274,6 +288,13 @@ export function CostSetupSections({
         setEquipment((prev) =>
           prev.map((r) => (r.id === t.id ? { ...r, rate: nr } : r)),
         )
+        // waterTruckRate is a client-only placeholder until Complete Setup
+        // is clicked — it has no real cost_item row to persist to.
+        if (t.id !== waterTruckRate.id) {
+          updateCostItemAction({ id: t.id, category: "equipment", rate: nr }).catch(
+            () => {},
+          )
+        }
       }
     } else {
       const nv = Number.parseFloat(valueInput) || 0
@@ -287,6 +308,9 @@ export function CostSetupSections({
       } else {
         setMargins((prev) =>
           prev.map((r) => (r.id === t.id ? { ...r, value: nv } : r)),
+        )
+        updateCostItemAction({ id: t.id, category: "margin", value: nv }).catch(
+          () => {},
         )
       }
     }
