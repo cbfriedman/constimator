@@ -333,7 +333,7 @@ export function UploadShell({
         </Button>
         <Button
           disabled={analysisDisabled}
-          onClick={() => router.push("/processing")}
+          onClick={() => router.push(`/processing?project=${projectId}`)}
         >
           Start AI Analysis
         </Button>

@@ -91,26 +91,6 @@ export const opsDemoPath = [
   "Show Reports",
 ]
 
-export const processingStages = [
-  "Validating documents",
-  "Checking file types and page counts",
-  "Extracting text from specifications",
-  "Rendering plan sheets",
-  "Detecting schedules and tables",
-  "Reading official bid form",
-  "Extracting bid requirements",
-  "Generating project intelligence",
-  "Preparing bid form reconciliation",
-]
-
-export const processingSummary = [
-  { label: "Plans", value: "64 sheets processed" },
-  { label: "Specifications", value: "412 pages processed" },
-  { label: "Bid Form", value: "15 items extracted" },
-  { label: "Addenda", value: "1 addendum applied" },
-  { label: "Issues Found", value: "3 items need review", tone: "warning" as const },
-]
-
 export const homeProblems = [
   {
     title: "Plans, specs, addenda, and bid forms are scattered",

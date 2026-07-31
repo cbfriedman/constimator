@@ -1,10 +1,8 @@
-import Link from "next/link"
 import { eq } from "drizzle-orm"
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
 import type { DbDocType } from "@/app/upload/actions"
 import type { UploadDoc } from "@/components/upload/documents-table"
+import { NoProjectState } from "@/components/no-project-state"
 import { UploadShell } from "@/components/upload/upload-shell"
 import { documents, projects } from "@/db/schema"
 import { getScopedDb } from "@/lib/db/scoped"
@@ -24,20 +22,6 @@ function formatSize(bytes: number | null): string {
   return `${Math.max(1, Math.round(bytes / 1024))} KB`
 }
 
-function ErrorState({ title, description }: { title: string; description: string }) {
-  return (
-    <div className="mx-auto max-w-2xl p-6">
-      <Alert variant="destructive">
-        <AlertTitle>{title}</AlertTitle>
-        <AlertDescription>{description}</AlertDescription>
-      </Alert>
-      <Button className="mt-4" render={<Link href="/projects" />}>
-        Go to Projects
-      </Button>
-    </div>
-  )
-}
-
 export default async function UploadPage({
   searchParams,
 }: {
@@ -47,7 +31,7 @@ export default async function UploadPage({
 
   if (!projectId) {
     return (
-      <ErrorState
+      <NoProjectState
         title="No project selected"
         description="Open Upload from a project instead of visiting this page directly."
       />
@@ -59,7 +43,7 @@ export default async function UploadPage({
 
   if (!project) {
     return (
-      <ErrorState
+      <NoProjectState
         title="Project not found"
         description="This project doesn't exist, or isn't part of your organization."
       />
