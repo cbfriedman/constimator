@@ -81,6 +81,23 @@ export async function confirmDocumentUpload(input: {
     status: "uploaded",
   })
 
+  // Queued for the standalone worker (worker/) to pick up — this returns
+  // immediately rather than running takeoff extraction inline, since that
+  // can be a slow multi-page PDF job and this is a Vercel function with a
+  // execution time limit. The worker currently fails every job with a clear
+  // "not implemented yet" error — see worker/src/takeoff-stub.ts — since
+  // the real extraction module (step 16) is still blocked on accuracy
+  // validation. Queuing the job now means the pipeline is provable end to
+  // end without it.
+  try {
+    await scopedDb.takeoffJobs.insert({
+      documentId: document.id,
+      status: "queued",
+    })
+  } catch (err) {
+    console.error(`Failed to queue takeoff job for document ${document.id}:`, err)
+  }
+
   return document
 }
 

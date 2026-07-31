@@ -5,6 +5,7 @@ import {
   date,
   index,
   integer,
+  jsonb,
   numeric,
   pgEnum,
   pgPolicy,
@@ -72,6 +73,13 @@ export const documentStatusEnum = pgEnum("document_status", [
   "uploaded",
   "processing",
   "processed",
+  "failed",
+])
+
+export const takeoffJobStatusEnum = pgEnum("takeoff_job_status", [
+  "queued",
+  "running",
+  "complete",
   "failed",
 ])
 
@@ -263,7 +271,7 @@ export const documents = pgTable(
   ],
 ).enableRLS()
 
-export const documentsRelations = relations(documents, ({ one }) => ({
+export const documentsRelations = relations(documents, ({ one, many }) => ({
   org: one(orgs, { fields: [documents.orgId], references: [orgs.id] }),
   project: one(projects, {
     fields: [documents.projectId],
@@ -272,6 +280,55 @@ export const documentsRelations = relations(documents, ({ one }) => ({
   uploadedByUser: one(users, {
     fields: [documents.uploadedBy],
     references: [users.id],
+  }),
+  takeoffJobs: many(takeoffJobs),
+}))
+
+// ---------------------------------------------------------------------------
+// takeoff_job — background AI-takeoff processing queue (step 17). Written by
+// the Next.js app (one row per uploaded document, queued on upload), read
+// and updated by the standalone worker in worker/. The worker connects with
+// the same privileged, non-RLS-scoped DATABASE_URL as lib/db/client.ts — it
+// has to service every org's queued jobs, not one caller's — so correctness
+// here depends on the worker only ever touching a job's own org_id, not on
+// RLS restricting it (same trust model as the app's own backend connection).
+// ---------------------------------------------------------------------------
+
+export const takeoffJobs = pgTable(
+  "takeoff_job",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => orgs.id, { onDelete: "cascade" }),
+    documentId: uuid("document_id")
+      .notNull()
+      .references(() => documents.id, { onDelete: "cascade" }),
+    status: takeoffJobStatusEnum("status").notNull().default("queued"),
+    // Populated by lib/takeoff/extract.ts's output once step 16 exists.
+    result: jsonb("result"),
+    error: text("error"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("takeoff_job_org_id_idx").on(table.orgId),
+    index("takeoff_job_document_id_idx").on(table.documentId),
+    // The worker's claim query filters on this — see worker/src/poll.ts.
+    index("takeoff_job_status_idx").on(table.status),
+    orgIsolationPolicy("takeoff_job", table.orgId),
+  ],
+).enableRLS()
+
+export const takeoffJobsRelations = relations(takeoffJobs, ({ one }) => ({
+  org: one(orgs, { fields: [takeoffJobs.orgId], references: [orgs.id] }),
+  document: one(documents, {
+    fields: [takeoffJobs.documentId],
+    references: [documents.id],
   }),
 }))
 

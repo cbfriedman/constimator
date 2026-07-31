@@ -13,6 +13,7 @@ import {
   orgs,
   projects,
   reconciliationItems,
+  takeoffJobs,
   users,
 } from "@/db/schema"
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server"
@@ -156,5 +157,6 @@ export async function getScopedDb() {
       reconciliationItems.orgId,
       orgId,
     ),
+    takeoffJobs: orgScoped(takeoffJobs, takeoffJobs.orgId, orgId),
   }
 }

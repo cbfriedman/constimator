@@ -15,6 +15,13 @@
       "when": 1785508393142,
       "tag": "0001_optimal_randall_flagg",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785535500277,
+      "tag": "0002_friendly_banshee",
+      "breakpoints": true
     }
   ]
 }
