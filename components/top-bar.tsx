@@ -1,6 +1,7 @@
 "use client"
 
-import { Bell, ChevronDown, RotateCcw, Search } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Bell, ChevronDown, LogOut, RotateCcw, Search } from "lucide-react"
 import { toast } from "sonner"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -17,9 +18,18 @@ import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { useProjectState } from "@/components/project-state-provider"
 import { demoUser } from "@/lib/demo-data"
+import { createClient } from "@/lib/supabase/client"
 
 export function TopBar() {
   const { reset } = useProjectState()
+  const router = useRouter()
+
+  async function handleSignOut() {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push("/sign-in")
+    router.refresh()
+  }
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-4 border-b bg-background px-4">
@@ -78,6 +88,11 @@ export function TopBar() {
             >
               <RotateCcw />
               Reset Demo
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleSignOut}>
+              <LogOut />
+              Sign out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

@@ -11,15 +11,17 @@ import {
 import { TopBar } from "@/components/top-bar"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 
-const MARKETING_PATHS = new Set(["/", "/demo-guide"])
+// Routes rendered without the dashboard sidebar: public marketing pages
+// plus the auth pages, which unauthenticated visitors must be able to reach.
+const NO_SIDEBAR_PATHS = new Set(["/", "/demo-guide", "/sign-in", "/sign-up"])
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const isMarketing = MARKETING_PATHS.has(pathname)
+  const isNoSidebar = NO_SIDEBAR_PATHS.has(pathname)
 
   return (
     <ProjectStateProvider>
-      {isMarketing ? (
+      {isNoSidebar ? (
         <div className="flex min-h-svh flex-col">
           <PrototypeBanner />
           {children}
