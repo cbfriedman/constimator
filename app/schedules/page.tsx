@@ -1,16 +1,16 @@
-"use client"
-
-import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 
 import { SourceReferenceProvider } from "@/components/intelligence/source-reference"
 import { SchedulesTab } from "@/components/intelligence/schedules-tab"
 import { ProjectHeader } from "@/components/project-header"
 import { Button } from "@/components/ui/button"
-import { demoProject } from "@/lib/mock-data"
+import { getScopedDb } from "@/lib/db/scoped"
+import { getCurrentProject } from "@/lib/current-project"
 
-export default function SchedulesPage() {
-  const router = useRouter()
+export default async function SchedulesPage() {
+  const scopedDb = await getScopedDb()
+  const project = await getCurrentProject(scopedDb)
 
   return (
     <SourceReferenceProvider>
@@ -19,17 +19,21 @@ export default function SchedulesPage() {
           <div className="mb-6">
             <ProjectHeader
               title="Schedules & Tables"
-              subtitle={`${demoProject.name} · #${demoProject.number}`}
+              subtitle={
+                project
+                  ? `${project.name} · #${project.number}`
+                  : "No project yet"
+              }
             />
           </div>
           <SchedulesTab />
         </div>
         <div className="sticky bottom-0 z-10 border-t bg-background/95 supports-backdrop-filter:backdrop-blur">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-end gap-2 px-6 py-3">
-            <Button variant="outline" onClick={() => router.push("/cost-setup")}>
+            <Button variant="outline" render={<Link href="/cost-setup" />}>
               Complete Cost Setup
             </Button>
-            <Button onClick={() => router.push("/estimate")}>
+            <Button render={<Link href="/estimate" />}>
               Open Estimate Workspace
               <ArrowRight data-icon="inline-end" />
             </Button>
