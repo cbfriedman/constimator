@@ -43,30 +43,38 @@ import { Field, FieldLabel } from "@/components/ui/field"
 import { Textarea } from "@/components/ui/textarea"
 import { SourceBadge, type SourceKind } from "@/components/source-badge"
 import { CostBreakdown } from "@/components/estimate/cost-breakdown"
-import { estimateRows } from "@/lib/estimate-data"
+import { overrideEstimateLineAction } from "@/app/estimate/actions"
+import type { EstimateLineView } from "@/lib/estimate-view"
 import { useProjectState } from "@/components/project-state-provider"
 import { cn } from "@/lib/utils"
 
-const costWarnings: Record<number, string> = {
-  8: "Crew uses Water Truck — rate not set",
-  15: "Uses Cement Mason — labor rate not set",
+// Keyed by description, not id — real rows have random UUIDs, so "which
+// lines show a missing-rate warning" can't be a hardcoded id list the way
+// the mock data's row 8/15 could. Matches the same lines by name instead.
+const costWarnings: Record<string, string> = {
+  '18" RCP Class III': "Crew uses Water Truck — rate not set",
+  "Minor Concrete (Curb & Gutter)": "Uses Cement Mason — labor rate not set",
 }
 
-export function EstimateTable() {
+// The one row that expands to show a cost breakdown in this demo — matched
+// by description for the same reason (no stable demo id to key off anymore).
+const EXPANDABLE_DESCRIPTION = "HMA Type A"
+
+export function EstimateTable({ rows }: { rows: EstimateLineView[] }) {
   const { costSetupComplete } = useProjectState()
-  const [expanded, setExpanded] = React.useState<number | null>(null)
-  const [overrides, setOverrides] = React.useState<Record<number, SourceKind>>(
+  const [expanded, setExpanded] = React.useState<string | null>(null)
+  const [overrides, setOverrides] = React.useState<Record<string, SourceKind>>(
     {},
   )
   const [overrideDialog, setOverrideDialog] = React.useState<{
-    id: number
+    id: string
     qty: string
     unit: string
   } | null>(null)
   const [note, setNote] = React.useState("")
   const [noteError, setNoteError] = React.useState(false)
 
-  function toggleRow(id: number) {
+  function toggleRow(id: string) {
     setExpanded((current) => (current === id ? null : id))
   }
 
@@ -80,6 +88,7 @@ export function EstimateTable() {
         ...current,
         [overrideDialog.id]: "overridden",
       }))
+      overrideEstimateLineAction(overrideDialog.id).catch(() => {})
     }
     closeOverrideDialog()
   }
@@ -113,9 +122,9 @@ export function EstimateTable() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {estimateRows.map((row) => {
+            {rows.map((row, index) => {
               const source = overrides[row.id] ?? row.source
-              const isExpandable = row.id === 6
+              const isExpandable = row.description === EXPANDABLE_DESCRIPTION
               const isOpen = expanded === row.id
               return (
                 <React.Fragment key={row.id}>
@@ -137,23 +146,23 @@ export function EstimateTable() {
                       ) : null}
                     </TableCell>
                     <TableCell className="text-right text-muted-foreground tabular-nums">
-                      {row.id}
+                      {index + 1}
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col">
                         <span className="flex items-center gap-1.5 font-medium text-foreground">
                           {row.description}
-                          {!costSetupComplete && costWarnings[row.id] ? (
+                          {!costSetupComplete && costWarnings[row.description] ? (
                             <Tooltip>
                               <TooltipTrigger
-                                aria-label={costWarnings[row.id]}
+                                aria-label={costWarnings[row.description]}
                                 className="inline-flex text-warning outline-none focus-visible:ring-2 focus-visible:ring-ring"
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <AlertTriangle className="size-4" />
                               </TooltipTrigger>
                               <TooltipContent>
-                                {costWarnings[row.id]}
+                                {costWarnings[row.description]}
                               </TooltipContent>
                             </Tooltip>
                           ) : null}
