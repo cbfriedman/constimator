@@ -14,16 +14,17 @@ import {
 } from "@/components/ui/table"
 import { ConfidenceCell } from "@/components/reconciliation/confidence-cell"
 import { cn } from "@/lib/utils"
-import { type ReconRow, statusColorClasses } from "@/lib/reconciliation-data"
+import { statusColorClasses } from "@/lib/reconciliation-data"
+import type { ReconciliationRowView } from "@/lib/reconciliation-view"
 
 export function ReconTable({
   rows,
   onRowClick,
-  onAddItem15,
+  onAddToEstimate,
 }: {
-  rows: ReconRow[]
-  onRowClick: (row: ReconRow) => void
-  onAddItem15: () => void
+  rows: ReconciliationRowView[]
+  onRowClick: (row: ReconciliationRowView) => void
+  onAddToEstimate: (row: ReconciliationRowView) => void
 }) {
   return (
     <div className="overflow-x-auto rounded-lg border">
@@ -62,7 +63,7 @@ export function ReconTable({
                 )}
               >
                 <TableCell className="text-right text-muted-foreground tabular-nums">
-                  {row.id}
+                  {row.itemNumber}
                 </TableCell>
                 <TableCell
                   className={cn("font-medium", isMissing && "font-semibold")}
@@ -121,11 +122,11 @@ export function ReconTable({
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation()
-                          onAddItem15()
+                          onAddToEstimate(row)
                         }}
                       >
                         <Plus data-icon="inline-start" />
-                        Add Item 15 to Estimate
+                        Add to Estimate
                       </Button>
                     ) : null}
                   </div>

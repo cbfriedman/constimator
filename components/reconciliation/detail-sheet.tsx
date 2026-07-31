@@ -15,10 +15,8 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
-import {
-  type ReconRow,
-  statusColorClasses,
-} from "@/lib/reconciliation-data"
+import { statusColorClasses } from "@/lib/reconciliation-data"
+import type { ReconciliationRowView } from "@/lib/reconciliation-view"
 
 function QtyTile({
   label,
@@ -66,7 +64,7 @@ export function DetailSheet({
   open,
   onOpenChange,
 }: {
-  row: ReconRow | null
+  row: ReconciliationRowView | null
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
@@ -83,7 +81,7 @@ export function DetailSheet({
         <SheetHeader className="border-b">
           <div className="flex items-center gap-2">
             <span className="text-xs font-medium text-muted-foreground tabular-nums">
-              Item {row.id}
+              Item {row.itemNumber}
             </span>
             <Badge
               variant="outline"
