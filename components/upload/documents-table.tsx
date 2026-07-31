@@ -1,6 +1,6 @@
 "use client"
 
-import { Check, X } from "lucide-react"
+import { AlertTriangle, Check, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
@@ -42,8 +42,9 @@ export type UploadDoc = {
   type: DocType
   pages: string
   size: string
-  status: "uploaded" | "uploading"
+  status: "uploaded" | "uploading" | "error"
   progress?: number
+  errorMessage?: string
 }
 
 export function DocumentsTable({
@@ -105,6 +106,16 @@ export function DocumentsTable({
                   <span className="flex items-center gap-1.5 text-success">
                     <Check className="size-4" />
                     <span className="text-sm font-medium">Uploaded</span>
+                  </span>
+                ) : doc.status === "error" ? (
+                  <span
+                    className="flex items-center gap-1.5 text-destructive"
+                    title={doc.errorMessage}
+                  >
+                    <AlertTriangle className="size-4 shrink-0" />
+                    <span className="text-sm font-medium">
+                      {doc.errorMessage ?? "Upload failed"}
+                    </span>
                   </span>
                 ) : (
                   <div className="flex flex-col gap-1">
