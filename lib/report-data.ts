@@ -1,4 +1,4 @@
-import { reconciliationRows, type StatusColor } from "@/lib/reconciliation-data"
+import type { StatusColor } from "@/lib/reconciliation-data"
 
 export type ReportId =
   | "estimate-summary"
@@ -80,61 +80,6 @@ export const provenanceLegend: { label: string; dotClass: string }[] = [
 
 export const disclosureText =
   "Portions of this report were generated with AI assistance from uploaded project documents. Quantities and requirements should be independently verified against the official contract documents before bid submission. The official bid form governs in any conflict."
-
-export type ReportReconRow = {
-  id: number
-  description: string
-  unit: string
-  officialQty: string
-  aiQty: string
-  estimateQty: string
-  statusLabel: string
-  statusColor: StatusColor | "purple"
-}
-
-/**
- * Post-fix reconciliation state for the report:
- * - item 15 is matched (added to estimate)
- * - item 8 is resolved to 640 LF and human-reviewed
- */
-export const reportReconRows: ReportReconRow[] = reconciliationRows.map(
-  (row): ReportReconRow => {
-    if (row.id === 15) {
-      return {
-        id: row.id,
-        description: row.description,
-        unit: row.unit,
-        officialQty: row.officialQty,
-        aiQty: row.aiQty,
-        estimateQty: "2,150",
-        statusLabel: "Match — added",
-        statusColor: "green",
-      }
-    }
-    if (row.id === 8) {
-      return {
-        id: row.id,
-        description: row.description,
-        unit: row.unit,
-        officialQty: row.officialQty,
-        aiQty: row.aiQty,
-        estimateQty: "640",
-        statusLabel: "Human-reviewed",
-        statusColor: "purple",
-      }
-    }
-    return {
-      id: row.id,
-      description: row.description,
-      unit: row.unit,
-      officialQty: row.officialQty,
-      aiQty: row.aiQty,
-      estimateQty: row.estimateQty,
-      statusLabel: row.statusLabel,
-      statusColor: row.statusColor,
-    }
-  },
-)
 
 export const reportStatusClasses: Record<
   StatusColor | "purple",

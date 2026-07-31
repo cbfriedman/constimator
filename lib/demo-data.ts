@@ -2,7 +2,6 @@
 export {
   demoProject,
   demoUser,
-  dashboardProjects,
   recentActivity,
   type ProjectStatus,
   type DashboardProject,

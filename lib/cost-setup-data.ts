@@ -16,10 +16,6 @@ export type LaborRate = {
   fringe: number
 }
 
-export function laborTotal(row: { base: number; fringe: number }) {
-  return row.base + row.fringe
-}
-
 export const laborRates: LaborRate[] = [
   { id: "operator-g3", classification: "Operator — Group 3", base: 55.1, fringe: 34.75 },
   { id: "laborer-g1", classification: "Laborer — Group 1", base: 39.62, fringe: 28.4 },
