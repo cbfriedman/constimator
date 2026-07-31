@@ -10,9 +10,9 @@ import {
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import { estimateRows } from "@/lib/estimate-data"
+import type { EstimateLineView } from "@/lib/estimate-view"
+import type { ReconciliationRowView } from "@/lib/reconciliation-view"
 import {
-  reportReconRows,
   reportStatusClasses,
   reports,
   type ReportId,
@@ -28,13 +28,27 @@ export type ReportOptions = {
   reviewerComments: boolean
 }
 
-function PaperHeader({ title }: { title: string }) {
+export type ReportContext = {
+  orgName: string
+  projectName: string
+  projectNumber: string
+  bidDate: string
+  preparedDate: string
+}
+
+function PaperHeader({
+  title,
+  context,
+}: {
+  title: string
+  context: ReportContext
+}) {
   return (
     <div className="border-b border-border pb-4">
       <h2 className="text-lg font-semibold text-foreground">{title}</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Shasta County Roadway Improvements (#24-118) · Bid Date Aug 22, 2026 ·
-        Prepared Jul 10, 2026
+        {context.projectName} (#{context.projectNumber}) · Bid Date{" "}
+        {context.bidDate} · Prepared {context.preparedDate}
       </p>
     </div>
   )
@@ -53,18 +67,41 @@ const reviewerComments = [
   },
 ]
 
-export function ReconciliationReport({ options }: { options: ReportOptions }) {
+export function ReconciliationReport({
+  context,
+  rows,
+  bidTotal,
+  reviewedCount,
+  overriddenCount,
+  options,
+}: {
+  context: ReportContext
+  rows: ReconciliationRowView[]
+  bidTotal: string
+  reviewedCount: number
+  overriddenCount: number
+  options: ReportOptions
+}) {
   return (
     <div className="flex flex-col">
-      <PaperHeader title="Torres Grading & Paving Inc. · Bid Form Reconciliation Report" />
+      <PaperHeader
+        title={`${context.orgName} · Bid Form Reconciliation Report`}
+        context={context}
+      />
 
       <div className="flex flex-wrap gap-x-6 gap-y-1 py-4 text-sm">
         <span className="font-medium text-foreground">
-          Bid Total <span className="tabular-nums">$1,916,585</span>
+          Bid Total <span className="tabular-nums">{bidTotal}</span>
         </span>
-        <span className="text-muted-foreground">15/15 items reconciled</span>
-        <span className="text-muted-foreground">3 items human-reviewed</span>
-        <span className="text-muted-foreground">1 override on file</span>
+        <span className="text-muted-foreground">
+          {rows.length}/{rows.length} items reconciled
+        </span>
+        <span className="text-muted-foreground">
+          {reviewedCount} items human-reviewed
+        </span>
+        <span className="text-muted-foreground">
+          {overriddenCount} override{overriddenCount === 1 ? "" : "s"} on file
+        </span>
       </div>
 
       <Table>
@@ -82,10 +119,10 @@ export function ReconciliationReport({ options }: { options: ReportOptions }) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {reportReconRows.map((row) => (
+          {rows.map((row) => (
             <TableRow key={row.id}>
               <TableCell className="text-muted-foreground tabular-nums">
-                {row.id}
+                {row.itemNumber}
               </TableCell>
               <TableCell className="font-medium">{row.description}</TableCell>
               <TableCell className="text-muted-foreground">{row.unit}</TableCell>
@@ -150,10 +187,27 @@ export function ReconciliationReport({ options }: { options: ReportOptions }) {
   )
 }
 
-export function EstimateSummaryReport({ options }: { options: ReportOptions }) {
+export function EstimateSummaryReport({
+  context,
+  rows,
+  subtotal,
+  markup,
+  bidTotal,
+  options,
+}: {
+  context: ReportContext
+  rows: EstimateLineView[]
+  subtotal: string
+  markup: string
+  bidTotal: string
+  options: ReportOptions
+}) {
   return (
     <div className="flex flex-col">
-      <PaperHeader title="Torres Grading & Paving Inc. · Estimate Summary" />
+      <PaperHeader
+        title={`${context.orgName} · Estimate Summary`}
+        context={context}
+      />
 
       <Table className="mt-4">
         <TableHeader>
@@ -167,10 +221,10 @@ export function EstimateSummaryReport({ options }: { options: ReportOptions }) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {estimateRows.map((row) => (
+          {rows.map((row, index) => (
             <TableRow key={row.id}>
               <TableCell className="text-muted-foreground tabular-nums">
-                {row.id}
+                {index + 1}
               </TableCell>
               <TableCell className="font-medium">{row.description}</TableCell>
               <TableCell className="text-right tabular-nums">{row.qty}</TableCell>
@@ -189,15 +243,15 @@ export function EstimateSummaryReport({ options }: { options: ReportOptions }) {
       <div className="mt-4 flex flex-col items-end gap-1 border-t border-border pt-4 text-sm">
         <div className="flex w-64 justify-between">
           <span className="text-muted-foreground">Subtotal</span>
-          <span className="tabular-nums">$1,742,350</span>
+          <span className="tabular-nums">{subtotal}</span>
         </div>
         <div className="flex w-64 justify-between">
           <span className="text-muted-foreground">Markup (10%)</span>
-          <span className="tabular-nums">$174,235</span>
+          <span className="tabular-nums">{markup}</span>
         </div>
         <div className="flex w-64 justify-between border-t border-border pt-1 font-semibold">
           <span>Bid Total</span>
-          <span className="tabular-nums">$1,916,585</span>
+          <span className="tabular-nums">{bidTotal}</span>
         </div>
       </div>
 
