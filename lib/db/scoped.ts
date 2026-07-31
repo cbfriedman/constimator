@@ -131,6 +131,18 @@ export async function getScopedDb() {
         const [row] = await db.select().from(orgs).where(eq(orgs.id, orgId)).limit(1)
         return row
       },
+      // Keyed by the org's own id, not an org_id column — org is the one
+      // table without one. Same org_id_isolation RLS policy still applies.
+      update: async (
+        values: Partial<Omit<typeof orgs.$inferInsert, "id">>,
+      ) => {
+        const [row] = await db
+          .update(orgs)
+          .set(values)
+          .where(eq(orgs.id, orgId))
+          .returning()
+        return row
+      },
     },
     users: orgScoped(users, users.orgId, orgId),
     projects: orgScoped(projects, projects.orgId, orgId),

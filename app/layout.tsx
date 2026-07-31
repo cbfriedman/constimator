@@ -5,6 +5,7 @@ import "./globals.css"
 import { AppShell } from "@/components/app-shell"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
+import { getProjectStateSnapshot } from "@/lib/project-state-actions"
 import { cn } from "@/lib/utils"
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" })
@@ -20,11 +21,17 @@ export const metadata: Metadata = {
     "AI-powered construction estimating for contractors. Prototype demo.",
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  // Fetched here (not lower in the tree) so ProjectStateProvider never shows
+  // a flash of default state before real data arrives — this runs for every
+  // route, including signed-out marketing pages, which is why
+  // getProjectStateSnapshot() returns null instead of throwing in that case.
+  const initialProjectState = await getProjectStateSnapshot()
+
   return (
     <html
       lang="en"
@@ -38,7 +45,9 @@ export default function RootLayout({
     >
       <body>
         <ThemeProvider>
-          <AppShell>{children}</AppShell>
+          <AppShell initialProjectState={initialProjectState}>
+            {children}
+          </AppShell>
           <Toaster />
         </ThemeProvider>
       </body>

@@ -10,17 +10,24 @@ import {
 } from "@/components/project-state-provider"
 import { TopBar } from "@/components/top-bar"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
+import type { ProjectStateSnapshot } from "@/lib/project-state-actions"
 
 // Routes rendered without the dashboard sidebar: public marketing pages
 // plus the auth pages, which unauthenticated visitors must be able to reach.
 const NO_SIDEBAR_PATHS = new Set(["/", "/demo-guide", "/sign-in", "/sign-up"])
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({
+  children,
+  initialProjectState,
+}: {
+  children: React.ReactNode
+  initialProjectState: ProjectStateSnapshot | null
+}) {
   const pathname = usePathname()
   const isNoSidebar = NO_SIDEBAR_PATHS.has(pathname)
 
   return (
-    <ProjectStateProvider>
+    <ProjectStateProvider initialProjectState={initialProjectState}>
       {isNoSidebar ? (
         <div className="flex min-h-svh flex-col">
           <PrototypeBanner />

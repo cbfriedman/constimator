@@ -2,6 +2,16 @@
 
 import * as React from "react"
 
+import {
+  dismissDriftAction,
+  recalculateAction,
+  resetProjectStateAction,
+  setCostSetupCompleteAction,
+  triggerRateDriftAction,
+  type ProjectStateSnapshot,
+} from "@/lib/project-state-actions"
+import { formatDisplayDate, todayIsoDate } from "@/lib/format-date"
+
 type ProjectStateValue = {
   /** Whether the missing Item 15 has been added to the estimate. */
   item15Added: boolean
@@ -44,50 +54,84 @@ type ProjectStateValue = {
   reset: () => void
 }
 
-const INITIAL_SNAPSHOT_DATE = "Jul 9, 2026"
-const RECALCULATED_SNAPSHOT_DATE = "Jul 14, 2026"
+// Used only when there's no real estimate to back these fields yet — a
+// signed-out visitor, a user with no org membership, or an org with no
+// projects. See lib/project-state-actions.ts for how the real values are
+// resolved.
+const FALLBACK_SNAPSHOT_DATE = "Jul 9, 2026"
 
 const ProjectStateContext = React.createContext<ProjectStateValue | null>(null)
 
 export function ProjectStateProvider({
   children,
+  initialProjectState,
 }: {
   children: React.ReactNode
+  initialProjectState: ProjectStateSnapshot | null
 }) {
   const [item15Added, setItem15Added] = React.useState(false)
-  const [costSetupComplete, setCostSetupComplete] = React.useState(false)
-  const [rateSnapshotDate, setRateSnapshotDate] = React.useState(
-    INITIAL_SNAPSHOT_DATE,
-  )
-  const [rateDrift, setRateDrift] = React.useState(false)
-  const [driftDismissed, setDriftDismissed] = React.useState(false)
-  const [recalculated, setRecalculated] = React.useState(false)
   const [resetKey, setResetKey] = React.useState(0)
+
+  const [costSetupComplete, setCostSetupCompleteState] = React.useState(
+    initialProjectState?.costSetupComplete ?? false,
+  )
+  const [rateSnapshotDate, setRateSnapshotDate] = React.useState(
+    initialProjectState?.estimate?.rateSnapshotDate ?? FALLBACK_SNAPSHOT_DATE,
+  )
+  const [rateDrift, setRateDrift] = React.useState(
+    initialProjectState?.estimate?.rateDrift ?? false,
+  )
+  const [driftDismissed, setDriftDismissed] = React.useState(
+    initialProjectState?.estimate?.driftDismissed ?? false,
+  )
+  const [recalculated, setRecalculated] = React.useState(
+    initialProjectState?.estimate?.recalculated ?? false,
+  )
+
+  // Whether there's a real estimate row to persist against. Fields still
+  // update locally without one (e.g. no projects yet) — they just don't
+  // survive a refresh, same as before this step.
+  const estimateIdRef = React.useRef(initialProjectState?.estimate?.id ?? null)
+
+  const setCostSetupComplete = React.useCallback((value: boolean) => {
+    setCostSetupCompleteState(value)
+    setCostSetupCompleteAction(value).catch(() => {})
+  }, [])
 
   const triggerRateDrift = React.useCallback(() => {
     setRateDrift(true)
     setDriftDismissed(false)
+    if (estimateIdRef.current) {
+      triggerRateDriftAction(estimateIdRef.current).catch(() => {})
+    }
   }, [])
 
   const dismissDrift = React.useCallback(() => {
     setDriftDismissed(true)
+    if (estimateIdRef.current) {
+      dismissDriftAction(estimateIdRef.current).catch(() => {})
+    }
   }, [])
 
   const recalculate = React.useCallback(() => {
-    setRateSnapshotDate(RECALCULATED_SNAPSHOT_DATE)
+    setRateSnapshotDate(formatDisplayDate(todayIsoDate()))
     setRateDrift(false)
     setDriftDismissed(false)
     setRecalculated(true)
+    if (estimateIdRef.current) {
+      recalculateAction(estimateIdRef.current).catch(() => {})
+    }
   }, [])
 
   const reset = React.useCallback(() => {
     setItem15Added(false)
-    setCostSetupComplete(false)
-    setRateSnapshotDate(INITIAL_SNAPSHOT_DATE)
+    setCostSetupCompleteState(false)
+    setRateSnapshotDate(FALLBACK_SNAPSHOT_DATE)
     setRateDrift(false)
     setDriftDismissed(false)
     setRecalculated(false)
     setResetKey((k) => k + 1)
+    resetProjectStateAction(estimateIdRef.current).catch(() => {})
   }, [])
 
   const value = React.useMemo<ProjectStateValue>(
@@ -110,6 +154,7 @@ export function ProjectStateProvider({
     [
       item15Added,
       costSetupComplete,
+      setCostSetupComplete,
       rateSnapshotDate,
       rateDrift,
       triggerRateDrift,

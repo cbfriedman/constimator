@@ -118,6 +118,9 @@ export const orgs = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     name: text("name").notNull(),
     slug: text("slug").notNull().unique(),
+    // Company-wide (not per-project) — whether /cost-setup's defaults are
+    // fully filled in. Gates final calculations/report export app-wide.
+    costSetupComplete: boolean("cost_setup_complete").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -395,6 +398,13 @@ export const estimates = pgTable(
     // estimate's line items — so editing company rates later never silently
     // changes an estimate that's already been submitted or is under review.
     rateSnapshotDate: date("rate_snapshot_date").notNull(),
+    // Whether a company rate has changed since rateSnapshotDate. Cleared
+    // (and driftDismissed reset) whenever the snapshot is recalculated.
+    rateDrift: boolean("rate_drift").notNull().default(false),
+    // User dismissed the drift banner via "Keep Snapshot" without recalculating.
+    driftDismissed: boolean("drift_dismissed").notNull().default(false),
+    // Whether this estimate has ever been recalculated against current rates.
+    recalculated: boolean("recalculated").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
