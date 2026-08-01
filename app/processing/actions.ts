@@ -2,6 +2,7 @@
 
 import { eq, inArray } from "drizzle-orm"
 
+import { generateEstimateFromTakeoff } from "@/app/estimate/actions"
 import { documents, takeoffJobs } from "@/db/schema"
 import { getScopedDb } from "@/lib/db/scoped"
 
@@ -23,6 +24,30 @@ export type ProcessingItem = {
   error: string | null
 }
 
+// The worker (a separate process) can't call a Next.js Server Action
+// directly, so there's no push from "job complete" to "estimate updated" —
+// instead, whoever next loads /processing pulls every complete job's
+// result into the estimate. generateEstimateFromTakeoff replaces all
+// source="ai_extracted" lines on each call, so this re-sends the combined
+// items from *every* complete job for the project (not just the newest),
+// and is safe to call on every load — same idempotent recompute-on-load
+// pattern as reconciliation and rate-drift syncing elsewhere in the app.
+async function syncEstimateFromCompleteJobs(
+  scopedDb: Awaited<ReturnType<typeof getScopedDb>>,
+  projectId: string,
+  jobs: (typeof takeoffJobs.$inferSelect)[],
+) {
+  const items = jobs
+    .filter((job) => job.status === "complete" && job.result)
+    .flatMap((job) => job.result?.items ?? [])
+
+  if (items.length === 0) return
+
+  await generateEstimateFromTakeoff(projectId, items).catch((err) => {
+    console.error(`Failed to sync estimate from takeoff results for project ${projectId}:`, err)
+  })
+}
+
 export async function getProcessingStatus(
   projectId: string,
 ): Promise<ProcessingItem[]> {
@@ -36,6 +61,8 @@ export async function getProcessingStatus(
       docs.map((doc) => doc.id),
     ),
   )
+
+  await syncEstimateFromCompleteJobs(scopedDb, projectId, jobs)
 
   return docs.map((doc) => {
     const job = jobs.find((j) => j.documentId === doc.id)

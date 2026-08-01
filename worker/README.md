@@ -6,12 +6,12 @@ function and hit its execution time limit — `confirmDocumentUpload` (in the
 main app) queues a job and returns immediately; this is what actually
 works through the queue, on its own schedule, on its own infrastructure.
 
-**Currently every job fails on purpose.** `src/takeoff-stub.ts` throws a
-clear "not implemented yet" error instead of doing real extraction, because
-the real module (`lib/takeoff/extract.ts`, step 16) is blocked pending
-accuracy validation from step 15. This still proves the whole pipeline —
-queue, claim, run, record outcome — end to end. Swapping in real extraction
-later is a change to one file.
+**Real extraction (step 16).** `src/process-job.ts` downloads the source
+PDF from Supabase Storage, rasterizes it (`src/rasterize.ts`), and sends
+every page to Claude (`src/extract.ts`) using the same prompt/tool schema
+validated standalone in `scripts/takeoff-validation/` (step 15). Needs
+`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `ANTHROPIC_API_KEY` set —
+see `.env.example`.
 
 ## How it works
 
@@ -22,10 +22,16 @@ later is a change to one file.
    WHERE id = (SELECT ... FOR UPDATE SKIP LOCKED)` — the standard safe
    pattern for a Postgres-backed job queue, so if Railway ever runs more
    than one instance of this worker, two instances can't grab the same job.
-3. `src/process-job.ts` looks up the job's document, calls the extraction
-   step, and writes `complete`/`result` or `failed`/`error` back onto the
-   job row. Failures here are caught and recorded — they don't crash the
-   worker.
+3. `src/process-job.ts` looks up the job's document, downloads and
+   rasterizes it, extracts quantities, and writes `complete`/`result` or
+   `failed`/`error` back onto the job row (and mirrors that onto the
+   document's own `status`). Failures here are caught and recorded — they
+   don't crash the worker.
+4. Back in the main app, `app/processing/actions.ts` picks up any
+   `complete` job's result the next time `/processing` is loaded and
+   regenerates the estimate's AI-extracted lines from it (see
+   `generateEstimateFromTakeoff` in `app/estimate/actions.ts`) — the worker
+   itself never talks to the Next.js app directly.
 
 Why polling instead of Supabase Realtime's `postgres_changes`: Realtime
 would still need a polling fallback for correctness (a worker that's

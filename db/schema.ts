@@ -16,6 +16,8 @@ import {
   uuid,
 } from "drizzle-orm/pg-core"
 
+import type { ExtractedTakeoffItem } from "@/lib/cost-engine/types"
+
 // Every table's RLS policy checks its org_id (or, for `org` itself, its id)
 // against this. See the current_org_id() function in db/migrations for why
 // it's a SECURITY DEFINER SQL function rather than an inline subquery on the
@@ -305,8 +307,10 @@ export const takeoffJobs = pgTable(
       .notNull()
       .references(() => documents.id, { onDelete: "cascade" }),
     status: takeoffJobStatusEnum("status").notNull().default("queued"),
-    // Populated by lib/takeoff/extract.ts's output once step 16 exists.
-    result: jsonb("result"),
+    // Populated by worker/src/extract.ts (step 16) on completion. Read by
+    // app/processing/actions.ts, which feeds it into
+    // generateEstimateFromTakeoff (app/estimate/actions.ts).
+    result: jsonb("result").$type<{ items: ExtractedTakeoffItem[] }>(),
     error: text("error"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

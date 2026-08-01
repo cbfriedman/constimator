@@ -67,18 +67,14 @@ export async function overrideEstimateLineAction(id: string) {
 
 /**
  * The cost engine's entry point: takes quantities extracted from a plan set
- * (step 16's eventual output — see lib/cost-engine/types.ts for why this
- * takes a plain array instead of importing that module directly, which
- * doesn't exist yet) plus the org's cost_item defaults, and writes draft
- * estimate_line rows.
+ * (worker/src/extract.ts's output, step 16) plus the org's cost_item
+ * defaults, and writes draft estimate_line rows.
  *
- * Not yet called from anywhere real — step 16 (the actual extraction) and
- * the worker-to-app handoff for a completed takeoff_job (step 17) are both
- * still needed before there's a real caller. This is the piece those wire
- * into once they exist, most likely via a new API route the worker can hit
- * (it can't call a Next.js Server Action directly, being a separate
- * process). Safe to call by hand now (e.g. from a script or a future admin
- * action) to verify the engine itself.
+ * Called from app/processing/actions.ts's getProcessingStatus, which pulls
+ * together every complete takeoff_job's result for a project each time
+ * /processing is loaded — the worker can't call a Server Action directly
+ * (it's a separate process), so that's the handoff point instead of a
+ * push from the worker.
  *
  * Regenerating replaces only this estimate's previously AI-extracted lines
  * (source = "ai_extracted") — anything manually entered, reviewed, or

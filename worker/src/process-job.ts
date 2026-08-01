@@ -1,5 +1,8 @@
 import { sql } from "./db.js"
-import { runTakeoffExtraction } from "./takeoff-stub.js"
+import { downloadDocument } from "./download-document.js"
+import { rasterizePdf } from "./rasterize.js"
+import { extractQuantities } from "./extract.js"
+import type { TakeoffResult } from "./types.js"
 
 export type ClaimedJob = {
   id: string
@@ -20,24 +23,33 @@ export async function processJob(job: ClaimedJob) {
       throw new Error(`Document ${job.document_id} not found (or not in org ${job.org_id})`)
     }
 
-    const result = await runTakeoffExtraction({
-      storage_bucket: document.storage_bucket,
-      storage_path: document.storage_path,
-      file_name: document.file_name,
-    })
+    await sql`
+      update document set status = 'processing', updated_at = now() where id = ${job.document_id}
+    `
+
+    const pdfBytes = await downloadDocument(document.storage_bucket, document.storage_path)
+    const pages = await rasterizePdf(pdfBytes)
+    const items = await extractQuantities(pages)
+    const result: TakeoffResult = { items }
 
     await sql`
       update takeoff_job
       set status = 'complete', result = ${sql.json(result)}, updated_at = now()
       where id = ${job.id}
     `
-    console.log(`[job ${job.id}] complete`)
+    await sql`
+      update document set status = 'processed', updated_at = now() where id = ${job.document_id}
+    `
+    console.log(`[job ${job.id}] complete — extracted ${items.length} item(s)`)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     await sql`
       update takeoff_job
       set status = 'failed', error = ${message}, updated_at = now()
       where id = ${job.id}
+    `
+    await sql`
+      update document set status = 'failed', updated_at = now() where id = ${job.document_id}
     `
     console.error(`[job ${job.id}] failed: ${message}`)
   }

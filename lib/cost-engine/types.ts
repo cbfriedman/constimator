@@ -1,11 +1,9 @@
 /**
- * Shape of one extracted quantity, matching what step 16's takeoff module
- * (lib/takeoff/extract.ts — still blocked on accuracy validation, see that
- * step) is expected to produce, and mirroring scripts/takeoff-validation's
- * ExtractedItem shape since that's the closest real precedent for it. This
- * lets the engine be built and tested now against any {trade, description,
- * quantity, unit} source — real extraction, a fixture, or manual entry —
- * without needing step 16 to exist first.
+ * Shape of one extracted quantity, produced by worker/src/extract.ts (step
+ * 16) and mirrored there as an independent copy (see that file — the
+ * worker is intentionally isolated from this app's lib/). Also matches
+ * scripts/takeoff-validation's ExtractedItem, the standalone script this
+ * was validated against first.
  */
 export type ExtractedTakeoffItem = {
   trade: string
