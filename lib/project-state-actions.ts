@@ -55,7 +55,11 @@ export async function getProjectStateSnapshot(): Promise<ProjectStateSnapshot | 
         : null,
     }
   } catch (err) {
-    if (!(err instanceof UnauthenticatedError || err instanceof NoOrgMembershipError)) {
+    const isExpected =
+      err instanceof UnauthenticatedError ||
+      err instanceof NoOrgMembershipError ||
+      (err as { digest?: string } | null)?.digest === "DYNAMIC_SERVER_USAGE"
+    if (!isExpected) {
       console.error("getProjectStateSnapshot failed, falling back to defaults:", err)
     }
     return null
