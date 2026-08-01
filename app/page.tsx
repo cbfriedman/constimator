@@ -1,9 +1,9 @@
 import { SiteHeader } from "@/components/site-header"
 import { Hero } from "@/components/hero"
-import { TrustedBy } from "@/components/trusted-by"
+import { Problem } from "@/components/problem"
 import { Features } from "@/components/features"
 import { HowItWorks } from "@/components/how-it-works"
-import { AiTakeoff } from "@/components/ai-takeoff"
+import { WhyDifferent } from "@/components/why-different"
 import { Proof } from "@/components/proof"
 import { Pricing } from "@/components/pricing"
 import { Cta } from "@/components/cta"
@@ -15,10 +15,10 @@ export default function HomePage() {
       <SiteHeader />
       <main className="flex-1">
         <Hero />
-        <TrustedBy />
+        <Problem />
         <Features />
         <HowItWorks />
-        <AiTakeoff />
+        <WhyDifferent />
         <Proof />
         <Pricing />
         <Cta />

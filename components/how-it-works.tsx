@@ -1,21 +1,21 @@
 const steps = [
   {
     number: "01",
-    title: "Upload the plans & specs",
+    title: "Upload your bid documents",
     description:
-      "Pull a project straight from OnlinePlanService.com or drop in the bid documents. Constimator handles the full plan set and specifications.",
+      "Drop in the plans, specs, addenda, and the official bid form. Constimator handles the full set.",
   },
   {
     number: "02",
-    title: "We extract the key parameters",
+    title: "Build your estimate your way",
     description:
-      "Engineer's estimate, project duration, liquidated damages, bonding, DBE goals, and bid deadlines are read from the documents and organized into one summary.",
+      "Keep estimating the way you already do — enter your quantities and pricing. Constimator reads the documents alongside you; you stay in control of your numbers.",
   },
   {
     number: "03",
-    title: "Make the bid / no-bid call",
+    title: "Reconcile before you submit",
     description:
-      "Review the summary against your capacity and appetite, then decide with confidence which projects deserve a full estimate.",
+      "Constimator checks your estimate against the official bid form and flags anything missing or off — so you fix it before bid day, not after.",
   },
 ]
 
@@ -26,12 +26,8 @@ export function HowItWorks() {
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-semibold uppercase tracking-widest text-primary">How it works</p>
           <h2 className="mt-3 font-display text-3xl font-bold tracking-tight text-balance sm:text-4xl">
-            From plan set to decision in three steps
+            Three steps to a bid you&apos;ve double-checked
           </h2>
-          <p className="mt-4 text-lg leading-relaxed text-secondary-foreground/70 text-pretty">
-            Stop reading hundreds of pages just to learn a project isn&apos;t worth chasing. Constimator does
-            the first pass for you.
-          </p>
         </div>
 
         <div className="mt-14 grid gap-8 md:grid-cols-3">

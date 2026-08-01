@@ -4,11 +4,10 @@ import { useState } from "react"
 import { HardHat, Menu, X } from "lucide-react"
 
 const navLinks = [
-  { label: "What we extract", href: "#features" },
+  { label: "What it does", href: "#what-it-does" },
   { label: "How it works", href: "#how-it-works" },
-  { label: "AI takeoff", href: "#takeoff" },
+  { label: "Reconciliation", href: "#reconciliation" },
   { label: "Pricing", href: "#pricing" },
-  { label: "Results", href: "#results" },
 ]
 
 export function SiteHeader() {
@@ -38,13 +37,13 @@ export function SiteHeader() {
 
         <div className="hidden items-center gap-3 md:flex">
           <a
-            href="/dashboard"
+            href="/sign-in"
             className="text-sm font-medium text-foreground transition-colors hover:text-muted-foreground"
           >
             Sign in
           </a>
           <a
-            href="/dashboard"
+            href="/sign-up"
             className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-transform hover:-translate-y-0.5"
           >
             Get started
@@ -76,11 +75,11 @@ export function SiteHeader() {
               </a>
             ))}
             <div className="mt-2 flex flex-col gap-2 border-t border-border pt-4">
-              <a href="/dashboard" className="rounded-md px-3 py-2 text-sm font-medium text-foreground hover:bg-muted">
+              <a href="/sign-in" className="rounded-md px-3 py-2 text-sm font-medium text-foreground hover:bg-muted">
                 Sign in
               </a>
               <a
-                href="/dashboard"
+                href="/sign-up"
                 className="rounded-md bg-primary px-3 py-2 text-center text-sm font-semibold text-primary-foreground"
               >
                 Get started

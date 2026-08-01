@@ -3,15 +3,15 @@ import { HardHat } from "lucide-react"
 const groups = [
   {
     heading: "Product",
-    links: ["What we extract", "How it works", "Pricing", "OnlinePlanService", "Integrations"],
+    links: ["What it does", "How it works", "Reconciliation", "Pricing"],
   },
   {
     heading: "Company",
-    links: ["About", "Results", "Careers", "Blog", "Contact"],
+    links: ["About", "Contact"],
   },
   {
     heading: "Resources",
-    links: ["Help center", "Bidding guide", "Public works FAQ", "API docs", "Status"],
+    links: ["Bidding guide", "Public works FAQ"],
   },
 ]
 
@@ -28,8 +28,7 @@ export function SiteFooter() {
               <span className="font-display text-xl font-bold tracking-tight">Constimator</span>
             </a>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">
-              Bid / no-bid intelligence for public works contractors — the key numbers from your plans and
-              specs, in minutes.
+              Bid-form reconciliation and document intelligence for public works contractors.
             </p>
           </div>
 
@@ -54,19 +53,9 @@ export function SiteFooter() {
 
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-border pt-6 sm:flex-row">
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} Constimator, Inc. All rights reserved.
+            Prototype demonstration. Sample data. Built by a former public works contractor.
+            {" "}© {new Date().getFullYear()} Constimator.
           </p>
-          <div className="flex gap-6">
-            <a href="#" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-              Privacy
-            </a>
-            <a href="#" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-              Terms
-            </a>
-            <a href="#" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-              Security
-            </a>
-          </div>
         </div>
       </div>
     </footer>

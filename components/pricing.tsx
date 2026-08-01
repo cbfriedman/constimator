@@ -1,51 +1,52 @@
-import { Check, Globe, Clock } from "lucide-react"
+import { Check } from "lucide-react"
 
 const plans = [
   {
     name: "Bidder",
     price: "$99",
     period: "/mo",
-    description: "For independent contractors evaluating a steady flow of projects.",
+    description: "For independent contractors.",
     features: [
       "Up to 10 projects / month",
-      "Full parameter extraction",
-      "Bid / no-bid summaries",
-      "PDF & plan set uploads",
+      "Document reading & requirement extraction",
+      "Bid-form reconciliation",
+      "PDF & Excel reports",
       "Email support",
     ],
     cta: "Get started",
+    href: "/sign-up",
     featured: false,
   },
   {
     name: "Contractor",
     price: "$299",
     period: "/mo",
-    description: "For estimating teams chasing public works across agencies.",
+    description: "For estimating teams.",
     features: [
       "Up to 50 projects / month",
       "Everything in Bidder",
-      "OnlinePlanService sync",
       "Team seats & sharing",
       "Bid calendar & deadlines",
       "Priority support",
     ],
     cta: "Get started",
+    href: "/sign-up",
     featured: true,
   },
   {
     name: "Enterprise",
     price: "Custom",
     period: "",
-    description: "For established firms with high bid volume.",
+    description: "For high-volume firms.",
     features: [
       "Unlimited projects",
       "Everything in Contractor",
       "Custom extraction rules",
-      "API & integrations",
-      "SSO & audit logs",
-      "Dedicated manager",
+      "Integrations",
+      "Dedicated support",
     ],
     cta: "Talk to sales",
+    href: "mailto:coby@cfcontracting.com?subject=Constimator Enterprise",
     featured: false,
   },
 ]
@@ -57,11 +58,8 @@ export function Pricing() {
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-semibold uppercase tracking-widest text-primary">Pricing</p>
           <h2 className="mt-3 font-display text-3xl font-bold tracking-tight text-balance sm:text-4xl">
-            Priced by the projects you evaluate
+            Simple pricing for public works bidders
           </h2>
-          <p className="mt-4 text-lg leading-relaxed text-muted-foreground text-pretty">
-            Start free, then choose a plan that matches your bid volume. No credit card required to start.
-          </p>
         </div>
 
         <div className="mt-14 grid gap-6 lg:grid-cols-3">
@@ -94,7 +92,7 @@ export function Pricing() {
                 ))}
               </ul>
               <a
-                href="#"
+                href={plan.href}
                 className={`mt-8 inline-flex items-center justify-center rounded-md px-5 py-3 text-sm font-semibold transition-transform hover:-translate-y-0.5 ${
                   plan.featured
                     ? "bg-primary text-primary-foreground shadow-sm"
@@ -107,44 +105,9 @@ export function Pricing() {
           ))}
         </div>
 
-        {/* Manual review add-on */}
-        <div className="mt-8 overflow-hidden rounded-2xl border border-border bg-card">
-          <div className="flex flex-col gap-6 p-8 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-start gap-4">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-accent text-accent-foreground">
-                <Globe className="h-6 w-6" aria-hidden="true" />
-              </span>
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="font-display text-lg font-semibold">Manual review add-on</h3>
-                  <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
-                    Available on every plan
-                  </span>
-                </div>
-                <p className="mt-1 max-w-xl text-sm leading-relaxed text-muted-foreground">
-                  Have Constimator&apos;s specialist team verify any AI takeoff, sheet by sheet, before you
-                  bid. Pay only for the sheets you send &mdash; no subscription required.
-                </p>
-                <p className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                  <Clock className="h-3.5 w-3.5" aria-hidden="true" />
-                  Guaranteed 3-business-day turnaround
-                </p>
-              </div>
-            </div>
-            <div className="shrink-0 text-left sm:text-right">
-              <div className="flex items-baseline gap-1 sm:justify-end">
-                <span className="font-display text-3xl font-bold">$12</span>
-                <span className="text-sm text-muted-foreground">/ sheet</span>
-              </div>
-              <a
-                href="#takeoff"
-                className="mt-3 inline-flex items-center justify-center rounded-md border border-border bg-background px-5 py-2.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
-              >
-                See how it works
-              </a>
-            </div>
-          </div>
-        </div>
+        <p className="mt-8 text-center text-sm text-muted-foreground">
+          Founding-customer pricing available for early users — locked in as we grow.
+        </p>
       </div>
     </section>
   )
