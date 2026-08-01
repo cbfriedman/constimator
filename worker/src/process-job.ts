@@ -24,7 +24,8 @@ export async function processJob(job: ClaimedJob) {
     }
 
     await sql`
-      update document set status = 'processing', updated_at = now() where id = ${job.document_id}
+      update document set status = 'processing', updated_at = now()
+      where id = ${job.document_id} and org_id = ${job.org_id}
     `
 
     const pdfBytes = await downloadDocument(document.storage_bucket, document.storage_path)
@@ -35,10 +36,11 @@ export async function processJob(job: ClaimedJob) {
     await sql`
       update takeoff_job
       set status = 'complete', result = ${sql.json(result)}, updated_at = now()
-      where id = ${job.id}
+      where id = ${job.id} and org_id = ${job.org_id}
     `
     await sql`
-      update document set status = 'processed', updated_at = now() where id = ${job.document_id}
+      update document set status = 'processed', updated_at = now()
+      where id = ${job.document_id} and org_id = ${job.org_id}
     `
     console.log(`[job ${job.id}] complete — extracted ${items.length} item(s)`)
   } catch (err) {
@@ -46,10 +48,11 @@ export async function processJob(job: ClaimedJob) {
     await sql`
       update takeoff_job
       set status = 'failed', error = ${message}, updated_at = now()
-      where id = ${job.id}
+      where id = ${job.id} and org_id = ${job.org_id}
     `
     await sql`
-      update document set status = 'failed', updated_at = now() where id = ${job.document_id}
+      update document set status = 'failed', updated_at = now()
+      where id = ${job.document_id} and org_id = ${job.org_id}
     `
     console.error(`[job ${job.id}] failed: ${message}`)
   }

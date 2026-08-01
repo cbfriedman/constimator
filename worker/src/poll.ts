@@ -6,6 +6,11 @@ import { processJob, type ClaimedJob } from "./process-job.js"
  * LOCKED so that if Railway ever runs more than one instance of this
  * worker, they can poll concurrently without two instances grabbing the
  * same job.
+ *
+ * Deliberately not org-scoped (step 24 audit) — this is a single shared
+ * queue across every org, and there's no org context yet at claim time.
+ * org_id comes back on the claimed row and every subsequent query in
+ * process-job.ts filters by it, same as the rest of the app.
  */
 export async function pollOnce(): Promise<void> {
   const [job] = await sql<ClaimedJob[]>`

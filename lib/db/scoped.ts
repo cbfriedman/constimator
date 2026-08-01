@@ -117,9 +117,24 @@ function orgScoped<T extends PgTable>(
  * Resolves the signed-in user's org from their Supabase Auth session, then
  * returns query helpers pre-filtered to that org for every table.
  *
- * This is an application-level backstop on top of the Postgres RLS policies
- * from step 8, not a replacement for them — see eslint.config.mjs for how
- * direct access to the unscoped client (lib/db/client.ts) is blocked.
+ * Correction (step 24 audit): this was previously documented as "an
+ * application-level backstop on top of the Postgres RLS policies from step
+ * 8, not a replacement for them." That's backwards. The org_org_isolation
+ * policies (db/migrations) key off current_org_id(), which reads
+ * auth.uid() — that only resolves when a query runs through Supabase's API
+ * with a real user JWT (as Storage operations correctly do, see
+ * db/storage-setup.sql). getDb() here connects directly via DATABASE_URL —
+ * a plain Postgres connection with no JWT/session context — so auth.uid()
+ * has nothing to resolve, and every table's ENABLE ROW LEVEL SECURITY
+ * (without FORCE) doesn't apply to the owning/superuser-equivalent role
+ * DATABASE_URL almost certainly connects as. worker/src/db.ts already
+ * documented this correctly for its own connection ("the same privileged,
+ * non-RLS-scoped DATABASE_URL"); this comment just hadn't caught up.
+ *
+ * In practice: org scoping here is the primary and, for this connection,
+ * likely the *only* real enforcement — not a backstop. See
+ * eslint.config.mjs for how direct access to the unscoped client
+ * (lib/db/client.ts) is blocked everywhere except this file.
  */
 export async function getScopedDb() {
   const orgId = await getCurrentOrgId()
