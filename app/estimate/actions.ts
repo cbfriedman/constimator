@@ -1,12 +1,15 @@
 "use server"
 
-import { eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 
-import { estimateLines } from "@/db/schema"
+import { estimateLines, estimates } from "@/db/schema"
+import { generateEstimateLines } from "@/lib/cost-engine/generate-estimate"
 import { getScopedDb } from "@/lib/db/scoped"
 import { getCurrentProject, getOrCreateCurrentEstimate } from "@/lib/current-project"
 import { estimateRows as defaultEstimateRows } from "@/lib/estimate-data"
 import { UI_TO_DB_SOURCE } from "@/lib/estimate-view"
+import { todayIsoDate } from "@/lib/format-date"
+import type { ExtractedTakeoffItem } from "@/lib/cost-engine/types"
 
 function stripCurrency(value: string): string {
   return value.replace(/[$,]/g, "")
@@ -60,4 +63,65 @@ export async function overrideEstimateLineAction(id: string) {
   await scopedDb.estimateLines.update(eq(estimateLines.id, id), {
     source: "overridden",
   })
+}
+
+/**
+ * The cost engine's entry point: takes quantities extracted from a plan set
+ * (step 16's eventual output — see lib/cost-engine/types.ts for why this
+ * takes a plain array instead of importing that module directly, which
+ * doesn't exist yet) plus the org's cost_item defaults, and writes draft
+ * estimate_line rows.
+ *
+ * Not yet called from anywhere real — step 16 (the actual extraction) and
+ * the worker-to-app handoff for a completed takeoff_job (step 17) are both
+ * still needed before there's a real caller. This is the piece those wire
+ * into once they exist, most likely via a new API route the worker can hit
+ * (it can't call a Next.js Server Action directly, being a separate
+ * process). Safe to call by hand now (e.g. from a script or a future admin
+ * action) to verify the engine itself.
+ *
+ * Regenerating replaces only this estimate's previously AI-extracted lines
+ * (source = "ai_extracted") — anything manually entered, reviewed, or
+ * overridden is left alone. Snapshots rate_snapshot_date to today and
+ * clears any drift flag, since a fresh generation *is* a fresh snapshot.
+ */
+export async function generateEstimateFromTakeoff(
+  projectId: string,
+  extractedItems: ExtractedTakeoffItem[],
+) {
+  const scopedDb = await getScopedDb()
+  const estimate = await getOrCreateCurrentEstimate(scopedDb, projectId)
+
+  const [costItemRows, existingLines] = await Promise.all([
+    scopedDb.costItems.findMany(),
+    scopedDb.estimateLines.findMany(eq(estimateLines.estimateId, estimate.id)),
+  ])
+
+  await scopedDb.estimateLines.delete(
+    // Both operands are always provided, so and() always returns a real
+    // SQL condition here — the `| undefined` in its type is only for the
+    // zero/all-undefined-args case, which this isn't.
+    and(eq(estimateLines.estimateId, estimate.id), eq(estimateLines.source, "ai_extracted"))!,
+  )
+
+  const keptLineCount = existingLines.filter((line) => line.source !== "ai_extracted").length
+  const generatedLines = generateEstimateLines(extractedItems, costItemRows)
+
+  const inserted = await Promise.all(
+    generatedLines.map((line, index) =>
+      scopedDb.estimateLines.insert({
+        estimateId: estimate.id,
+        lineNumber: keptLineCount + index + 1,
+        ...line,
+      }),
+    ),
+  )
+
+  await scopedDb.estimates.update(eq(estimates.id, estimate.id), {
+    rateSnapshotDate: todayIsoDate(),
+    rateDrift: false,
+    driftDismissed: false,
+  })
+
+  return inserted.flat()
 }

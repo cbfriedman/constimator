@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm"
 import { estimates } from "@/db/schema"
 import type { getScopedDb } from "@/lib/db/scoped"
 import { todayIsoDate } from "@/lib/format-date"
+import { syncRateDrift } from "@/lib/cost-engine/drift"
 
 export type ScopedDb = Awaited<ReturnType<typeof getScopedDb>>
 
@@ -28,11 +29,13 @@ export async function getOrCreateCurrentEstimate(
   const existing = await scopedDb.estimates.findFirst(
     eq(estimates.projectId, projectId),
   )
-  if (existing) return existing
+  if (existing) return syncRateDrift(scopedDb, existing)
 
   const [created] = await scopedDb.estimates.insert({
     projectId,
     rateSnapshotDate: todayIsoDate(),
   })
+  // A freshly created estimate is snapshotted as of right now, so there's
+  // nothing to check drift against yet.
   return created
 }
