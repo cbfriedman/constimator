@@ -1,34 +1,43 @@
 "use server"
 
 import { eq } from "drizzle-orm"
+import { z } from "zod"
 
 import { getEstimateData } from "@/app/estimate/actions"
 import { bids, estimateLines, reconciliationItems } from "@/db/schema"
 import { getCurrentProject, getOrCreateCurrentEstimate } from "@/lib/current-project"
 import { getScopedDb } from "@/lib/db/scoped"
 import { diffBidAgainstEstimate } from "@/lib/reconciliation-diff"
+import { numericString, parseInput, uuidSchema } from "@/lib/validation"
 
-export type BidLineInput = {
-  itemNumber: string
-  description: string
-  unit: string
-  officialQuantity: string
-  specSection: string | null
-}
+const bidLineInputSchema = z.object({
+  itemNumber: z.string().trim().min(1, "Item number is required"),
+  description: z.string().trim().min(1, "Description is required"),
+  unit: z.string().trim().min(1, "Unit is required"),
+  officialQuantity: numericString(),
+  specSection: z.string().nullable(),
+})
 
-export async function addBidLineAction(projectId: string, input: BidLineInput) {
+export type BidLineInput = z.infer<typeof bidLineInputSchema>
+
+export async function addBidLineAction(rawProjectId: string, rawInput: BidLineInput) {
+  const projectId = parseInput(uuidSchema, rawProjectId)
+  const input = parseInput(bidLineInputSchema, rawInput)
   const scopedDb = await getScopedDb()
   const [bid] = await scopedDb.bids.insert({ projectId, ...input })
   return bid
 }
 
-export async function updateBidLineAction(id: string, input: BidLineInput) {
+export async function updateBidLineAction(rawId: string, rawInput: BidLineInput) {
+  const id = parseInput(uuidSchema, rawId)
+  const input = parseInput(bidLineInputSchema, rawInput)
   const scopedDb = await getScopedDb()
   const [bid] = await scopedDb.bids.update(eq(bids.id, id), input)
   return bid
 }
 
-export async function deleteBidLineAction(id: string) {
+export async function deleteBidLineAction(rawId: string) {
+  const id = parseInput(uuidSchema, rawId)
   const scopedDb = await getScopedDb()
   await scopedDb.bids.delete(eq(bids.id, id))
 }
@@ -84,7 +93,8 @@ export async function getReconciliationData() {
   return { bidRows, itemRows, estimateLineRows, project }
 }
 
-export async function addMissingItemToEstimateAction(bidId: string) {
+export async function addMissingItemToEstimateAction(rawBidId: string) {
+  const bidId = parseInput(uuidSchema, rawBidId)
   const scopedDb = await getScopedDb()
   const bid = await scopedDb.bids.findFirst(eq(bids.id, bidId))
   const project = await getCurrentProject(scopedDb)
@@ -120,9 +130,11 @@ export async function addMissingItemToEstimateAction(bidId: string) {
 // "official" (the same SourceBadge value used everywhere else in the app
 // for "straight from the agency's official bid schedule").
 export async function acceptOfficialQuantityAction(
-  estimateLineId: string,
-  bidId: string,
+  rawEstimateLineId: string,
+  rawBidId: string,
 ) {
+  const estimateLineId = parseInput(uuidSchema, rawEstimateLineId)
+  const bidId = parseInput(uuidSchema, rawBidId)
   const scopedDb = await getScopedDb()
   const bid = await scopedDb.bids.findFirst(eq(bids.id, bidId))
   if (!bid) return

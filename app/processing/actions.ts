@@ -5,6 +5,7 @@ import { eq, inArray } from "drizzle-orm"
 import { generateEstimateFromTakeoff } from "@/app/estimate/actions"
 import { documents, takeoffJobs } from "@/db/schema"
 import { getScopedDb } from "@/lib/db/scoped"
+import { parseInput, uuidSchema } from "@/lib/validation"
 
 export type ProcessingItemStatus =
   | "queued"
@@ -49,8 +50,9 @@ async function syncEstimateFromCompleteJobs(
 }
 
 export async function getProcessingStatus(
-  projectId: string,
+  rawProjectId: string,
 ): Promise<ProcessingItem[]> {
+  const projectId = parseInput(uuidSchema, rawProjectId)
   const scopedDb = await getScopedDb()
   const docs = await scopedDb.documents.findMany(eq(documents.projectId, projectId))
   if (docs.length === 0) return []

@@ -1,6 +1,7 @@
 "use server"
 
 import { eq } from "drizzle-orm"
+import { z } from "zod"
 
 import { costItems } from "@/db/schema"
 import {
@@ -9,6 +10,7 @@ import {
   marginFields as defaultMarginFields,
 } from "@/lib/cost-setup-data"
 import { getScopedDb } from "@/lib/db/scoped"
+import { parseInput, uuidSchema } from "@/lib/validation"
 
 // Project-level overrides, rate history, and crew/production rates have no
 // backing table (deliberately out of scope — see docs/DECISIONS.md and the
@@ -55,12 +57,29 @@ export async function getCostItemsData() {
   return seedDefaultsIfEmpty(scopedDb)
 }
 
-export type UpdateCostItemInput =
-  | { id: string; category: "labor"; base: number; fringe: number }
-  | { id: string; category: "equipment"; rate: number }
-  | { id: string; category: "margin"; value: number }
+const updateCostItemSchema = z.discriminatedUnion("category", [
+  z.object({
+    id: uuidSchema,
+    category: z.literal("labor"),
+    base: z.number().finite().nonnegative(),
+    fringe: z.number().finite().nonnegative(),
+  }),
+  z.object({
+    id: uuidSchema,
+    category: z.literal("equipment"),
+    rate: z.number().finite().nonnegative(),
+  }),
+  z.object({
+    id: uuidSchema,
+    category: z.literal("margin"),
+    value: z.number().finite(),
+  }),
+])
 
-export async function updateCostItemAction(input: UpdateCostItemInput) {
+export type UpdateCostItemInput = z.infer<typeof updateCostItemSchema>
+
+export async function updateCostItemAction(rawInput: UpdateCostItemInput) {
+  const input = parseInput(updateCostItemSchema, rawInput)
   const scopedDb = await getScopedDb()
 
   if (input.category === "labor") {

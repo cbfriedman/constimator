@@ -1,6 +1,7 @@
 "use server"
 
 import { and, eq } from "drizzle-orm"
+import { z } from "zod"
 
 import { estimateLines, estimates } from "@/db/schema"
 import { generateEstimateLines } from "@/lib/cost-engine/generate-estimate"
@@ -10,6 +11,7 @@ import { estimateRows as defaultEstimateRows } from "@/lib/estimate-data"
 import { UI_TO_DB_SOURCE } from "@/lib/estimate-view"
 import { todayIsoDate } from "@/lib/format-date"
 import type { ExtractedTakeoffItem } from "@/lib/cost-engine/types"
+import { numericString, optionalNumericString, parseInput, uuidSchema } from "@/lib/validation"
 
 function stripCurrency(value: string): string {
   return value.replace(/[$,]/g, "")
@@ -58,25 +60,28 @@ export async function getEstimateData() {
   return { rows, project }
 }
 
-export async function overrideEstimateLineAction(id: string) {
+export async function overrideEstimateLineAction(rawId: string) {
+  const id = parseInput(uuidSchema, rawId)
   const scopedDb = await getScopedDb()
   await scopedDb.estimateLines.update(eq(estimateLines.id, id), {
     source: "overridden",
   })
 }
 
-export type EstimateLineInput = {
-  description: string
-  note: string | null
-  quantity: string
-  unit: string
-  unitPrice: string
-  laborCost: string | null
-  materialCost: string | null
-  equipmentCost: string | null
-  subCost: string | null
-  markupPct: string
-}
+const estimateLineInputSchema = z.object({
+  description: z.string().trim().min(1, "Description is required"),
+  note: z.string().nullable(),
+  quantity: numericString(),
+  unit: z.string().trim().min(1, "Unit is required"),
+  unitPrice: numericString(),
+  laborCost: optionalNumericString(),
+  materialCost: optionalNumericString(),
+  equipmentCost: optionalNumericString(),
+  subCost: optionalNumericString(),
+  markupPct: numericString(),
+})
+
+export type EstimateLineInput = z.infer<typeof estimateLineInputSchema>
 
 // total = quantity × unit price. Labor/material/equipment/sub costs are an
 // informational per-unit breakdown a contractor can fill in for their own
@@ -90,7 +95,9 @@ function computeTotal(quantity: string, unitPrice: string): string {
   return total.toFixed(2)
 }
 
-export async function addEstimateLineAction(projectId: string, input: EstimateLineInput) {
+export async function addEstimateLineAction(rawProjectId: string, rawInput: EstimateLineInput) {
+  const projectId = parseInput(uuidSchema, rawProjectId)
+  const input = parseInput(estimateLineInputSchema, rawInput)
   const scopedDb = await getScopedDb()
   const estimate = await getOrCreateCurrentEstimate(scopedDb, projectId)
   const existingLines = await scopedDb.estimateLines.findMany(
@@ -111,7 +118,9 @@ export async function addEstimateLineAction(projectId: string, input: EstimateLi
 // specifically for flagging disagreement with the official bid form's
 // quantity (requires a note, flips source to "overridden"). This is for
 // correcting/filling in a line's own numbers and leaves source as-is.
-export async function updateEstimateLineAction(id: string, input: EstimateLineInput) {
+export async function updateEstimateLineAction(rawId: string, rawInput: EstimateLineInput) {
+  const id = parseInput(uuidSchema, rawId)
+  const input = parseInput(estimateLineInputSchema, rawInput)
   const scopedDb = await getScopedDb()
   const [line] = await scopedDb.estimateLines.update(eq(estimateLines.id, id), {
     ...input,
@@ -120,10 +129,28 @@ export async function updateEstimateLineAction(id: string, input: EstimateLineIn
   return line
 }
 
-export async function deleteEstimateLineAction(id: string) {
+export async function deleteEstimateLineAction(rawId: string) {
+  const id = parseInput(uuidSchema, rawId)
   const scopedDb = await getScopedDb()
   await scopedDb.estimateLines.delete(eq(estimateLines.id, id))
 }
+
+// extractedItems ultimately comes from takeoff_job.result — a jsonb column
+// written by the worker (a separate process, over its own DB connection).
+// Drizzle's `.$type<>()` on that column is compile-time only; nothing
+// validates the JSON actually has this shape at runtime before it gets
+// here. This is the real trust boundary, so it's validated with the same
+// rigor as user input rather than assumed safe because it "came from our
+// own worker."
+const extractedTakeoffItemSchema = z.object({
+  trade: z.string().trim().min(1),
+  description: z.string().trim().min(1),
+  quantity: z.number().finite(),
+  unit: z.string().trim().min(1),
+  confidence: z.number().min(0).max(100).optional(),
+  sourceSheets: z.string().optional(),
+  notes: z.string().optional(),
+})
 
 /**
  * The cost engine's entry point: takes quantities extracted from a plan set
@@ -142,9 +169,14 @@ export async function deleteEstimateLineAction(id: string) {
  * clears any drift flag, since a fresh generation *is* a fresh snapshot.
  */
 export async function generateEstimateFromTakeoff(
-  projectId: string,
-  extractedItems: ExtractedTakeoffItem[],
+  rawProjectId: string,
+  rawExtractedItems: ExtractedTakeoffItem[],
 ) {
+  const projectId = parseInput(uuidSchema, rawProjectId)
+  const extractedItems = parseInput(
+    z.array(extractedTakeoffItemSchema),
+    rawExtractedItems,
+  )
   const scopedDb = await getScopedDb()
   const estimate = await getOrCreateCurrentEstimate(scopedDb, projectId)
 
