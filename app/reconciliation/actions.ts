@@ -6,105 +6,87 @@ import { getEstimateData } from "@/app/estimate/actions"
 import { bids, estimateLines, reconciliationItems } from "@/db/schema"
 import { getCurrentProject, getOrCreateCurrentEstimate } from "@/lib/current-project"
 import { getScopedDb } from "@/lib/db/scoped"
-import { reconciliationRows as defaultReconciliationRows } from "@/lib/reconciliation-data"
-import { UI_TO_DB_FILTER } from "@/lib/reconciliation-view"
+import { diffBidAgainstEstimate } from "@/lib/reconciliation-diff"
 
-function stripSign(value: string): string {
-  return value.replace(/[−,]/g, (match) => (match === "−" ? "-" : ""))
+export type BidLineInput = {
+  itemNumber: string
+  description: string
+  unit: string
+  officialQuantity: string
+  specSection: string | null
 }
 
-function toNullableNumericString(value: string): string | null {
-  if (value === "—") return null
-  return stripSign(value)
+export async function addBidLineAction(projectId: string, input: BidLineInput) {
+  const scopedDb = await getScopedDb()
+  const [bid] = await scopedDb.bids.insert({ projectId, ...input })
+  return bid
 }
 
-async function seedDefaultsIfEmpty(
+export async function updateBidLineAction(id: string, input: BidLineInput) {
+  const scopedDb = await getScopedDb()
+  const [bid] = await scopedDb.bids.update(eq(bids.id, id), input)
+  return bid
+}
+
+export async function deleteBidLineAction(id: string) {
+  const scopedDb = await getScopedDb()
+  await scopedDb.bids.delete(eq(bids.id, id))
+}
+
+// Recomputes reconciliation_item from scratch against the project's
+// current bid + estimate lines every time it's read, rather than trusting
+// a possibly-stale cached row — bid lines and estimate lines can both
+// change independently (editing a bid line, adding/removing an estimate
+// line), and there's no event wiring every one of those back to a
+// reconciliation update. The diff itself is cheap (pure JS over a project's
+// worth of rows, no AI calls), so recomputing on every load is simpler and
+// more trustworthy than trying to keep a cache correctly invalidated.
+async function recomputeReconciliation(
   scopedDb: Awaited<ReturnType<typeof getScopedDb>>,
   projectId: string,
-  estimateLineRows: Awaited<ReturnType<typeof getEstimateData>>["rows"],
 ) {
-  const existingBids = await scopedDb.bids.findMany(eq(bids.projectId, projectId))
-  if (existingBids.length > 0) {
-    const existingItems = await scopedDb.reconciliationItems.findMany(
-      eq(reconciliationItems.projectId, projectId),
-    )
-    return { bidRows: existingBids, itemRows: existingItems }
-  }
+  const [bidRows, estimateLineRows] = await Promise.all([
+    scopedDb.bids.findMany(eq(bids.projectId, projectId)),
+    (async () => {
+      const { rows } = await getEstimateData()
+      return rows
+    })(),
+  ])
 
-  await Promise.all(
-    defaultReconciliationRows.map(async (row) => {
-      const [bid] = await scopedDb.bids.insert({
-        projectId,
-        itemNumber: String(row.id),
-        description: row.description,
-        unit: row.unit,
-        officialQuantity: stripSign(row.officialQty),
-        specSection: row.spec === "—" ? null : row.spec,
-      })
-
-      // Real data can't have one page's estimate agree with a line and this
-      // page's bid disagree on whether it exists — so this matches against
-      // the estimate lines actually seeded (app/estimate/actions.ts), rather
-      // than replaying the mock's "item 15 is missing" narrative, which only
-      // ever held in the mock because the two pages' data was never actually
-      // cross-checked. addMissingItemToEstimateAction below still handles a
-      // genuinely missing item correctly — this just doesn't manufacture one.
-      const matchingLine = estimateLineRows.find(
-        (line) => line.description === row.description,
-      )
-
-      await scopedDb.reconciliationItems.insert({
-        projectId,
-        bidId: bid.id,
-        estimateLineId: matchingLine?.id ?? null,
-        aiQuantity: toNullableNumericString(row.aiQty),
-        diffQuantity: matchingLine ? "0" : toNullableNumericString(row.diff),
-        diffPct: matchingLine ? "0" : toNullableNumericString(row.pctDiff),
-        confidence: String(row.confidence),
-        planSheets: row.planSheets === "—" ? null : row.planSheets,
-        statusLabel: matchingLine ? "Match" : row.statusLabel,
-        statusColor: matchingLine ? "green" : row.statusColor,
-        attention: matchingLine ? false : row.attention,
-        filters: matchingLine
-          ? ["matched"]
-          : row.filters
-              .map((f) => UI_TO_DB_FILTER[f])
-              .filter((f): f is NonNullable<typeof f> => f !== null),
-        explanation: row.explanation ?? null,
-      })
-    }),
-  )
-
-  const bidRows = await scopedDb.bids.findMany(eq(bids.projectId, projectId))
-  const itemRows = await scopedDb.reconciliationItems.findMany(
+  await scopedDb.reconciliationItems.delete(
     eq(reconciliationItems.projectId, projectId),
   )
-  return { bidRows, itemRows }
+
+  if (bidRows.length === 0) {
+    return { bidRows, itemRows: [], estimateLineRows }
+  }
+
+  const diffs = diffBidAgainstEstimate(bidRows, estimateLineRows)
+  const itemRows = await Promise.all(
+    diffs.map((diff) => scopedDb.reconciliationItems.insert({ projectId, ...diff })),
+  )
+
+  return { bidRows, itemRows: itemRows.flat(), estimateLineRows }
 }
 
 export async function getReconciliationData() {
   const scopedDb = await getScopedDb()
   const project = await getCurrentProject(scopedDb)
-  if (!project) return { bidRows: [], itemRows: [], estimateLineRows: [], project: null }
+  if (!project) {
+    return { bidRows: [], itemRows: [], estimateLineRows: [], project: null }
+  }
 
-  const { rows: estimateLineRows } = await getEstimateData()
-  const { bidRows, itemRows } = await seedDefaultsIfEmpty(
+  const { bidRows, itemRows, estimateLineRows } = await recomputeReconciliation(
     scopedDb,
     project.id,
-    estimateLineRows,
   )
 
   return { bidRows, itemRows, estimateLineRows, project }
 }
 
-export async function addMissingItemToEstimateAction(reconciliationItemId: string) {
+export async function addMissingItemToEstimateAction(bidId: string) {
   const scopedDb = await getScopedDb()
-  const item = await scopedDb.reconciliationItems.findFirst(
-    eq(reconciliationItems.id, reconciliationItemId),
-  )
-  if (!item) return
-
-  const bid = await scopedDb.bids.findFirst(eq(bids.id, item.bidId))
+  const bid = await scopedDb.bids.findFirst(eq(bids.id, bidId))
   const project = await getCurrentProject(scopedDb)
   if (!bid || !project) return
 
@@ -116,7 +98,7 @@ export async function addMissingItemToEstimateAction(reconciliationItemId: strin
   // No unit-price entry UI exists yet for a genuinely missing item — this
   // adds it at $0 so it shows up and reconciles, rather than guessing a
   // price. Whoever's estimating still needs to price it.
-  const [newLine] = await scopedDb.estimateLines.insert({
+  await scopedDb.estimateLines.insert({
     estimateId: estimate.id,
     bidId: bid.id,
     lineNumber: existingLines.length + 1,
@@ -129,13 +111,25 @@ export async function addMissingItemToEstimateAction(reconciliationItemId: strin
     source: "manual",
   })
 
-  await scopedDb.reconciliationItems.update(eq(reconciliationItems.id, reconciliationItemId), {
-    estimateLineId: newLine.id,
-    diffQuantity: "0",
-    diffPct: "0",
-    statusLabel: "Match — added to estimate",
-    statusColor: "green",
-    attention: false,
-    filters: ["matched"],
+  // Next getReconciliationData() call will recompute and see this line
+  // via its bidId — no need to hand-patch the reconciliation_item row.
+}
+
+// "Accept Official Quantity" in the detail sheet — adopts the bid form's
+// quantity/unit into the linked estimate line and marks its source
+// "official" (the same SourceBadge value used everywhere else in the app
+// for "straight from the agency's official bid schedule").
+export async function acceptOfficialQuantityAction(
+  estimateLineId: string,
+  bidId: string,
+) {
+  const scopedDb = await getScopedDb()
+  const bid = await scopedDb.bids.findFirst(eq(bids.id, bidId))
+  if (!bid) return
+
+  await scopedDb.estimateLines.update(eq(estimateLines.id, estimateLineId), {
+    quantity: bid.officialQuantity,
+    unit: bid.unit,
+    source: "official",
   })
 }

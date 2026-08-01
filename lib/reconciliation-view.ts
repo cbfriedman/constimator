@@ -27,16 +27,23 @@ export const UI_TO_DB_FILTER: Record<FilterKey, DbFilterKey | null> = {
 
 export type ReconciliationRowView = {
   id: string
+  bidId: string
+  estimateLineId: string | null
   itemNumber: string
   description: string
   unit: string
   officialQty: string
-  aiQty: string
   estimateQty: string
   diff: string
   pctDiff: string
-  confidence: number
-  planSheets: string
+  // Undefined for a real (non-AI) diff — reconciliation_item.ai_quantity/
+  // confidence exist for step 16's eventual AI-extracted comparison, not
+  // populated by the real bid-vs-estimate diff this step builds. The UI
+  // only shows these when present, rather than a misleading "—"/"0%" on
+  // every row.
+  aiQty?: string
+  confidence?: number
+  planSheets?: string
   spec: string
   statusLabel: string
   statusColor: StatusColor
@@ -78,16 +85,19 @@ export function toReconciliationRow(
 ): ReconciliationRowView {
   return {
     id: item.id,
+    bidId: bid.id,
+    estimateLineId: estimateLine?.id ?? null,
     itemNumber: bid.itemNumber,
     description: bid.description,
     unit: bid.unit,
     officialQty: formatQty(bid.officialQuantity),
-    aiQty: formatQty(item.aiQuantity),
     estimateQty: estimateLine ? formatQty(estimateLine.quantity) : "—",
     diff: formatDiff(item.diffQuantity),
     pctDiff: formatPctDiff(item.diffPct),
-    confidence: item.confidence == null ? 0 : Math.round(Number(item.confidence)),
-    planSheets: item.planSheets ?? "—",
+    aiQty: item.aiQuantity != null ? formatQty(item.aiQuantity) : undefined,
+    confidence:
+      item.confidence != null ? Math.round(Number(item.confidence)) : undefined,
+    planSheets: item.planSheets ?? undefined,
     spec: bid.specSection ?? "—",
     statusLabel: item.statusLabel,
     statusColor: item.statusColor,

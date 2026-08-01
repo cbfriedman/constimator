@@ -2,42 +2,30 @@
 
 import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import {
-  AlertTriangle,
-  FileBarChart,
-  FileUp,
-  Lock,
-  SlidersHorizontal,
-  UserCheck,
-} from "lucide-react"
+import { AlertTriangle, FileBarChart, FilePlus, UserCheck } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import {
   Empty,
-  EmptyContent,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { DetailSheet } from "@/components/reconciliation/detail-sheet"
 import { ReconTable } from "@/components/reconciliation/recon-table"
+import { BidLineTable } from "@/components/reconciliation/bid-line-table"
 import { ProjectHeader } from "@/components/project-header"
 import { cn } from "@/lib/utils"
 import { type FilterKey, type StatusColor, filterChips } from "@/lib/reconciliation-data"
 import type { ReconciliationRowView } from "@/lib/reconciliation-view"
 import { addMissingItemToEstimateAction } from "@/app/reconciliation/actions"
+import type { bids } from "@/db/schema"
+
+type BidRow = typeof bids.$inferSelect
 
 const chipColorClasses: Record<StatusColor | "neutral", string> = {
   neutral:
@@ -52,19 +40,37 @@ const chipColorClasses: Record<StatusColor | "neutral", string> = {
 }
 
 export function ReconciliationShell({
+  projectId,
   projectName,
+  initialBidRows,
   initialRows,
 }: {
+  projectId: string
   projectName: string
+  initialBidRows: BidRow[]
   initialRows: ReconciliationRowView[]
 }) {
   const router = useRouter()
+  const [bidRows, setBidRows] = useState<BidRow[]>(initialBidRows)
   const [rows, setRows] = useState<ReconciliationRowView[]>(initialRows)
   const [activeFilter, setActiveFilter] = useState<FilterKey>("all")
   const [selectedRow, setSelectedRow] = useState<ReconciliationRowView | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
-  const [demoState, setDemoState] = useState<"ready" | "no-bid-form">("ready")
+  const [prevInitialBidRows, setPrevInitialBidRows] = useState(initialBidRows)
+  const [prevInitialRows, setPrevInitialRows] = useState(initialRows)
 
+  // Server props change after router.refresh() (e.g. once a bid line edit
+  // has been recomputed server-side) — sync local state to match.
+  if (initialBidRows !== prevInitialBidRows) {
+    setPrevInitialBidRows(initialBidRows)
+    setBidRows(initialBidRows)
+  }
+  if (initialRows !== prevInitialRows) {
+    setPrevInitialRows(initialRows)
+    setRows(initialRows)
+  }
+
+  const hasBidForm = bidRows.length > 0
   const attentionCount = rows.filter((r) => r.attention).length
   const matchedCount = rows.filter((r) => !r.attention).length
   const missingCount = rows.filter((r) => r.statusColor === "red").length
@@ -80,6 +86,13 @@ export function ReconciliationShell({
   const chipCount = (key: FilterKey) => {
     if (key === "all") return rows.length
     return rows.filter((r) => r.filters.includes(key)).length
+  }
+
+  // Bid lines changed (added/edited/removed) — the diff depends on them, so
+  // re-fetch the recomputed reconciliation rather than trying to patch
+  // local state to match what the server-side diff would now produce.
+  function handleBidLinesChanged() {
+    router.refresh()
   }
 
   async function handleAddToEstimate(row: ReconciliationRowView) {
@@ -101,9 +114,10 @@ export function ReconciliationShell({
       ),
     )
     toast.success(`${row.description} added to estimate`)
-    await addMissingItemToEstimateAction(row.id).catch(() => {
+    await addMissingItemToEstimateAction(row.bidId).catch(() => {
       toast.error("Couldn't save that — try again.")
     })
+    router.refresh()
   }
 
   function handleRowClick(row: ReconciliationRowView) {
@@ -114,62 +128,47 @@ export function ReconciliationShell({
   return (
     <TooltipProvider>
       <div className="flex flex-col gap-6 p-6">
-        <ProjectHeader
-          title="Bid Form Reconciliation"
-          subtitle={projectName}
-          actions={
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-muted-foreground"
-                  />
-                }
-              >
-                <SlidersHorizontal data-icon="inline-start" />
-                Demo states
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuRadioGroup
-                  value={demoState}
-                  onValueChange={(value) =>
-                    setDemoState(value as "ready" | "no-bid-form")
-                  }
-                >
-                  <DropdownMenuLabel>Preview state</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuRadioItem value="ready">
-                    Reconciliation ready
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="no-bid-form">
-                    No bid form uploaded
-                  </DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          }
-        />
+        <ProjectHeader title="Bid Form Reconciliation" subtitle={projectName} />
 
-        {demoState === "no-bid-form" ? (
-          <Empty className="min-h-[60vh] border">
+        {!projectId ? (
+          <Empty className="border">
             <EmptyHeader>
               <EmptyMedia variant="icon">
-                <Lock />
+                <FilePlus />
               </EmptyMedia>
-              <EmptyTitle>Reconciliation locked</EmptyTitle>
+              <EmptyTitle>No project yet</EmptyTitle>
               <EmptyDescription>
-                Upload the Official Bid Form to unlock reconciliation.
+                Create a project before entering its official bid form.
               </EmptyDescription>
             </EmptyHeader>
-            <EmptyContent>
-              <Button onClick={() => router.push("/upload")}>
-                <FileUp data-icon="inline-start" />
-                Upload the Official Bid Form
-              </Button>
-            </EmptyContent>
           </Empty>
+        ) : !hasBidForm ? (
+          <div className="flex flex-col gap-6">
+            <Empty className="border">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <FilePlus />
+                </EmptyMedia>
+                <EmptyTitle>No official bid form entered yet</EmptyTitle>
+                <EmptyDescription>
+                  Enter the official bid form&apos;s line items below to
+                  reconcile them against your estimate.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Official Bid Form</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <BidLineTable
+                  projectId={projectId}
+                  initialBidRows={bidRows}
+                  onChanged={handleBidLinesChanged}
+                />
+              </CardContent>
+            </Card>
+          </div>
         ) : (
           <>
             <div className="flex flex-col gap-4 rounded-lg border bg-card p-4">
@@ -237,6 +236,19 @@ export function ReconciliationShell({
                 </div>
               </div>
             ) : null}
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Manage Official Bid Form</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <BidLineTable
+                  projectId={projectId}
+                  initialBidRows={bidRows}
+                  onChanged={handleBidLinesChanged}
+                />
+              </CardContent>
+            </Card>
 
             <div className="flex items-center justify-end gap-3 border-t pt-4">
               <Button variant="outline" onClick={() => router.push("/review")}>

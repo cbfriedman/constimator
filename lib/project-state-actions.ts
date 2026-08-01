@@ -2,7 +2,7 @@
 
 import { eq } from "drizzle-orm"
 
-import { estimates } from "@/db/schema"
+import { bids, estimateLines, estimates } from "@/db/schema"
 import {
   getScopedDb,
   NoOrgMembershipError,
@@ -10,6 +10,7 @@ import {
 } from "@/lib/db/scoped"
 import { getCurrentProject, getOrCreateCurrentEstimate } from "@/lib/current-project"
 import { formatDisplayDate, todayIsoDate } from "@/lib/format-date"
+import { diffBidAgainstEstimate } from "@/lib/reconciliation-diff"
 
 export type ProjectStateSnapshot = {
   costSetupComplete: boolean
@@ -23,6 +24,12 @@ export type ProjectStateSnapshot = {
     driftDismissed: boolean
     recalculated: boolean
   } | null
+  // Real count of bid-vs-estimate diff rows needing attention, for the
+  // sidebar badge / dashboard stat card — computed with the same pure diff
+  // used by the reconciliation page itself, but without writing
+  // reconciliation_item rows (this runs on every route via the root layout,
+  // so it stays read-only rather than rewriting DB rows on every nav).
+  reconciliationAttentionCount: number
 }
 
 // Called from the root layout, so it runs for every route — including the
@@ -42,6 +49,20 @@ export async function getProjectStateSnapshot(): Promise<ProjectStateSnapshot | 
       ? await getOrCreateCurrentEstimate(scopedDb, project.id)
       : null
 
+    let reconciliationAttentionCount = 0
+    if (project && estimate) {
+      const [bidRows, estimateLineRows] = await Promise.all([
+        scopedDb.bids.findMany(eq(bids.projectId, project.id)),
+        scopedDb.estimateLines.findMany(eq(estimateLines.estimateId, estimate.id)),
+      ])
+      if (bidRows.length > 0) {
+        reconciliationAttentionCount = diffBidAgainstEstimate(
+          bidRows,
+          estimateLineRows,
+        ).filter((diff) => diff.attention).length
+      }
+    }
+
     return {
       costSetupComplete: org.costSetupComplete,
       estimate: estimate
@@ -53,6 +74,7 @@ export async function getProjectStateSnapshot(): Promise<ProjectStateSnapshot | 
             recalculated: estimate.recalculated,
           }
         : null,
+      reconciliationAttentionCount,
     }
   } catch (err) {
     const isExpected =

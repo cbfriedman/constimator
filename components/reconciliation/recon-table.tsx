@@ -12,7 +12,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { ConfidenceCell } from "@/components/reconciliation/confidence-cell"
 import { cn } from "@/lib/utils"
 import { statusColorClasses } from "@/lib/reconciliation-data"
 import type { ReconciliationRowView } from "@/lib/reconciliation-view"
@@ -35,12 +34,9 @@ export function ReconTable({
             <TableHead className="min-w-52">Description</TableHead>
             <TableHead>Unit</TableHead>
             <TableHead className="text-right">Official Qty</TableHead>
-            <TableHead className="text-right">AI Qty</TableHead>
             <TableHead className="text-right">Estimate Qty</TableHead>
             <TableHead className="text-right">Diff</TableHead>
             <TableHead className="text-right">% Diff</TableHead>
-            <TableHead>Confidence</TableHead>
-            <TableHead>Plan Sheets</TableHead>
             <TableHead>Spec</TableHead>
             <TableHead className="min-w-44">Status</TableHead>
           </TableRow>
@@ -76,9 +72,6 @@ export function ReconTable({
                 <TableCell className="text-right tabular-nums">
                   {row.officialQty}
                 </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {row.aiQty}
-                </TableCell>
                 <TableCell
                   className={cn(
                     "text-right tabular-nums",
@@ -96,12 +89,6 @@ export function ReconTable({
                   className={cn("text-right tabular-nums", diffColor)}
                 >
                   {row.pctDiff}
-                </TableCell>
-                <TableCell>
-                  <ConfidenceCell value={row.confidence} />
-                </TableCell>
-                <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                  {row.planSheets}
                 </TableCell>
                 <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                   {row.spec}

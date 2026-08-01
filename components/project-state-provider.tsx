@@ -13,10 +13,7 @@ import {
 import { formatDisplayDate, todayIsoDate } from "@/lib/format-date"
 
 type ProjectStateValue = {
-  /** Whether the missing Item 15 has been added to the estimate. */
-  item15Added: boolean
-  setItem15Added: (value: boolean) => void
-  /** Reconciliation items still needing attention (3 → 2 once Item 15 is added). */
+  /** Real count of reconciliation diff rows needing attention. */
   attentionCount: number
   /**
    * Whether company Estimating Defaults (/cost-setup) are fully configured.
@@ -69,7 +66,6 @@ export function ProjectStateProvider({
   children: React.ReactNode
   initialProjectState: ProjectStateSnapshot | null
 }) {
-  const [item15Added, setItem15Added] = React.useState(false)
   const [resetKey, setResetKey] = React.useState(0)
 
   const [costSetupComplete, setCostSetupCompleteState] = React.useState(
@@ -124,7 +120,6 @@ export function ProjectStateProvider({
   }, [])
 
   const reset = React.useCallback(() => {
-    setItem15Added(false)
     setCostSetupCompleteState(false)
     setRateSnapshotDate(FALLBACK_SNAPSHOT_DATE)
     setRateDrift(false)
@@ -136,9 +131,7 @@ export function ProjectStateProvider({
 
   const value = React.useMemo<ProjectStateValue>(
     () => ({
-      item15Added,
-      setItem15Added,
-      attentionCount: item15Added ? 2 : 3,
+      attentionCount: initialProjectState?.reconciliationAttentionCount ?? 0,
       costSetupComplete,
       setCostSetupComplete,
       rateSnapshotDate,
@@ -152,7 +145,7 @@ export function ProjectStateProvider({
       reset,
     }),
     [
-      item15Added,
+      initialProjectState,
       costSetupComplete,
       setCostSetupComplete,
       rateSnapshotDate,

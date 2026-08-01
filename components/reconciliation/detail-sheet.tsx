@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { Check, FileText, Flag, PencilLine } from "lucide-react"
+import { Check, Flag, PencilLine } from "lucide-react"
 import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
@@ -17,6 +17,8 @@ import {
 import { cn } from "@/lib/utils"
 import { statusColorClasses } from "@/lib/reconciliation-data"
 import type { ReconciliationRowView } from "@/lib/reconciliation-view"
+import { acceptOfficialQuantityAction } from "@/app/reconciliation/actions"
+import { overrideEstimateLineAction } from "@/app/estimate/actions"
 
 function QtyTile({
   label,
@@ -27,11 +29,10 @@ function QtyTile({
   label: string
   value: string
   unit: string
-  variant: "official" | "ai" | "estimate"
+  variant: "official" | "estimate"
 }) {
   const styles = {
     official: "border-2 border-primary bg-primary/5 text-primary",
-    ai: "border-2 border-warning bg-warning/5 text-warning",
     estimate: "border bg-muted/40 text-foreground",
   }[variant]
 
@@ -50,15 +51,6 @@ function QtyTile({
   )
 }
 
-function ExcerptBox({ caption }: { caption: string }) {
-  return (
-    <div className="flex aspect-[4/3] flex-col items-center justify-center gap-2 rounded-lg border border-dashed bg-muted/40 p-4 text-center">
-      <FileText className="size-6 text-muted-foreground" />
-      <span className="text-xs text-muted-foreground">{caption}</span>
-    </div>
-  )
-}
-
 export function DetailSheet({
   row,
   open,
@@ -72,8 +64,25 @@ export function DetailSheet({
 
   if (!row) return null
 
-  const bidFormPage = "p.4"
-  const planSheet = row.planSheets !== "—" ? row.planSheets.split(",")[0].trim() : "C-301"
+  const hasEstimateLine = row.estimateLineId != null
+
+  async function handleAcceptOfficial() {
+    if (!row!.estimateLineId) return
+    onOpenChange(false)
+    toast.success(`Estimate line updated to the official quantity for ${row!.description}`)
+    await acceptOfficialQuantityAction(row!.estimateLineId, row!.bidId).catch(() => {
+      toast.error("Couldn't save that — try again.")
+    })
+  }
+
+  async function handleKeepMine() {
+    if (!row!.estimateLineId) return
+    onOpenChange(false)
+    toast(`Kept your quantity for ${row!.description}`)
+    await overrideEstimateLineAction(row!.estimateLineId).catch(() => {
+      toast.error("Couldn't save that — try again.")
+    })
+  }
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -92,12 +101,12 @@ export function DetailSheet({
           </div>
           <SheetTitle>{row.description}</SheetTitle>
           <SheetDescription>
-            Unit {row.unit} · Plan {row.planSheets} · Spec {row.spec}
+            Unit {row.unit} · Spec {row.spec}
           </SheetDescription>
         </SheetHeader>
 
         <div className="flex flex-col gap-5 p-4">
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <QtyTile
               label="Official"
               value={row.officialQty}
@@ -105,22 +114,11 @@ export function DetailSheet({
               variant="official"
             />
             <QtyTile
-              label="AI"
-              value={row.aiQty}
-              unit={row.unit}
-              variant="ai"
-            />
-            <QtyTile
               label="Estimate"
               value={row.estimateQty}
               unit={row.unit}
               variant="estimate"
             />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <ExcerptBox caption={`Bid form excerpt — ${bidFormPage}`} />
-            <ExcerptBox caption={`Plan sheet excerpt — ${planSheet}`} />
           </div>
 
           {row.explanation ? (
@@ -133,25 +131,18 @@ export function DetailSheet({
         </div>
 
         <SheetFooter className="border-t">
-          <Button
-            onClick={() => {
-              toast.success(`Official quantity accepted for ${row.description}`)
-              onOpenChange(false)
-            }}
-          >
-            <Check data-icon="inline-start" />
-            Accept Official Quantity
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => {
-              toast(`Kept your quantity for ${row.description}`)
-              onOpenChange(false)
-            }}
-          >
-            <PencilLine data-icon="inline-start" />
-            Keep My Quantity (Override)
-          </Button>
+          {hasEstimateLine ? (
+            <>
+              <Button onClick={handleAcceptOfficial}>
+                <Check data-icon="inline-start" />
+                Accept Official Quantity
+              </Button>
+              <Button variant="outline" onClick={handleKeepMine}>
+                <PencilLine data-icon="inline-start" />
+                Keep My Quantity (Override)
+              </Button>
+            </>
+          ) : null}
           <Button
             variant="outline"
             onClick={() => {

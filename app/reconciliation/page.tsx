@@ -20,9 +20,11 @@ export default async function ReconciliationPage() {
 
   return (
     <ReconciliationShell
+      projectId={project?.id ?? ""}
       projectName={
         project ? `${project.name} · #${project.number}` : "No project yet"
       }
+      initialBidRows={bidRows}
       initialRows={rows}
     />
   )
