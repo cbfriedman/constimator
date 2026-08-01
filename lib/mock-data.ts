@@ -1,5 +1,3 @@
-import type { SourceKind } from "@/components/source-badge"
-
 export const demoProject = {
   name: "Shasta County Roadway Improvements",
   owner: "Shasta County Public Works",
@@ -50,7 +48,7 @@ export type ProjectsListItem = {
   number: string
   owner: string
   status: string
-  statusTone: "success" | "warning" | "muted" | "review"
+  statusTone: "success" | "warning" | "primary" | "muted" | "review"
   bidDate: string
   discrepancies?: number
   reports?: string
@@ -60,22 +58,14 @@ export type ProjectsListItem = {
 
 export const recentActivity = [
   {
-    text: "Addendum 01 analyzed — HMA quantity revised +250 TON",
+    text: "Reconciliation flagged 3 items on Shasta County — 1 missing bid item",
     date: "Jul 10",
   },
-  { text: "Human review requested — 3 flagged items", date: "Jul 10" },
+  { text: "Estimate updated — Shasta County", date: "Jul 10" },
   {
-    text: "AI analysis complete — 15 bid items, 6 schedules, 4 risks",
+    text: "Documents read — 15 bid items, 6 schedules extracted (Shasta County)",
     date: "Jul 9",
   },
-]
-
-export const demoFlowSteps = [
-  { step: 1, label: "Review Project Intelligence", href: "/intelligence" },
-  { step: 2, label: "Check Cost Setup", href: "/cost-setup" },
-  { step: 3, label: "Open Estimate Workspace", href: "/estimate" },
-  { step: 4, label: "Reconcile Bid Form", href: "/reconciliation" },
-  { step: 5, label: "Export Reports", href: "/reports" },
 ]
 
 export const opsDemoPath = [
@@ -91,121 +81,3 @@ export const opsDemoPath = [
   "Show Reports",
 ]
 
-export const homeProblems = [
-  {
-    title: "Plans, specs, addenda, and bid forms are scattered",
-    description:
-      "Bid packages arrive as dozens of separate files with no single source of truth before bid day.",
-  },
-  {
-    title: "Important bid requirements are easy to miss",
-    description:
-      "Bonds, liquidated damages, prevailing wage, and working-day limits get buried in specification sections.",
-  },
-  {
-    title: "Quantities may not match the official bid schedule",
-    description:
-      "Estimates built from takeoffs and plan sheets can drift from the agency's bid form without anyone noticing.",
-  },
-  {
-    title: "Company labor and equipment rates must be applied consistently",
-    description:
-      "Crew, equipment, markup, and overhead rates need to be applied the same way on every bid item, every time.",
-  },
-  {
-    title: "Final reports need to be clear and defensible",
-    description:
-      "Proposal packages need to show where every number came from to hold up under scrutiny.",
-  },
-]
-
-export const homeSolutionSteps = [
-  {
-    step: 1,
-    description: "Upload plans, specifications, addenda, and the official bid form.",
-    linkLabel: "Upload Documents",
-    href: "/upload",
-  },
-  {
-    step: 2,
-    description:
-      "AI extracts project intelligence, schedules, risks, and bid requirements.",
-    linkLabel: "Project Intelligence",
-    href: "/intelligence",
-  },
-  {
-    step: 3,
-    description:
-      "Contractor applies company labor, equipment, markup, bond, and overhead rates.",
-    linkLabel: "Cost Setup",
-    href: "/cost-setup",
-  },
-  {
-    step: 4,
-    description: "Estimate workspace organizes bid items, quantities, and pricing.",
-    linkLabel: "Estimate Workspace",
-    href: "/estimate",
-  },
-  {
-    step: 5,
-    description:
-      "Bid reconciliation compares official quantities, AI quantities, and estimate quantities.",
-    linkLabel: "Bid Reconciliation",
-    href: "/reconciliation",
-  },
-]
-
-export const homeDifferentiatorFlags = [
-  "Missing bid items",
-  "Quantity discrepancies",
-  "Unit mismatches",
-  "Lump sum items requiring manual review",
-  "Low-confidence AI extractions",
-  "Items needing human review",
-]
-
-export const homeCostSetupItems = [
-  "Labor rates",
-  "Equipment rates",
-  "Bond premium",
-  "Overhead",
-  "Profit",
-  "Insurance",
-  "Markups",
-  "Project-specific overrides",
-]
-
-export const homeReportProvenance: { kind: SourceKind; description: string }[] = [
-  {
-    kind: "official",
-    description: "Straight from the agency's official bid schedule.",
-  },
-  {
-    kind: "ai-extracted",
-    description: "Pulled from plans, specs, and schedules by Constimator.",
-  },
-  {
-    kind: "manual",
-    description: "Entered directly by the contractor in the estimate.",
-  },
-  {
-    kind: "reviewed",
-    description: "Confirmed by a human reviewer before export.",
-  },
-  {
-    kind: "overridden",
-    description: "Manually replaces an extracted or official quantity.",
-  },
-]
-
-export const homeDemoPath = [
-  "Start from this homepage",
-  "Launch Contractor Demo",
-  "Open Shasta County Roadway Improvements",
-  "Review AI Project Intelligence",
-  "Check Cost Setup",
-  "Open Estimate Workspace",
-  "Show Bid Form Reconciliation",
-  "Request Human Review",
-  "Export Reports",
-]

@@ -2,11 +2,16 @@ import type { projects } from "@/db/schema"
 import type { DashboardProject, ProjectsListItem } from "@/lib/mock-data"
 
 type ProjectRow = typeof projects.$inferSelect
-type StatusTone = "success" | "warning" | "muted" | "review"
+export type StatusTone = "success" | "warning" | "primary" | "muted" | "review"
 
 // Other downstream pages (intelligence, estimate, etc.) still aren't wired
 // to a specific project id — those routes just show the fixed demo content.
 // /upload is: it's real now (step 12), so its href needs the project id.
+//
+// label/tone are the canonical status vocabulary shown everywhere a project
+// status appears (dashboard, /projects, sidebar) — keep them in sync with
+// the homepage's honest-framing rules: no "AI Processing" wording that
+// implies live AI work is happening behind the prototype banner.
 const STATUS_META: Record<
   ProjectRow["status"],
   { label: string; tone: StatusTone; href: string; buttonLabel: string }
@@ -18,31 +23,31 @@ const STATUS_META: Record<
     buttonLabel: "Continue Setup",
   },
   documents: {
-    label: "Documents Uploaded",
+    label: "Documents uploaded",
     tone: "muted",
     href: "/upload",
     buttonLabel: "Continue Setup",
   },
   processing: {
-    label: "AI Processing",
+    label: "Processing",
     tone: "review",
     href: "/processing",
     buttonLabel: "View Processing",
   },
   ready: {
-    label: "Ready for Estimate",
+    label: "Bid ready",
     tone: "success",
     href: "/intelligence",
     buttonLabel: "Open Project",
   },
   estimating: {
     label: "Estimating",
-    tone: "warning",
+    tone: "primary",
     href: "/estimate",
     buttonLabel: "Open Estimate",
   },
   reconciliation: {
-    label: "Reconciliation",
+    label: "Reconciliation — needs review",
     tone: "warning",
     href: "/reconciliation",
     buttonLabel: "Review Reconciliation",

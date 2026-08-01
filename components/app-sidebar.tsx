@@ -16,7 +16,6 @@ import {
   HardHat,
   Settings,
   HelpCircle,
-  BookOpen,
 } from "lucide-react"
 
 import {
@@ -59,7 +58,6 @@ const mainNav = [
 ]
 
 const footerNav = [
-  { title: "OPS Demo Guide", href: "/demo-guide", icon: BookOpen },
   { title: "Settings", href: "#", icon: Settings },
   { title: "Help", href: "#", icon: HelpCircle },
 ]
@@ -145,7 +143,7 @@ export function AppSidebar() {
         </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupLabel className="uppercase" title={demoProject.name}>
-            Demo Project
+            Sample Project
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <p className="px-2 text-xs leading-relaxed text-muted-foreground">

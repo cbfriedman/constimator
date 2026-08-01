@@ -12,7 +12,7 @@ type SummaryCard = {
   subtitle: string
   icon: LucideIcon
   href: string | null
-  tone?: "warning" | "review"
+  tone?: "warning" | "review" | "danger"
 }
 
 export function SummaryCards({
@@ -57,6 +57,7 @@ export function SummaryCards({
                   "flex size-8 items-center justify-center rounded-md",
                   card.tone === "warning" && "bg-warning/15 text-warning",
                   card.tone === "review" && "bg-review/15 text-review",
+                  card.tone === "danger" && "bg-destructive/15 text-destructive",
                   !card.tone && "bg-muted text-muted-foreground",
                 )}
               >
@@ -64,7 +65,15 @@ export function SummaryCards({
               </span>
             </CardHeader>
             <CardContent className="flex flex-col gap-1">
-              <div className="text-2xl font-semibold tabular-nums">{card.value}</div>
+              <div
+                className={cn(
+                  "text-2xl font-semibold tabular-nums",
+                  card.tone === "danger" && "text-destructive",
+                  card.tone === "warning" && "text-warning",
+                )}
+              >
+                {card.value}
+              </div>
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <span>{card.subtitle}</span>
                 {clickable ? <ArrowUpRight className="size-3" /> : null}

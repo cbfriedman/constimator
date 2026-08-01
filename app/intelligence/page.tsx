@@ -14,7 +14,7 @@ import { SchedulesTab } from "@/components/intelligence/schedules-tab"
 import { BidRequirementsTab } from "@/components/intelligence/bid-requirements-tab"
 import { RisksTab } from "@/components/intelligence/risks-tab"
 import { DocumentsTab } from "@/components/intelligence/documents-tab"
-import { demoProject } from "@/lib/demo-data"
+import { demoProject } from "@/lib/mock-data"
 
 export default function IntelligencePage() {
   const router = useRouter()

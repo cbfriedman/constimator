@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { BidCountdownBadge } from "@/components/bid-countdown-badge"
 import { RequestReviewCard } from "@/components/review/request-review-card"
 import { ReviewDetail } from "@/components/review/review-detail"
-import { demoProject } from "@/lib/demo-data"
+import { demoProject } from "@/lib/mock-data"
 
 export default function ReviewPage() {
   const router = useRouter()

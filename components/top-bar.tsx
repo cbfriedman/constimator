@@ -1,7 +1,8 @@
 "use client"
 
+import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Bell, ChevronDown, LogOut, RotateCcw, Search } from "lucide-react"
+import { Bell, ChevronDown, LogOut, Plus, RotateCcw, Search } from "lucide-react"
 import { toast } from "sonner"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -17,7 +18,7 @@ import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { useProjectState } from "@/components/project-state-provider"
-import { demoUser } from "@/lib/demo-data"
+import { demoUser } from "@/lib/mock-data"
 import { createClient } from "@/lib/supabase/client"
 
 export function TopBar() {
@@ -45,6 +46,11 @@ export function TopBar() {
         />
       </div>
       <div className="ml-auto flex items-center gap-3">
+        <Button render={<Link href="/new-project" />}>
+          <Plus data-icon="inline-start" />
+          New Project
+        </Button>
+        <Separator orientation="vertical" className="h-6" />
         <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
           <Bell />
           <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-destructive" />

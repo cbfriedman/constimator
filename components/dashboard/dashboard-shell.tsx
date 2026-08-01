@@ -1,25 +1,11 @@
 "use client"
 
 import { Suspense } from "react"
-import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import {
-  ArrowRight,
-  FileBarChart,
-  Flag,
-  FolderKanban,
-  ListOrdered,
-  Plus,
-} from "lucide-react"
+import { FileBarChart, Flag, FolderKanban, Plus, Timer } from "lucide-react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import {
   Empty,
   EmptyContent,
@@ -32,32 +18,36 @@ import { SummaryCards } from "@/components/dashboard/summary-cards"
 import { ProjectsTable } from "@/components/dashboard/projects-table"
 import { BidDeadlines } from "@/components/dashboard/bid-deadlines"
 import { RecentActivity } from "@/components/dashboard/recent-activity"
-import {
-  demoFlowSteps,
-  demoProject,
-  demoUser,
-  recentActivity,
-  type DashboardProject,
-} from "@/lib/mock-data"
+import { useProjectState } from "@/components/project-state-provider"
+import { demoProject, recentActivity, type DashboardProject } from "@/lib/mock-data"
 
-function DashboardHeader({ onNewProject }: { onNewProject: () => void }) {
+// engineersEstimate/deadlineDate arrive pre-formatted (lib/projects.ts) —
+// parse back out just enough to total and sort them here.
+function totalBidsLabel(projects: DashboardProject[]): string {
+  const total = projects.reduce((sum, p) => {
+    const n = Number(p.engineersEstimate.replace(/[^0-9.]/g, ""))
+    return sum + (Number.isNaN(n) ? 0 : n)
+  }, 0)
+  if (total === 0) return "No engineer's estimates yet"
+  return total >= 1_000_000
+    ? `$${(total / 1_000_000).toFixed(2)}M in bids`
+    : `$${total.toLocaleString("en-US")} in bids`
+}
+
+function nearestDeadline(projects: DashboardProject[]): DashboardProject | null {
+  const withDates = projects.filter((p) => p.deadlineDate !== "— —")
+  if (withDates.length === 0) return null
+  return [...withDates].sort((a, b) => a.daysOut - b.daysOut)[0]
+}
+
+function DashboardHeader() {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-4">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Welcome back, {demoUser.firstName}
-        </h1>
-        <p className="text-sm text-muted-foreground">{demoUser.company}</p>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <Button variant="outline" render={<Link href="/demo-guide" />}>
-          OPS Demo Guide
-        </Button>
-        <Button onClick={onNewProject}>
-          <Plus data-icon="inline-start" />
-          New Project
-        </Button>
-      </div>
+    <div className="flex flex-col gap-1">
+      <h1 className="text-2xl font-semibold tracking-tight">Your bids</h1>
+      <p className="text-sm text-muted-foreground">
+        Every project you&apos;re working, and what needs your attention
+        before bid day.
+      </p>
     </div>
   )
 }
@@ -65,18 +55,24 @@ function DashboardHeader({ onNewProject }: { onNewProject: () => void }) {
 function DashboardContent({ projects }: { projects: DashboardProject[] }) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { attentionCount } = useProjectState()
   const isEmpty = searchParams.get("empty") === "1" || projects.length === 0
 
+  // Only the Shasta County project has a fully wired downstream demo — every
+  // other row is a real project row without an intelligence/estimate/
+  // reconciliation experience behind it yet.
   function handleProjectClick(project: DashboardProject) {
-    if (project.href) {
-      router.push(project.href)
+    if (project.number === demoProject.number) {
+      router.push(project.href ?? "/intelligence")
+      return
     }
+    toast.info("Demo limited to the Shasta County project.")
   }
 
   if (isEmpty) {
     return (
       <div className="flex flex-col gap-6 p-6">
-        <DashboardHeader onNewProject={() => router.push("/projects/new")} />
+        <DashboardHeader />
         <Empty className="min-h-[60vh] border">
           <EmptyHeader>
             <EmptyMedia variant="icon">
@@ -84,11 +80,12 @@ function DashboardContent({ projects }: { projects: DashboardProject[] }) {
             </EmptyMedia>
             <EmptyTitle>No projects yet</EmptyTitle>
             <EmptyDescription>
-              Upload your first plan set and let Constimator do the reading.
+              Upload your first plan set and bid form, and Constimator will
+              read them and help you reconcile your estimate before bid day.
             </EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
-            <Button onClick={() => router.push("/projects/new")}>
+            <Button onClick={() => router.push("/new-project")}>
               <Plus data-icon="inline-start" />
               New Project
             </Button>
@@ -98,33 +95,44 @@ function DashboardContent({ projects }: { projects: DashboardProject[] }) {
     )
   }
 
+  const nearest = nearestDeadline(projects)
+  const urgentTone =
+    nearest && nearest.daysOut < 7
+      ? ("danger" as const)
+      : nearest && nearest.daysOut < 14
+        ? ("warning" as const)
+        : undefined
+
   const summaryCards = [
     {
       label: "Active Projects",
       value: String(projects.length),
-      subtitle: "Across all active bids",
+      subtitle: totalBidsLabel(projects),
       icon: FolderKanban,
       href: "/projects",
     },
     {
-      label: "Estimates in Progress",
-      value: "2",
-      subtitle: "Shasta + North Valley",
-      icon: ListOrdered,
-      href: "/estimate",
+      label: "Next Bid Deadline",
+      value: nearest ? String(nearest.daysOut) : "—",
+      subtitle: nearest
+        ? `${nearest.name} — ${nearest.daysOut} days out`
+        : "No upcoming deadlines",
+      icon: Timer,
+      href: null,
+      tone: urgentTone,
     },
     {
-      label: "Bid Discrepancies Found",
-      value: "3",
-      subtitle: "On Shasta County project",
+      label: "Items Flagged in Reconciliation",
+      value: String(attentionCount),
+      subtitle: "Across 1 project — needs review",
       icon: Flag,
       href: "/reconciliation",
       tone: "warning" as const,
     },
     {
       label: "Reports Ready",
-      value: "1",
-      subtitle: "Shasta export package",
+      value: "2",
+      subtitle: "Estimate + reconciliation exports available",
       icon: FileBarChart,
       href: "/reports",
       tone: "review" as const,
@@ -133,121 +141,24 @@ function DashboardContent({ projects }: { projects: DashboardProject[] }) {
 
   return (
     <div className="flex flex-col gap-6 p-6">
-      <DashboardHeader onNewProject={() => router.push("/projects/new")} />
+      <DashboardHeader />
 
       <SummaryCards
         cards={summaryCards}
         onNavigate={(href) => router.push(href)}
       />
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <Card className="border-primary/25 bg-primary/[0.03] xl:col-span-2">
-          <CardHeader className="gap-2">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <CardTitle className="text-xl">{demoProject.name}</CardTitle>
-                <CardDescription className="mt-1">
-                  Primary demo project for OPS walkthrough
-                </CardDescription>
-              </div>
-              <span className="inline-flex items-center rounded-md bg-success/15 px-2.5 py-1 text-xs font-medium text-success">
-                Ready for Estimate
-              </span>
-            </div>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-5">
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">Agency</span>
-                <span className="text-sm font-medium">{demoProject.owner}</span>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">Bid Date</span>
-                <span className="text-sm font-medium tabular-nums">
-                  {demoProject.bidDateShort}
-                </span>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">
-                  Engineer&apos;s Estimate
-                </span>
-                <span className="text-sm font-medium tabular-nums">
-                  {demoProject.engineersEstimate}
-                </span>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">Status</span>
-                <span className="text-sm font-medium">Ready for Estimate</span>
-              </div>
-            </div>
-            <div>
-              <Button onClick={() => router.push("/intelligence")}>
-                Open Demo Project
-                <ArrowRight data-icon="inline-end" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Demo Flow</CardTitle>
-            <CardDescription>
-              Recommended path through the Shasta project
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ol className="flex flex-col gap-3">
-              {demoFlowSteps.map((item) => (
-                <li key={item.step}>
-                  <button
-                    type="button"
-                    onClick={() => router.push(item.href)}
-                    className="flex w-full items-start gap-3 rounded-md border border-transparent px-2 py-1.5 text-left transition-colors hover:border-border hover:bg-muted/50"
-                  >
-                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                      {item.step}
-                    </span>
-                    <span className="pt-0.5 text-sm font-medium leading-snug">
-                      {item.label}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ol>
-          </CardContent>
-        </Card>
-      </div>
-
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="flex flex-col gap-6 lg:col-span-2">
           <ProjectsTable
             projects={projects}
             onProjectClick={handleProjectClick}
+            onNewProject={() => router.push("/new-project")}
           />
           <RecentActivity items={recentActivity} />
         </div>
         <div className="flex flex-col gap-6 lg:col-span-1">
           <BidDeadlines projects={projects} />
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">
-                Recommended Demo Path for OPS
-              </CardTitle>
-              <CardDescription>
-                Full presenter checklist from home through reports.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button
-                variant="outline"
-                className="w-full"
-                render={<Link href="/demo-guide" />}
-              >
-                Open Demo Guide
-              </Button>
-            </CardContent>
-          </Card>
         </div>
       </div>
     </div>

@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils"
 const toneStyles = {
   success: "border-transparent bg-success/15 text-success",
   warning: "border-transparent bg-warning/15 text-warning",
+  primary: "border-transparent bg-primary/15 text-primary",
   muted: "border-transparent bg-muted text-muted-foreground",
   review: "border-transparent bg-review/15 text-review",
 } as const

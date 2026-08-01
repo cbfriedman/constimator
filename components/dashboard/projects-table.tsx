@@ -1,6 +1,9 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Plus } from "lucide-react"
+
+import { Button } from "@/components/ui/button"
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import {
   Table,
@@ -11,7 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
-import type { DashboardProject } from "@/lib/demo-data"
+import type { DashboardProject } from "@/lib/mock-data"
 
 const statusStyles: Record<DashboardProject["status"], string> = {
   reconciliation: "border-transparent bg-warning/15 text-warning",
@@ -25,14 +28,22 @@ const statusStyles: Record<DashboardProject["status"], string> = {
 export function ProjectsTable({
   projects,
   onProjectClick,
+  onNewProject,
 }: {
   projects: DashboardProject[]
   onProjectClick: (project: DashboardProject) => void
+  onNewProject: () => void
 }) {
   return (
     <Card>
       <CardHeader>
         <CardTitle>Active Projects</CardTitle>
+        <CardAction>
+          <Button size="sm" onClick={onNewProject}>
+            <Plus data-icon="inline-start" />
+            New Project
+          </Button>
+        </CardAction>
       </CardHeader>
       <CardContent className="px-0">
         <Table className="table-fixed">
