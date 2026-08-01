@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.38.1",
     "dotenv": "^17.4.2",
     "pdf-to-img": "^6.2.0",
     "postgres": "^3.4.9"

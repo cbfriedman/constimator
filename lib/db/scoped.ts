@@ -5,6 +5,7 @@ import { and, eq, type SQL } from "drizzle-orm"
 import type { AnyPgColumn, PgTable } from "drizzle-orm/pg-core"
 
 import {
+  aiUsageEvents,
   bids,
   costItems,
   documents,
@@ -173,5 +174,6 @@ export async function getScopedDb() {
       orgId,
     ),
     takeoffJobs: orgScoped(takeoffJobs, takeoffJobs.orgId, orgId),
+    aiUsageEvents: orgScoped(aiUsageEvents, aiUsageEvents.orgId, orgId),
   }
 }

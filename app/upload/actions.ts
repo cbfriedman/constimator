@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm"
 import { z } from "zod"
 
 import { documents, projects } from "@/db/schema"
+import { checkSpendCap, checkTakeoffRateLimit, formatUsd } from "@/lib/ai-limits"
 import { getScopedDb } from "@/lib/db/scoped"
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server"
 import { parseInput, uuidSchema } from "@/lib/validation"
@@ -104,7 +105,35 @@ export async function confirmDocumentUpload(rawInput: {
   // can be a slow multi-page PDF job and this is a Vercel function with a
   // execution time limit. See worker/src/process-job.ts (step 16) for what
   // actually processes this.
+  //
+  // Step 25: this is "the takeoff-triggering endpoint" — the queue-time
+  // check. It's not the authoritative one (the worker repeats both checks
+  // immediately before the paid Claude call, since that's where money is
+  // actually spent and a job could sit queued across a rate-limit window
+  // or into a new spend-cap month) — but failing fast here means a blocked
+  // request doesn't even take up a worker poll cycle, and the reason shows
+  // up immediately on /processing instead of after a wasted round trip.
   try {
+    const rateLimit = await checkTakeoffRateLimit(scopedDb.orgId)
+    if (!rateLimit.allowed) {
+      await scopedDb.takeoffJobs.insert({
+        documentId: document.id,
+        status: "failed",
+        error: `Too many takeoff requests — please wait about ${rateLimit.retryAfterSeconds}s and try again.`,
+      })
+      return document
+    }
+
+    const spendCap = await checkSpendCap(scopedDb)
+    if (spendCap.overCap) {
+      await scopedDb.takeoffJobs.insert({
+        documentId: document.id,
+        status: "failed",
+        error: `Your organization has reached its monthly AI usage limit (${formatUsd(spendCap.capUsd)} used this month). AI document processing is paused until next month — you can still upload documents and build your estimate manually.`,
+      })
+      return document
+    }
+
     await scopedDb.takeoffJobs.insert({
       documentId: document.id,
       status: "queued",

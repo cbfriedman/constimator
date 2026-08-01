@@ -48,9 +48,12 @@ const TOOL = {
   },
 }
 
-export async function extractQuantities(
-  pages: RasterizedPage[],
-): Promise<ExtractedTakeoffItem[]> {
+export type ExtractResult = {
+  items: ExtractedTakeoffItem[]
+  usage: { inputTokens: number; outputTokens: number }
+}
+
+export async function extractQuantities(pages: RasterizedPage[]): Promise<ExtractResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) {
     throw new Error("ANTHROPIC_API_KEY is not set — see .env.example")
@@ -95,5 +98,11 @@ export async function extractQuantities(
   }
 
   const input = toolUse.input as { items: ExtractedTakeoffItem[] }
-  return input.items
+  return {
+    items: input.items,
+    usage: {
+      inputTokens: response.usage.input_tokens,
+      outputTokens: response.usage.output_tokens,
+    },
+  }
 }

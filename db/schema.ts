@@ -131,6 +131,16 @@ export const orgs = pgTable(
     // Company-wide (not per-project) — whether /cost-setup's defaults are
     // fully filled in. Gates final calculations/report export app-wide.
     costSetupComplete: boolean("cost_setup_complete").notNull().default(false),
+    // Step 25 — hard ceiling on AI spend (takeoff extraction calls) per
+    // calendar month. Same value for every org today (no admin UI to set
+    // this per-org yet); the column is per-org so that UI can be added
+    // later without a schema change. See lib/ai-limits.ts.
+    aiMonthlySpendCapUsd: numeric("ai_monthly_spend_cap_usd", {
+      precision: 10,
+      scale: 2,
+    })
+      .notNull()
+      .default("20.00"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -327,6 +337,46 @@ export const takeoffJobs = pgTable(
     orgIsolationPolicy("takeoff_job", table.orgId),
   ],
 ).enableRLS()
+
+// ---------------------------------------------------------------------------
+// ai_usage_event — step 25. One row per real AI call (currently just
+// worker/src/extract.ts's takeoff extraction). Written by the worker with
+// the token counts Claude's own response reports, converted to an estimated
+// dollar cost — see lib/ai-limits.ts / worker/src/ai-limits.ts for the
+// pricing constant and monthly-sum query both sides share the shape of.
+// Append-only log (never updated/deleted) so monthly spend is always an
+// honest sum of what actually happened, not a mutable running counter that
+// could drift.
+// ---------------------------------------------------------------------------
+
+export const aiUsageEvents = pgTable(
+  "ai_usage_event",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => orgs.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    inputTokens: integer("input_tokens").notNull(),
+    outputTokens: integer("output_tokens").notNull(),
+    estimatedCostUsd: numeric("estimated_cost_usd", { precision: 10, scale: 4 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("ai_usage_event_org_id_idx").on(table.orgId),
+    // The monthly-spend query filters org_id + a createdAt range — this
+    // composite index covers that directly instead of falling back to the
+    // org_id index plus a row-by-row filter.
+    index("ai_usage_event_org_id_created_at_idx").on(table.orgId, table.createdAt),
+    orgIsolationPolicy("ai_usage_event", table.orgId),
+  ],
+).enableRLS()
+
+export const aiUsageEventsRelations = relations(aiUsageEvents, ({ one }) => ({
+  org: one(orgs, { fields: [aiUsageEvents.orgId], references: [orgs.id] }),
+}))
 
 export const takeoffJobsRelations = relations(takeoffJobs, ({ one }) => ({
   org: one(orgs, { fields: [takeoffJobs.orgId], references: [orgs.id] }),

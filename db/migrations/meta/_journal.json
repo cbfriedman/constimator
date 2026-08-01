@@ -29,6 +29,13 @@
       "when": 1785554961211,
       "tag": "0003_auth_new_user_provisioning",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1785602740935,
+      "tag": "0004_green_zarek",
+      "breakpoints": true
     }
   ]
 }
