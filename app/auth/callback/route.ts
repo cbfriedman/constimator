@@ -13,6 +13,18 @@ export async function GET(request: Request) {
     if (!error) {
       return NextResponse.redirect(`${origin}${redirectTo}`)
     }
+    return NextResponse.redirect(
+      `${origin}/sign-in?error=${encodeURIComponent(error.message)}`,
+    )
+  }
+
+  // The provider itself can redirect here with an error and no code at all
+  // (e.g. the user cancels the Google consent screen).
+  const errorDescription = searchParams.get("error_description")
+  if (errorDescription) {
+    return NextResponse.redirect(
+      `${origin}/sign-in?error=${encodeURIComponent(errorDescription)}`,
+    )
   }
 
   return NextResponse.redirect(`${origin}/sign-in`)

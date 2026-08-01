@@ -4,6 +4,8 @@ import { Suspense, useState } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 
+import { AuthDivider } from "@/components/auth/auth-divider"
+import { GoogleAuthButton } from "@/components/auth/google-auth-button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
@@ -20,9 +22,10 @@ import { createClient } from "@/lib/supabase/client"
 function SignInForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const redirectTo = searchParams.get("redirect") || "/dashboard"
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(searchParams.get("error"))
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(event: React.FormEvent) {
@@ -42,7 +45,7 @@ function SignInForm() {
       return
     }
 
-    router.push(searchParams.get("redirect") || "/dashboard")
+    router.push(redirectTo)
     router.refresh()
   }
 
@@ -56,13 +59,21 @@ function SignInForm() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit}>
+          <div className="flex flex-col gap-4">
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            <GoogleAuthButton
+              label="Continue with Google"
+              redirectTo={redirectTo}
+              onError={setError}
+            />
+            <AuthDivider />
+          </div>
+          <form onSubmit={handleSubmit} className="mt-4">
             <FieldGroup>
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
               <Field>
                 <FieldLabel htmlFor="email">Email</FieldLabel>
                 <Input

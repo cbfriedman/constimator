@@ -3,6 +3,8 @@
 import { useState } from "react"
 import Link from "next/link"
 
+import { AuthDivider } from "@/components/auth/auth-divider"
+import { GoogleAuthButton } from "@/components/auth/google-auth-button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
@@ -65,52 +67,61 @@ export default function SignUpPage() {
               </AlertDescription>
             </Alert>
           ) : (
-            <form onSubmit={handleSubmit}>
-              <FieldGroup>
+            <>
+              <div className="flex flex-col gap-4">
                 {error && (
                   <Alert variant="destructive">
                     <AlertDescription>{error}</AlertDescription>
                   </Alert>
                 )}
-                <Field>
-                  <FieldLabel htmlFor="email">Email</FieldLabel>
-                  <Input
-                    id="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="password">Password</FieldLabel>
-                  <Input
-                    id="password"
-                    type="password"
-                    autoComplete="new-password"
-                    minLength={6}
-                    required
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                  />
-                </Field>
-                <Field>
-                  <Button type="submit" disabled={loading} className="w-full">
-                    {loading ? "Creating account…" : "Sign up"}
-                  </Button>
-                </Field>
-                <p className="text-center text-sm text-muted-foreground">
-                  Already have an account?{" "}
-                  <Link
-                    href="/sign-in"
-                    className="text-primary underline-offset-4 hover:underline"
-                  >
-                    Sign in
-                  </Link>
-                </p>
-              </FieldGroup>
-            </form>
+                <GoogleAuthButton
+                  label="Sign up with Google"
+                  onError={setError}
+                />
+                <AuthDivider />
+              </div>
+              <form onSubmit={handleSubmit} className="mt-4">
+                <FieldGroup>
+                  <Field>
+                    <FieldLabel htmlFor="email">Email</FieldLabel>
+                    <Input
+                      id="email"
+                      type="email"
+                      autoComplete="email"
+                      required
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="password">Password</FieldLabel>
+                    <Input
+                      id="password"
+                      type="password"
+                      autoComplete="new-password"
+                      minLength={6}
+                      required
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                    />
+                  </Field>
+                  <Field>
+                    <Button type="submit" disabled={loading} className="w-full">
+                      {loading ? "Creating account…" : "Sign up"}
+                    </Button>
+                  </Field>
+                  <p className="text-center text-sm text-muted-foreground">
+                    Already have an account?{" "}
+                    <Link
+                      href="/sign-in"
+                      className="text-primary underline-offset-4 hover:underline"
+                    >
+                      Sign in
+                    </Link>
+                  </p>
+                </FieldGroup>
+              </form>
+            </>
           )}
         </CardContent>
       </Card>
