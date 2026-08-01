@@ -65,6 +65,66 @@ export async function overrideEstimateLineAction(id: string) {
   })
 }
 
+export type EstimateLineInput = {
+  description: string
+  note: string | null
+  quantity: string
+  unit: string
+  unitPrice: string
+  laborCost: string | null
+  materialCost: string | null
+  equipmentCost: string | null
+  subCost: string | null
+  markupPct: string
+}
+
+// total = quantity × unit price. Labor/material/equipment/sub costs are an
+// informational per-unit breakdown a contractor can fill in for their own
+// reference — they aren't summed into the price (unit price is entered
+// independently, same as every seeded demo row: e.g. Roadway Excavation's
+// $14.20 unit price vs. $4.10+$0.60+$7.30=$12.00 of breakdown).
+function computeTotal(quantity: string, unitPrice: string): string {
+  const qty = Number(quantity)
+  const price = Number(unitPrice)
+  const total = Number.isFinite(qty) && Number.isFinite(price) ? qty * price : 0
+  return total.toFixed(2)
+}
+
+export async function addEstimateLineAction(projectId: string, input: EstimateLineInput) {
+  const scopedDb = await getScopedDb()
+  const estimate = await getOrCreateCurrentEstimate(scopedDb, projectId)
+  const existingLines = await scopedDb.estimateLines.findMany(
+    eq(estimateLines.estimateId, estimate.id),
+  )
+
+  const [line] = await scopedDb.estimateLines.insert({
+    estimateId: estimate.id,
+    lineNumber: existingLines.length + 1,
+    ...input,
+    total: computeTotal(input.quantity, input.unitPrice),
+    source: "manual",
+  })
+  return line
+}
+
+// Full field edit — distinct from overrideEstimateLineAction, which is
+// specifically for flagging disagreement with the official bid form's
+// quantity (requires a note, flips source to "overridden"). This is for
+// correcting/filling in a line's own numbers and leaves source as-is.
+export async function updateEstimateLineAction(id: string, input: EstimateLineInput) {
+  const scopedDb = await getScopedDb()
+  const [line] = await scopedDb.estimateLines.update(eq(estimateLines.id, id), {
+    ...input,
+    total: computeTotal(input.quantity, input.unitPrice),
+  })
+  return line
+}
+
+export async function deleteEstimateLineAction(id: string) {
+  const scopedDb = await getScopedDb()
+  await scopedDb.estimateLines.delete(eq(estimateLines.id, id))
+}
+
 /**
  * The cost engine's entry point: takes quantities extracted from a plan set
  * (worker/src/extract.ts's output, step 16) plus the org's cost_item

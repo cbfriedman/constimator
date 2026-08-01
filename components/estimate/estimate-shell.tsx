@@ -1,7 +1,9 @@
 "use client"
 
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { AlertTriangle, Plus, TableProperties } from "lucide-react"
+import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
 import { BidCountdownBadge } from "@/components/bid-countdown-badge"
@@ -17,9 +19,18 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { EstimateTable } from "@/components/estimate/estimate-table"
 import {
+  EstimateLineDialog,
+  type EstimateLineFormValue,
+} from "@/components/estimate/estimate-line-dialog"
+import {
   RateDriftBanner,
   RateSnapshotChip,
 } from "@/components/estimate/rate-snapshot"
+import {
+  addEstimateLineAction,
+  deleteEstimateLineAction,
+  updateEstimateLineAction,
+} from "@/app/estimate/actions"
 import type { EstimateLineView } from "@/lib/estimate-view"
 
 const markupLabels: Record<string, string> = {
@@ -38,13 +49,15 @@ const filterLabels: Record<string, string> = {
 }
 
 export function EstimateShell({
+  projectId,
   projectName,
-  rows,
+  rows: initialRows,
   subtotal,
   markup,
   bidTotal,
   vsEngineersEstimatePct,
 }: {
+  projectId: string
   projectName: string
   rows: EstimateLineView[]
   subtotal: string
@@ -54,12 +67,71 @@ export function EstimateShell({
 }) {
   const router = useRouter()
   const { costSetupComplete } = useProjectState()
+  const [rows, setRows] = useState(initialRows)
+  const [prevInitialRows, setPrevInitialRows] = useState(initialRows)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [editing, setEditing] = useState<EstimateLineFormValue | undefined>(undefined)
+
+  if (initialRows !== prevInitialRows) {
+    setPrevInitialRows(initialRows)
+    setRows(initialRows)
+  }
 
   const totals = [
     { label: "Subtotal", value: subtotal },
     { label: "Markup (10%)", value: markup },
     { label: "Bid Total", value: bidTotal, emphasized: true },
   ]
+
+  function openAdd() {
+    setEditing(undefined)
+    setDialogOpen(true)
+  }
+
+  function openEdit(row: EstimateLineView) {
+    setEditing({ id: row.id, ...row.raw })
+    setDialogOpen(true)
+  }
+
+  async function handleSave(value: EstimateLineFormValue) {
+    setDialogOpen(false)
+    if (value.id) {
+      const updated = await updateEstimateLineAction(value.id, value).catch(() => null)
+      if (updated) {
+        toast.success(`Updated ${value.description}`)
+        router.refresh()
+      } else {
+        toast.error("Couldn't save that — try again.")
+      }
+    } else {
+      const created = await addEstimateLineAction(projectId, value).catch(() => null)
+      if (created) {
+        toast.success(`Added ${value.description}`)
+        router.refresh()
+      } else {
+        toast.error("Couldn't save that — try again.")
+      }
+    }
+  }
+
+  function handleDuplicate(row: EstimateLineView) {
+    addEstimateLineAction(projectId, { ...row.raw, description: `${row.raw.description} (copy)` })
+      .then(() => {
+        toast.success(`Duplicated ${row.description}`)
+        router.refresh()
+      })
+      .catch(() => toast.error("Couldn't duplicate that — try again."))
+  }
+
+  function handleDelete(row: EstimateLineView) {
+    setRows((prev) => prev.filter((r) => r.id !== row.id))
+    deleteEstimateLineAction(row.id)
+      .then(() => {
+        toast(`Removed ${row.description}`)
+        router.refresh()
+      })
+      .catch(() => toast.error("Couldn't remove that — try again."))
+  }
 
   return (
     <div className="flex flex-col">
@@ -139,9 +211,9 @@ export function EstimateShell({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={openAdd} disabled={!projectId}>
             <Plus data-icon="inline-start" />
-            Add Bid Item
+            Add Line Item
           </Button>
           <Button variant="outline" size="sm">
             <TableProperties data-icon="inline-start" />
@@ -181,11 +253,23 @@ export function EstimateShell({
       </div>
 
       <div className="flex flex-col gap-3 p-6">
-        <EstimateTable rows={rows} />
+        <EstimateTable
+          rows={rows}
+          onEdit={openEdit}
+          onDuplicate={handleDuplicate}
+          onDelete={handleDelete}
+        />
         <p className="text-right text-xs text-muted-foreground">
           All changes saved
         </p>
       </div>
+
+      <EstimateLineDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        initialValue={editing}
+        onSave={handleSave}
+      />
     </div>
   )
 }

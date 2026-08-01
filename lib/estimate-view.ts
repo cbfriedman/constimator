@@ -4,6 +4,23 @@ import type { estimateLines } from "@/db/schema"
 type EstimateLineRow = typeof estimateLines.$inferSelect
 type DbSourceKind = EstimateLineRow["source"]
 
+// Unformatted values, straight from the DB row — used to pre-populate the
+// edit dialog. The sibling fields above (qty, unitPrice, labor, ...) are
+// display-formatted (commas, $, em dashes for null) and not safe to parse
+// back for editing.
+export type EstimateLineFormValues = {
+  description: string
+  note: string
+  quantity: string
+  unit: string
+  unitPrice: string
+  laborCost: string
+  materialCost: string
+  equipmentCost: string
+  subCost: string
+  markupPct: string
+}
+
 export type EstimateLineView = {
   id: string
   description: string
@@ -18,6 +35,7 @@ export type EstimateLineView = {
   mu: string
   total: string
   source: SourceKind
+  raw: EstimateLineFormValues
 }
 
 const DB_TO_UI_SOURCE: Record<DbSourceKind, SourceKind> = {
@@ -67,6 +85,18 @@ export function toEstimateLineView(row: EstimateLineRow): EstimateLineView {
     mu: String(Math.round(Number(row.markupPct))),
     total: formatMoney(row.total),
     source: DB_TO_UI_SOURCE[row.source],
+    raw: {
+      description: row.description,
+      note: row.note ?? "",
+      quantity: row.quantity,
+      unit: row.unit,
+      unitPrice: row.unitPrice,
+      laborCost: row.laborCost ?? "",
+      materialCost: row.materialCost ?? "",
+      equipmentCost: row.equipmentCost ?? "",
+      subCost: row.subCost ?? "",
+      markupPct: row.markupPct,
+    },
   }
 }
 

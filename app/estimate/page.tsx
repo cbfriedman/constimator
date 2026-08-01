@@ -21,6 +21,7 @@ export default async function EstimatePage() {
 
   return (
     <EstimateShell
+      projectId={project?.id ?? ""}
       projectName={project?.name ?? "No project yet"}
       rows={lineRows.map(toEstimateLineView)}
       subtotal={formatWholeCurrency(subtotal)}

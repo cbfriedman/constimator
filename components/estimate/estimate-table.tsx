@@ -60,7 +60,17 @@ const costWarnings: Record<string, string> = {
 // by description for the same reason (no stable demo id to key off anymore).
 const EXPANDABLE_DESCRIPTION = "HMA Type A"
 
-export function EstimateTable({ rows }: { rows: EstimateLineView[] }) {
+export function EstimateTable({
+  rows,
+  onEdit,
+  onDuplicate,
+  onDelete,
+}: {
+  rows: EstimateLineView[]
+  onEdit: (row: EstimateLineView) => void
+  onDuplicate: (row: EstimateLineView) => void
+  onDelete: (row: EstimateLineView) => void
+}) {
   const { costSetupComplete } = useProjectState()
   const [expanded, setExpanded] = React.useState<string | null>(null)
   const [overrides, setOverrides] = React.useState<Record<string, SourceKind>>(
@@ -214,8 +224,12 @@ export function EstimateTable({ rows }: { rows: EstimateLineView[] }) {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-44">
                           <DropdownMenuGroup>
-                            <DropdownMenuItem>Edit item</DropdownMenuItem>
-                            <DropdownMenuItem>Duplicate</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onEdit(row)}>
+                              Edit item
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onDuplicate(row)}>
+                              Duplicate
+                            </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() =>
                                 setOverrideDialog({
@@ -226,6 +240,12 @@ export function EstimateTable({ rows }: { rows: EstimateLineView[] }) {
                               }
                             >
                               Override qty
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              variant="destructive"
+                              onClick={() => onDelete(row)}
+                            >
+                              Delete
                             </DropdownMenuItem>
                           </DropdownMenuGroup>
                         </DropdownMenuContent>
