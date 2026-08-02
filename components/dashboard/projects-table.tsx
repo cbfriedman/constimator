@@ -27,10 +27,12 @@ const statusStyles: Record<DashboardProject["status"], string> = {
 
 export function ProjectsTable({
   projects,
+  currentProjectId,
   onProjectClick,
   onNewProject,
 }: {
   projects: DashboardProject[]
+  currentProjectId: string | null
   onProjectClick: (project: DashboardProject) => void
   onNewProject: () => void
 }) {
@@ -65,7 +67,17 @@ export function ProjectsTable({
               >
                 <TableCell className="whitespace-normal">
                   <div className="flex flex-col">
-                    <span className="font-medium leading-tight">{project.name}</span>
+                    <span className="flex items-center gap-2 font-medium leading-tight">
+                      {project.name}
+                      {project.id === currentProjectId ? (
+                        <Badge
+                          variant="outline"
+                          className="h-auto border-primary/30 bg-primary/10 px-1.5 py-0 text-[10px] font-medium text-primary"
+                        >
+                          Current workspace
+                        </Badge>
+                      ) : null}
+                    </span>
                     <span className="text-xs text-muted-foreground">
                       #{project.number}
                     </span>

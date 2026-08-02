@@ -3,6 +3,22 @@
 import * as React from "react"
 import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes"
 
+// next-themes injects an inline <script> to prevent theme flicker (FOUC).
+// React 19 warns about script tags inside components — false positive here;
+// the script runs correctly during SSR. Filter matches shadcn dark-mode docs.
+if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+  const orig = console.error
+  console.error = (...args: unknown[]) => {
+    if (
+      typeof args[0] === "string" &&
+      args[0].includes("Encountered a script tag")
+    ) {
+      return
+    }
+    orig.apply(console, args)
+  }
+}
+
 function ThemeProvider({
   children,
   ...props

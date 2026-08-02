@@ -19,7 +19,7 @@ import { ProjectsTable } from "@/components/dashboard/projects-table"
 import { BidDeadlines } from "@/components/dashboard/bid-deadlines"
 import { RecentActivity } from "@/components/dashboard/recent-activity"
 import { useProjectState } from "@/components/project-state-provider"
-import { demoProject, recentActivity, type DashboardProject } from "@/lib/mock-data"
+import { recentActivity, type DashboardProject } from "@/lib/mock-data"
 
 // engineersEstimate/deadlineDate arrive pre-formatted (lib/projects.ts) —
 // parse back out just enough to total and sort them here.
@@ -52,21 +52,31 @@ function DashboardHeader() {
   )
 }
 
-function DashboardContent({ projects }: { projects: DashboardProject[] }) {
+function DashboardContent({
+  projects,
+  currentProjectId,
+}: {
+  projects: DashboardProject[]
+  currentProjectId: string | null
+}) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { attentionCount } = useProjectState()
   const isEmpty = searchParams.get("empty") === "1" || projects.length === 0
 
-  // Only the Shasta County project has a fully wired downstream demo — every
-  // other row is a real project row without an intelligence/estimate/
-  // reconciliation experience behind it yet.
+  // cost-setup/estimate/reconciliation/reports/schedules aren't project-
+  // scoped yet (see lib/current-project.ts) — they always operate on the
+  // org's most-recently-created project. Clicking any other row would land
+  // on pages showing a different project's data, so only the current one
+  // navigates for real.
   function handleProjectClick(project: DashboardProject) {
-    if (project.number === demoProject.number) {
+    if (project.id === currentProjectId) {
       router.push(project.href ?? "/intelligence")
       return
     }
-    toast.info("Demo limited to the Shasta County project.")
+    toast.info(
+      "This project isn't wired up yet — Constimator currently works with your most recently created project.",
+    )
   }
 
   if (isEmpty) {
@@ -152,6 +162,7 @@ function DashboardContent({ projects }: { projects: DashboardProject[] }) {
         <div className="flex flex-col gap-6 lg:col-span-2">
           <ProjectsTable
             projects={projects}
+            currentProjectId={currentProjectId}
             onProjectClick={handleProjectClick}
             onNewProject={() => router.push("/new-project")}
           />
@@ -165,10 +176,19 @@ function DashboardContent({ projects }: { projects: DashboardProject[] }) {
   )
 }
 
-export function DashboardShell({ projects }: { projects: DashboardProject[] }) {
+export function DashboardShell({
+  projects,
+  currentProjectId,
+}: {
+  projects: DashboardProject[]
+  currentProjectId: string | null
+}) {
   return (
     <Suspense fallback={null}>
-      <DashboardContent projects={projects} />
+      <DashboardContent
+        projects={projects}
+        currentProjectId={currentProjectId}
+      />
     </Suspense>
   )
 }
