@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/card"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { PasswordInput } from "@/components/ui/password-input"
 import { createClient } from "@/lib/supabase/client"
 
 export default function SignUpPage() {
@@ -95,9 +96,8 @@ export default function SignUpPage() {
                   </Field>
                   <Field>
                     <FieldLabel htmlFor="password">Password</FieldLabel>
-                    <Input
+                    <PasswordInput
                       id="password"
-                      type="password"
                       autoComplete="new-password"
                       minLength={6}
                       required
