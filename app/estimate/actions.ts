@@ -1,5 +1,6 @@
 "use server"
 
+import { cache } from "react"
 import { and, eq } from "drizzle-orm"
 import { z } from "zod"
 
@@ -50,7 +51,13 @@ async function seedDefaultsIfEmpty(
   return scopedDb.estimateLines.findMany(eq(estimateLines.estimateId, estimateId))
 }
 
-export async function getEstimateData() {
+// Cached per request — an audit found this called twice on a single
+// /reports load (once directly by the page, once again inside
+// getReconciliationData()'s recomputeReconciliation()), each run repeating
+// getCurrentProject/getOrCreateCurrentEstimate and the estimate_line query.
+// Zero args, so this is one memoized result per render — exactly right for
+// "the current project's estimate," which is stable for the whole request.
+export const getEstimateData = cache(async () => {
   const scopedDb = await getScopedDb()
   const project = await getCurrentProject(scopedDb)
   if (!project) return { rows: [], project: null }
@@ -58,7 +65,7 @@ export async function getEstimateData() {
   const estimate = await getOrCreateCurrentEstimate(scopedDb, project.id)
   const rows = await seedDefaultsIfEmpty(scopedDb, estimate.id)
   return { rows, project }
-}
+})
 
 export async function overrideEstimateLineAction(rawId: string) {
   const id = parseInput(uuidSchema, rawId)

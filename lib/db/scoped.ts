@@ -145,8 +145,18 @@ function orgScoped<T extends PgTable>(
  * likely the *only* real enforcement — not a backstop. See
  * eslint.config.mjs for how direct access to the unscoped client
  * (lib/db/client.ts) is blocked everywhere except this file.
+ *
+ * Cached per request (like getCurrentMembership above) — this was a plain
+ * async function until an audit found the root layout's
+ * getProjectStateSnapshot() and a page's own data-loading action (e.g.
+ * getEstimateData/getReconciliationData) each calling this independently,
+ * every call returning a brand-new object with brand-new closures. That
+ * defeated cache() on every *downstream* function too (getCurrentProject,
+ * getOrCreateCurrentEstimate, ...): they key on this object by reference,
+ * so a fresh scopedDb each time meant a fresh cache miss every time. This
+ * is the one fix that makes all of those actually dedupe within a request.
  */
-export async function getScopedDb() {
+export const getScopedDb = cache(async function getScopedDb() {
   const { userId, orgId, role } = await getCurrentMembership()
   const db = getDb()
 
@@ -188,4 +198,4 @@ export async function getScopedDb() {
     aiUsageEvents: orgScoped(aiUsageEvents, aiUsageEvents.orgId, orgId),
     invites: orgScoped(invites, invites.orgId, orgId),
   }
-}
+})

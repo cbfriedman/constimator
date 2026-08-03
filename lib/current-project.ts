@@ -1,14 +1,16 @@
 import "server-only"
 
+import { cache } from "react"
 import { eq } from "drizzle-orm"
 
-import { projects, estimates } from "@/db/schema"
+import { bids, projects, estimates } from "@/db/schema"
 import type { getScopedDb } from "@/lib/db/scoped"
 import { todayIsoDate } from "@/lib/format-date"
 import { syncRateDrift } from "@/lib/cost-engine/drift"
 
 export type ScopedDb = Awaited<ReturnType<typeof getScopedDb>>
 type ProjectRow = typeof projects.$inferSelect
+type BidRow = typeof bids.$inferSelect
 
 // The single rule for "which project" cost-setup/estimate/reconciliation/
 // reports/schedules operate on, since none of them take a ?project= id (or
@@ -24,15 +26,34 @@ export function pickCurrentProject(rows: ProjectRow[]): ProjectRow | null {
 
 // Stand-in for real per-project routing — see pickCurrentProject above.
 // Revisit once these pages are project-scoped.
-export async function getCurrentProject(scopedDb: ScopedDb) {
+//
+// Cached per request (React's cache(), scoped to one render — not a
+// long-lived cache and never needs manual invalidation). An audit found
+// this running 4x on a single /reports load: the root layout's
+// getProjectStateSnapshot(), the page's own getEstimateData(), and
+// getReconciliationData() each called it independently. Same for
+// getOrCreateCurrentEstimate below and getBidsForProject further down —
+// all three were the actual redundant work; the diff math itself
+// (lib/reconciliation-diff.ts) is cheap by comparison.
+export const getCurrentProject = cache(async (scopedDb: ScopedDb) => {
   const projectRows = await scopedDb.projects.findMany()
   return pickCurrentProject(projectRows)
-}
+})
 
-export async function getOrCreateCurrentEstimate(
+// The official bid-form lines for a project — fetched separately by both
+// getProjectStateSnapshot() (for the attention count) and
+// getReconciliationData()'s recomputeReconciliation() (for the full diff +
+// reconciliation_item rewrite). Cached per request so that's one query, not
+// two, for the same project on the same render.
+export const getBidsForProject = cache(
+  async (scopedDb: ScopedDb, projectId: string): Promise<BidRow[]> =>
+    scopedDb.bids.findMany(eq(bids.projectId, projectId)),
+)
+
+export const getOrCreateCurrentEstimate = cache(async (
   scopedDb: ScopedDb,
   projectId: string,
-) {
+) => {
   // Found during the step 30 security review: every caller of this
   // function that took projectId from something other than
   // getCurrentProject() (i.e. straight from a client-supplied Server
@@ -64,4 +85,4 @@ export async function getOrCreateCurrentEstimate(
   // A freshly created estimate is snapshotted as of right now, so there's
   // nothing to check drift against yet.
   return created
-}
+})

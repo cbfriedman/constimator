@@ -6,7 +6,11 @@ import { z } from "zod"
 import { getEstimateData } from "@/app/estimate/actions"
 import { bids, estimateLines, projects, reconciliationItems } from "@/db/schema"
 import { captureEvent } from "@/lib/analytics"
-import { getCurrentProject, getOrCreateCurrentEstimate } from "@/lib/current-project"
+import {
+  getBidsForProject,
+  getCurrentProject,
+  getOrCreateCurrentEstimate,
+} from "@/lib/current-project"
 import { getScopedDb } from "@/lib/db/scoped"
 import { diffBidAgainstEstimate } from "@/lib/reconciliation-diff"
 import { numericString, parseInput, uuidSchema } from "@/lib/validation"
@@ -63,16 +67,18 @@ export async function deleteBidLineAction(rawId: string) {
 // reconciliation update. The diff itself is cheap (pure JS over a project's
 // worth of rows, no AI calls), so recomputing on every load is simpler and
 // more trustworthy than trying to keep a cache correctly invalidated.
+//
+// getBidsForProject/getEstimateData are both request-cached (see
+// lib/current-project.ts) — getProjectStateSnapshot() (root layout) already
+// calls both of these for the same project on every /reconciliation or
+// /reports load, so this reuses that result instead of re-querying.
 async function recomputeReconciliation(
   scopedDb: Awaited<ReturnType<typeof getScopedDb>>,
   projectId: string,
 ) {
-  const [bidRows, estimateLineRows] = await Promise.all([
-    scopedDb.bids.findMany(eq(bids.projectId, projectId)),
-    (async () => {
-      const { rows } = await getEstimateData()
-      return rows
-    })(),
+  const [bidRows, { rows: estimateLineRows }] = await Promise.all([
+    getBidsForProject(scopedDb, projectId),
+    getEstimateData(),
   ])
 
   await scopedDb.reconciliationItems.delete(

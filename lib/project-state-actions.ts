@@ -2,14 +2,19 @@
 
 import { eq } from "drizzle-orm"
 
-import { bids, estimateLines, estimates } from "@/db/schema"
+import { getEstimateData } from "@/app/estimate/actions"
+import { estimates } from "@/db/schema"
 import {
   getScopedDb,
   NoOrgMembershipError,
   UnauthenticatedError,
 } from "@/lib/db/scoped"
 import { getBillingStatus } from "@/lib/billing"
-import { getCurrentProject, getOrCreateCurrentEstimate } from "@/lib/current-project"
+import {
+  getBidsForProject,
+  getCurrentProject,
+  getOrCreateCurrentEstimate,
+} from "@/lib/current-project"
 import { formatDisplayDate, todayIsoDate } from "@/lib/format-date"
 import { logger } from "@/lib/logger"
 import { computeDaysOut } from "@/lib/projects"
@@ -71,9 +76,13 @@ export async function getProjectStateSnapshot(): Promise<ProjectStateSnapshot | 
 
     let reconciliationAttentionCount = 0
     if (project && estimate) {
-      const [bidRows, estimateLineRows] = await Promise.all([
-        scopedDb.bids.findMany(eq(bids.projectId, project.id)),
-        scopedDb.estimateLines.findMany(eq(estimateLines.estimateId, estimate.id)),
+      // Both cached per request — getBidsForProject and getEstimateData are
+      // the same calls getReconciliationData() makes for /reconciliation and
+      // /reports, so on those routes this is a cache hit, not a second
+      // round-trip. See lib/current-project.ts for why this needed caching.
+      const [bidRows, { rows: estimateLineRows }] = await Promise.all([
+        getBidsForProject(scopedDb, project.id),
+        getEstimateData(),
       ])
       if (bidRows.length > 0) {
         reconciliationAttentionCount = diffBidAgainstEstimate(
