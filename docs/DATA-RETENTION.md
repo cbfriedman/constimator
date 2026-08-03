@@ -23,7 +23,8 @@ as the starting point for that, not a final policy.
 
 We do not sell or share this data with third parties beyond the service
 providers required to run the product (Supabase for database/storage/auth,
-Anthropic for AI extraction, Railway for the background processing worker).
+Anthropic for AI extraction, Railway for the background processing worker,
+Stripe for billing, Sentry for error tracking, Upstash for rate limiting).
 
 ## How long we keep it
 

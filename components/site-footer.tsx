@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { HardHat } from "lucide-react"
 
 const groups = [
@@ -56,6 +57,14 @@ export function SiteFooter() {
             Prototype demonstration. Sample data. Built by a former public works contractor.
             {" "}© {new Date().getFullYear()} Constimator.
           </p>
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <Link href="/terms" className="transition-colors hover:text-foreground">
+              Terms of Service
+            </Link>
+            <Link href="/privacy" className="transition-colors hover:text-foreground">
+              Privacy Policy
+            </Link>
+          </div>
         </div>
       </div>
     </footer>

@@ -8,7 +8,17 @@ import { NextResponse, type NextRequest } from "next/server"
 // can process, after this page has already loaded. Without this, the
 // redirect-to-/sign-in below would fire before the client ever gets a
 // chance to establish the session. See app/accept-invite/page.tsx.
-const PUBLIC_PATHS = new Set(["/", "/demo-guide", "/sign-in", "/sign-up", "/accept-invite"])
+const PUBLIC_PATHS = new Set([
+  "/",
+  "/demo-guide",
+  "/sign-in",
+  "/sign-up",
+  "/accept-invite",
+  // Step 33 — need to be readable by a prospective customer before they
+  // ever sign in, not just by an existing user.
+  "/terms",
+  "/privacy",
+])
 
 // Routes with their own auth (a token or a cryptographic signature, not a
 // Supabase session) — an external caller (an uptime monitor, Stripe's
