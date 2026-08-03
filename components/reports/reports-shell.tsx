@@ -3,6 +3,7 @@
 import * as React from "react"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Lock } from "lucide-react"
+import posthog from "posthog-js"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -101,6 +102,20 @@ export function ReportsShell({
     const ext = exportFormat === "pdf" ? "pdf" : "xlsx"
     const name = `${fileSlug[selected]}_${context.projectNumber}.${ext}`
     toast.success(`${name} ready${preliminary ? " (marked Preliminary)" : ""}`)
+
+    // Named "_requested," not "_completed" — export generation itself is
+    // still simulated UI (see this function's fake size/toast above, not
+    // this step's finding to fix), so what's actually real to measure is
+    // "did someone try to export" and in what format/report, not that a
+    // real file was produced. The only one of step 34's five events that's
+    // client-side rather than a Server Action: there's no real server-side
+    // export action yet to hook this into.
+    posthog.capture("estimate_export_requested", {
+      format: exportFormat,
+      reportId: selected,
+      preliminary,
+    })
+
     downloadId.current += 1
     setDownloads((prev) => [
       {

@@ -2,7 +2,7 @@ import { LegalPageLayout } from "@/components/legal/legal-page-layout"
 
 export default function PrivacyPage() {
   return (
-    <LegalPageLayout title="Privacy Policy" lastUpdated="August 2, 2026">
+    <LegalPageLayout title="Privacy Policy" lastUpdated="August 3, 2026">
       <p>
         This Privacy Policy describes how Constimator (&quot;we,&quot; &quot;us,&quot; or
         &quot;our&quot;) collects, uses, and shares information when you use our
@@ -54,6 +54,14 @@ export default function PrivacyPage() {
           you use the Service, used for security, debugging, and
           reliability.
         </li>
+        <li>
+          <strong>Product analytics</strong> — which pages you visit and
+          when you complete core actions (like creating a project,
+          uploading a document, or running a reconciliation), so we can
+          understand how the Service is actually used and prioritize what
+          to build next. This is tied to your account, not to your
+          uploaded document content or bid/estimate data.
+        </li>
       </ul>
 
       <h2>2. How We Use Information</h2>
@@ -100,6 +108,7 @@ export default function PrivacyPage() {
         <li><strong>Railway</strong> — hosts the background worker that processes uploaded documents.</li>
         <li><strong>Sentry</strong> — error tracking, so we can find and fix bugs.</li>
         <li><strong>Upstash</strong> — rate limiting, to prevent abuse of AI processing.</li>
+        <li><strong>Vercel Analytics</strong> and <strong>PostHog</strong> — product usage analytics (Section 1).</li>
       </ul>
       <p>
         We don&apos;t share your information with anyone else except: with

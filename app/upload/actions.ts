@@ -7,6 +7,7 @@ import { z } from "zod"
 
 import { documents, projects } from "@/db/schema"
 import { checkSpendCap, checkTakeoffRateLimit, formatUsd } from "@/lib/ai-limits"
+import { captureEvent } from "@/lib/analytics"
 import { getBillingStatus } from "@/lib/billing"
 import { getScopedDb } from "@/lib/db/scoped"
 import { logger } from "@/lib/logger"
@@ -139,6 +140,12 @@ export async function confirmDocumentUpload(rawInput: {
     mimeType: input.mimeType,
     fileSizeBytes: input.fileSizeBytes,
     status: "uploaded",
+  })
+
+  await captureEvent("document_uploaded", {
+    userId: scopedDb.userId,
+    orgId: scopedDb.orgId,
+    properties: { documentId: document.id, projectId: input.projectId, docType: input.type },
   })
 
   // Queued for the standalone worker (worker/) to pick up — this returns

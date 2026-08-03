@@ -2,6 +2,7 @@
 
 import { z } from "zod"
 
+import { captureEvent } from "@/lib/analytics"
 import { getScopedDb } from "@/lib/db/scoped"
 import { parseInput } from "@/lib/validation"
 
@@ -40,6 +41,12 @@ export async function createProject(rawInput: CreateProjectInput) {
     location: input.location.trim() || null,
     projectType: input.projectType || null,
     status: "draft",
+  })
+
+  await captureEvent("project_created", {
+    userId: scopedDb.userId,
+    orgId: scopedDb.orgId,
+    properties: { projectId: project.id, projectType: input.projectType || null },
   })
 
   return project

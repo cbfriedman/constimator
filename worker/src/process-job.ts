@@ -3,6 +3,7 @@ import { downloadDocument } from "./download-document.js"
 import { rasterizePdf } from "./rasterize.js"
 import { extractQuantities } from "./extract.js"
 import { checkSpendCap, checkTakeoffRateLimit, formatUsd, recordAiUsage } from "./ai-limits.js"
+import { captureTakeoffCompleted } from "./analytics.js"
 import { logger } from "./logger.js"
 import type { TakeoffResult } from "./types.js"
 
@@ -111,6 +112,12 @@ export async function processJob(job: ClaimedJob) {
       itemCount: items.length,
       inputTokens: usage.inputTokens,
       outputTokens: usage.outputTokens,
+    })
+
+    await captureTakeoffCompleted(job.org_id, {
+      jobId: job.id,
+      documentId: job.document_id,
+      itemCount: items.length,
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)

@@ -1,9 +1,12 @@
 # Data retention policy
 
-**Status: draft.** This describes how Constimator actually handles data
-today, written from the schema and code as of step 29. It has not had a
-legal review and is not yet published anywhere customer-facing — treat it
-as the starting point for that, not a final policy.
+**Status: internal reference, superseded as the customer-facing document by
+[/privacy](../app/privacy/page.tsx) as of step 33.** This still describes
+how Constimator actually handles data at the implementation level (useful
+when changing the schema or adding a new integration — update both this
+file and the published Privacy Policy together), but the Privacy Policy is
+now the one with real legal weight, and still needs the legal review noted
+below before being relied on as final.
 
 ## What we store
 
@@ -20,11 +23,16 @@ as the starting point for that, not a final policy.
   is counts and estimated cost only, it doesn't contain document content).
 - **Account data** — your name, email, and org membership, managed via
   Supabase Auth.
+- **Product usage analytics** — which pages you visit and when you
+  complete core actions (project creation, upload, takeoff completion,
+  reconciliation, export attempts), tied to your account, not to document
+  content or bid/estimate data (step 34).
 
 We do not sell or share this data with third parties beyond the service
 providers required to run the product (Supabase for database/storage/auth,
 Anthropic for AI extraction, Railway for the background processing worker,
-Stripe for billing, Sentry for error tracking, Upstash for rate limiting).
+Stripe for billing, Sentry for error tracking, Upstash for rate limiting,
+Vercel Analytics and PostHog for product usage analytics).
 
 ## How long we keep it
 

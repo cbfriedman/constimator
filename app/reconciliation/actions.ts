@@ -5,6 +5,7 @@ import { z } from "zod"
 
 import { getEstimateData } from "@/app/estimate/actions"
 import { bids, estimateLines, projects, reconciliationItems } from "@/db/schema"
+import { captureEvent } from "@/lib/analytics"
 import { getCurrentProject, getOrCreateCurrentEstimate } from "@/lib/current-project"
 import { getScopedDb } from "@/lib/db/scoped"
 import { diffBidAgainstEstimate } from "@/lib/reconciliation-diff"
@@ -86,6 +87,23 @@ async function recomputeReconciliation(
   const itemRows = await Promise.all(
     diffs.map((diff) => scopedDb.reconciliationItems.insert({ projectId, ...diff })),
   )
+
+  // Fires on every /reconciliation or /reports visit that has real bid
+  // data to diff against, not just the first time — unlike project_created/
+  // document_uploaded (genuinely one-time events), "was a reconciliation
+  // actually computed with real data" is closer to a view/usage-frequency
+  // signal, and that's the useful thing to know here: how often orgs
+  // actually get value from the core differentiator, not just whether
+  // they tried it once.
+  await captureEvent("reconciliation_computed", {
+    userId: scopedDb.userId,
+    orgId: scopedDb.orgId,
+    properties: {
+      projectId,
+      bidLineCount: bidRows.length,
+      attentionCount: diffs.filter((diff) => diff.attention).length,
+    },
+  })
 
   return { bidRows, itemRows: itemRows.flat(), estimateLineRows }
 }
