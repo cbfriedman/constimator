@@ -31,7 +31,13 @@ const PUBLIC_PATHS = new Set([
 // uptime check it exists for.
 // /api/webhooks/stripe: same failure mode would apply — Stripe's servers
 // have no session either, and the route verifies its own signature.
-const BYPASS_PATHS = new Set(["/api/health", "/api/webhooks/stripe"])
+// /api/cron/uptime-check (step 37): same failure mode again — Vercel Cron
+// has no Supabase session, and the route checks its own CRON_SECRET.
+const BYPASS_PATHS = new Set([
+  "/api/health",
+  "/api/webhooks/stripe",
+  "/api/cron/uptime-check",
+])
 
 export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl

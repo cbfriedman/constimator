@@ -1,10 +1,8 @@
 import { createHash, timingSafeEqual } from "node:crypto"
 
 import { NextResponse } from "next/server"
-import { and, inArray, lt } from "drizzle-orm"
 
-import { takeoffJobs, workerHeartbeats } from "@/db/schema"
-import { getSystemDb } from "@/lib/db/system"
+import { getHealthStatus } from "@/lib/health-check"
 import { logger } from "@/lib/logger"
 
 // Found during the step 30 security review: a plain !== compares strings
@@ -26,7 +24,13 @@ function tokensMatch(a: string, b: string): boolean {
 // Step 29 — uptime check target for the Railway worker (step 17) and its
 // takeoff_job queue. Point an external uptime monitor (Better Uptime,
 // UptimeRobot, Checkly, etc. — nothing configured here, this just needs to
-// be reachable for one to poll) at this URL.
+// be reachable for one to poll) at this URL. Step 37 adds a second,
+// self-contained caller of the same underlying check (lib/health-check.ts):
+// app/api/cron/uptime-check, triggered by Vercel Cron, which reports
+// straight to Sentry — so alerting doesn't strictly depend on a
+// third-party monitor being configured at all, though one is still
+// recommended (see docs/ALERTING.md) for the case where Vercel itself is
+// unreachable, which a Vercel Cron job obviously can't detect.
 //
 // Deliberately doesn't live on the worker itself — worker/README.md
 // documents why it has no public port ("not a web service"), and that
@@ -37,13 +41,6 @@ function tokensMatch(a: string, b: string): boolean {
 // (worker/src/heartbeat.ts) plus the takeoff_job queue's own state —
 // both from the database, not from asking the worker process directly.
 export const dynamic = "force-dynamic"
-
-// Generous relative to the worker's default 5s poll interval — flags a
-// truly stuck/crashed worker, not one slow cycle.
-const STALE_HEARTBEAT_SECONDS = 60
-// A job sitting in queued/running this long is almost certainly stuck
-// (a crashed worker mid-job, or a claim that never got picked up).
-const STUCK_JOB_MINUTES = 15
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -59,43 +56,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const db = getSystemDb()
-    const now = Date.now()
-
-    const [heartbeat] = await db.select().from(workerHeartbeats).limit(1)
-    const heartbeatAgeSeconds = heartbeat
-      ? Math.round((now - heartbeat.lastPolledAt.getTime()) / 1000)
-      : null
-    const workerHealthy = heartbeatAgeSeconds != null && heartbeatAgeSeconds <= STALE_HEARTBEAT_SECONDS
-
-    const stuckThreshold = new Date(now - STUCK_JOB_MINUTES * 60 * 1000)
-    const stuckJobs = await db
-      .select({ id: takeoffJobs.id })
-      .from(takeoffJobs)
-      .where(
-        and(
-          inArray(takeoffJobs.status, ["queued", "running"]),
-          lt(takeoffJobs.updatedAt, stuckThreshold),
-        ),
-      )
-    const queueHealthy = stuckJobs.length === 0
-
-    // Aggregate counts only — never per-org detail. This endpoint has no
-    // "current org" (see lib/db/system.ts) and no auth beyond the shared
-    // token, so it must never leak which org anything belongs to.
-    const body = {
-      status: workerHealthy && queueHealthy ? "ok" : "degraded",
-      worker: {
-        healthy: workerHealthy,
-        lastPolledAt: heartbeat?.lastPolledAt.toISOString() ?? null,
-        heartbeatAgeSeconds,
-      },
-      queue: {
-        healthy: queueHealthy,
-        stuckJobCount: stuckJobs.length,
-      },
-    }
-
+    const body = await getHealthStatus()
     return NextResponse.json(body, { status: body.status === "ok" ? 200 : 503 })
   } catch (err) {
     logger.error("Health check failed", undefined, err)
