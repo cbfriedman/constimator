@@ -51,7 +51,8 @@ export function Hero() {
             </div>
 
             <h1 className="mt-5 font-display text-4xl font-bold leading-[1.05] tracking-tight text-balance sm:text-5xl lg:text-6xl">
-              Never submit a <span className="text-primary">non-responsive bid</span> again.
+              Catch the <span className="text-primary">missing bid item</span> before it costs
+              you the job.
             </h1>
 
             <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted-foreground text-pretty">

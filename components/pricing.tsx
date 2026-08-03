@@ -1,55 +1,4 @@
-import { Check } from "lucide-react"
-
-const plans = [
-  {
-    name: "Bidder",
-    price: "$99",
-    period: "/mo",
-    description: "For independent contractors.",
-    features: [
-      "Up to 10 projects / month",
-      "Document reading & requirement extraction",
-      "Bid-form reconciliation",
-      "PDF & Excel reports",
-      "Email support",
-    ],
-    cta: "Get started",
-    href: "/sign-up",
-    featured: false,
-  },
-  {
-    name: "Contractor",
-    price: "$299",
-    period: "/mo",
-    description: "For estimating teams.",
-    features: [
-      "Up to 50 projects / month",
-      "Everything in Bidder",
-      "Team seats & sharing",
-      "Bid calendar & deadlines",
-      "Priority support",
-    ],
-    cta: "Get started",
-    href: "/sign-up",
-    featured: true,
-  },
-  {
-    name: "Enterprise",
-    price: "Custom",
-    period: "",
-    description: "For high-volume firms.",
-    features: [
-      "Unlimited projects",
-      "Everything in Contractor",
-      "Custom extraction rules",
-      "Integrations",
-      "Dedicated support",
-    ],
-    cta: "Talk to sales",
-    href: "mailto:coby@cfcontracting.com?subject=Constimator Enterprise",
-    featured: false,
-  },
-]
+import { ArrowRight } from "lucide-react"
 
 export function Pricing() {
   return (
@@ -58,56 +7,21 @@ export function Pricing() {
         <div className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-semibold uppercase tracking-widest text-primary">Pricing</p>
           <h2 className="mt-3 font-display text-3xl font-bold tracking-tight text-balance sm:text-4xl">
-            Simple pricing for public works bidders
+            Founding members
           </h2>
+          <p className="mt-5 text-lg leading-relaxed text-muted-foreground text-pretty">
+            We&apos;re bringing on a small group of founding contractors to shape Constimator and
+            lock in founding pricing as we grow. Early members get direct input on the product and
+            preferred rates.
+          </p>
+          <a
+            href="mailto:coby@cfcontracting.com?subject=Constimator Founding Access"
+            className="mt-8 inline-flex items-center justify-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition-transform hover:-translate-y-0.5"
+          >
+            Request founding access
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </a>
         </div>
-
-        <div className="mt-14 grid gap-6 lg:grid-cols-3">
-          {plans.map((plan) => (
-            <div
-              key={plan.name}
-              className={`relative flex flex-col rounded-2xl border p-8 ${
-                plan.featured
-                  ? "border-primary bg-card shadow-xl shadow-primary/10"
-                  : "border-border bg-card"
-              }`}
-            >
-              {plan.featured && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
-                  Most popular
-                </span>
-              )}
-              <h3 className="font-display text-lg font-semibold">{plan.name}</h3>
-              <p className="mt-1 text-sm text-muted-foreground">{plan.description}</p>
-              <div className="mt-5 flex items-baseline gap-1">
-                <span className="font-display text-4xl font-bold">{plan.price}</span>
-                <span className="text-sm text-muted-foreground">{plan.period}</span>
-              </div>
-              <ul className="mt-6 flex flex-1 flex-col gap-3">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-2 text-sm">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-              <a
-                href={plan.href}
-                className={`mt-8 inline-flex items-center justify-center rounded-md px-5 py-3 text-sm font-semibold transition-transform hover:-translate-y-0.5 ${
-                  plan.featured
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "border border-border bg-background text-foreground hover:bg-muted"
-                }`}
-              >
-                {plan.cta}
-              </a>
-            </div>
-          ))}
-        </div>
-
-        <p className="mt-8 text-center text-sm text-muted-foreground">
-          Founding-customer pricing available for early users — locked in as we grow.
-        </p>
       </div>
     </section>
   )
