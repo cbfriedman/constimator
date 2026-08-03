@@ -229,6 +229,63 @@ export const usersRelations = relations(users, ({ one }) => ({
 }))
 
 // ---------------------------------------------------------------------------
+// invite — step 32. An org admin invites a teammate by email + role.
+// Sending is Supabase Auth's own admin.inviteUserByEmail (see
+// app/team/actions.ts) — it creates the auth.users row and emails the
+// link; this table exists for the admin-facing bookkeeping
+// (list/revoke pending invites, prevent duplicate outstanding invites)
+// and to carry orgId/role through to the signup trigger. The actual
+// org-join decision on signup reads orgId/role/inviteId out of the new
+// auth.users row's raw_user_meta_data (set via inviteUserByEmail's `data`
+// option), not by querying this table — see migration 0008's updated
+// handle_new_user(). "expired" isn't a stored status: Supabase's own
+// invite link expires on its own (dashboard-configurable), and the UI
+// just treats an old-enough pending row as stale rather than this app
+// tracking a second expiry independently.
+// ---------------------------------------------------------------------------
+
+export const inviteStatusEnum = pgEnum("invite_status", [
+  "pending",
+  "accepted",
+  "revoked",
+])
+
+export const invites = pgTable(
+  "invite",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => orgs.id, { onDelete: "cascade" }),
+    email: text("email").notNull(),
+    role: userRoleEnum("role").notNull().default("estimator"),
+    status: inviteStatusEnum("status").notNull().default("pending"),
+    invitedBy: uuid("invited_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("invite_org_id_idx").on(table.orgId),
+    index("invite_email_idx").on(table.email),
+    orgIsolationPolicy("invite", table.orgId),
+  ],
+).enableRLS()
+
+export const invitesRelations = relations(invites, ({ one }) => ({
+  org: one(orgs, { fields: [invites.orgId], references: [orgs.id] }),
+  invitedByUser: one(users, {
+    fields: [invites.invitedBy],
+    references: [users.id],
+  }),
+}))
+
+// ---------------------------------------------------------------------------
 // project — bid metadata (lib/mock-data.ts DashboardProject / ProjectsListItem)
 // ---------------------------------------------------------------------------
 

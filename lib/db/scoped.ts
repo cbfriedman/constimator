@@ -11,6 +11,7 @@ import {
   documents,
   estimateLines,
   estimates,
+  invites,
   orgs,
   projects,
   reconciliationItems,
@@ -32,10 +33,18 @@ export class NoOrgMembershipError extends Error {
   }
 }
 
+type CurrentMembership = {
+  userId: string
+  orgId: string
+  role: (typeof users.$inferSelect)["role"]
+}
+
 // Cached per request — if getScopedDb() is called from multiple server
 // components/actions during one render, this resolves the signed-in user's
-// org once instead of re-querying auth + the "user" table each time.
-const getCurrentOrgId = cache(async (): Promise<string> => {
+// org (and, since step 32, their own row's id/role — needed for
+// admin-only checks like app/team/actions.ts's invite feature) once
+// instead of re-querying auth + the "user" table each time.
+const getCurrentMembership = cache(async (): Promise<CurrentMembership> => {
   const supabase = await createSupabaseServerClient()
   const {
     data: { user: authUser },
@@ -47,7 +56,7 @@ const getCurrentOrgId = cache(async (): Promise<string> => {
 
   const db = getDb()
   const [membership] = await db
-    .select({ orgId: users.orgId })
+    .select({ orgId: users.orgId, role: users.role })
     .from(users)
     .where(eq(users.id, authUser.id))
     .limit(1)
@@ -56,7 +65,7 @@ const getCurrentOrgId = cache(async (): Promise<string> => {
     throw new NoOrgMembershipError(authUser.id)
   }
 
-  return membership.orgId
+  return { userId: authUser.id, orgId: membership.orgId, role: membership.role }
 })
 
 // Wraps one table with its org_id column pre-applied to every read/write.
@@ -138,11 +147,13 @@ function orgScoped<T extends PgTable>(
  * (lib/db/client.ts) is blocked everywhere except this file.
  */
 export async function getScopedDb() {
-  const orgId = await getCurrentOrgId()
+  const { userId, orgId, role } = await getCurrentMembership()
   const db = getDb()
 
   return {
     orgId,
+    userId,
+    role,
     org: {
       get: async () => {
         const [row] = await db.select().from(orgs).where(eq(orgs.id, orgId)).limit(1)
@@ -175,5 +186,6 @@ export async function getScopedDb() {
     ),
     takeoffJobs: orgScoped(takeoffJobs, takeoffJobs.orgId, orgId),
     aiUsageEvents: orgScoped(aiUsageEvents, aiUsageEvents.orgId, orgId),
+    invites: orgScoped(invites, invites.orgId, orgId),
   }
 }

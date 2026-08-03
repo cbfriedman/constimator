@@ -20,6 +20,7 @@ const NO_SIDEBAR_PATHS = new Set([
   "/demo-guide",
   "/sign-in",
   "/sign-up",
+  "/accept-invite",
   "/maintenance",
 ])
 

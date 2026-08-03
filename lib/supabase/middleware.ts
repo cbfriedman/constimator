@@ -1,7 +1,14 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
-const PUBLIC_PATHS = new Set(["/", "/demo-guide", "/sign-in", "/sign-up"])
+// /accept-invite (step 32): landing point for Supabase's invite email
+// link. The server has no session cookie yet on the very first request
+// here — the invite link carries the session as a URL hash fragment
+// (Supabase doesn't support PKCE for invites), which only the browser
+// can process, after this page has already loaded. Without this, the
+// redirect-to-/sign-in below would fire before the client ever gets a
+// chance to establish the session. See app/accept-invite/page.tsx.
+const PUBLIC_PATHS = new Set(["/", "/demo-guide", "/sign-in", "/sign-up", "/accept-invite"])
 
 // Routes with their own auth (a token or a cryptographic signature, not a
 // Supabase session) — an external caller (an uptime monitor, Stripe's

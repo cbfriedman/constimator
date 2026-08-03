@@ -1,22 +1,10 @@
 "use server"
 
-import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
+import { getAppOrigin } from "@/lib/app-url"
 import { getScopedDb } from "@/lib/db/scoped"
 import { getSeatPriceId, getStripe } from "@/lib/stripe"
-
-// Server Actions don't get the request object the way a route handler
-// does — headers() is the sanctioned way to recover the origin for
-// building absolute redirect URLs back into the app. Falls back to
-// http:// only for localhost, since Checkout/the billing portal always
-// redirect back over whatever scheme the app is actually served on.
-async function getAppOrigin(): Promise<string> {
-  const headerList = await headers()
-  const host = headerList.get("host") ?? "localhost:3000"
-  const protocol = host.startsWith("localhost") || host.startsWith("127.0.0.1") ? "http" : "https"
-  return `${protocol}://${host}`
-}
 
 // Gets (or lazily creates) this org's Stripe Customer. Stored on the org
 // row so every future Checkout/portal session reuses the same customer
@@ -48,9 +36,8 @@ async function getOrCreateStripeCustomer(
 
 /**
  * Starts (or resumes) a seat-based subscription checkout for the caller's
- * own org. Seat quantity is the org's current user count — there's no
- * team-invite flow built yet, so today that's always 1, but this reads it
- * live rather than hardcoding 1 so it's correct the moment one exists.
+ * own org. Seat quantity is the org's current user count, read live —
+ * step 32 built the team-invite flow that actually grows this past 1.
  * Redirects to Stripe's hosted Checkout page; the subscription itself only
  * becomes real once the webhook handler processes checkout.session.completed.
  */

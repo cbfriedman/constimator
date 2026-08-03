@@ -15,6 +15,7 @@ import {
   BarChart3,
   HardHat,
   CreditCard,
+  Users,
   Settings,
   HelpCircle,
 } from "lucide-react"
@@ -59,6 +60,7 @@ const mainNav = [
 ]
 
 const footerNav = [
+  { title: "Team", href: "/team", icon: Users },
   { title: "Billing", href: "/billing", icon: CreditCard },
   { title: "Settings", href: "#", icon: Settings },
   { title: "Help", href: "#", icon: HelpCircle },
