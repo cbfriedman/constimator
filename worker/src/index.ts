@@ -8,7 +8,12 @@ import { pollOnce } from "./poll.js"
 import { recordHeartbeat } from "./heartbeat.js"
 import { logger } from "./logger.js"
 
-const POLL_INTERVAL_MS = Number(process.env.POLL_INTERVAL_MS ?? 5000)
+// `Number(x ?? 5000)` looks right but isn't: a declared-but-blank
+// POLL_INTERVAL_MS= line in .env makes process.env.POLL_INTERVAL_MS "" (not
+// undefined), which ?? treats as already-set and Number("") is 0 — this
+// worker was confirmed polling with no delay during the step 36 load test
+// ("polling every 0ms" in its own startup log) until this was caught.
+const POLL_INTERVAL_MS = Number(process.env.POLL_INTERVAL_MS) || 5000
 
 let shuttingDown = false
 

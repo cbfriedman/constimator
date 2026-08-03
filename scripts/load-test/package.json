@@ -1,0 +1,22 @@
+{
+  "name": "load-test",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Standalone script — not part of the Constimator app. Step 36: creates one throwaway test org, fires several concurrent uploads through the real requestDocumentUpload/confirmDocumentUpload flow, runs the real worker against them, and measures where the takeoff pipeline breaks first. Cleans up everything it creates.",
+  "scripts": {
+    "start": "tsx src/run.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.111.0",
+    "dotenv": "^17.4.2",
+    "pdf-lib": "^1.17.1",
+    "postgres": "^3.4.9"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "tsx": "^4.23.1",
+    "typescript": "^5.9.3"
+  }
+}

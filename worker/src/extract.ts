@@ -6,7 +6,11 @@ import type { ExtractedTakeoffItem } from "./types.js"
 // Same prompt/tool schema validated by scripts/takeoff-validation (step 15)
 // — this is that script's approach wired into the real pipeline, not a
 // fresh design. Keep the two in sync if the prompt is ever tuned.
-const MODEL = process.env.TAKEOFF_MODEL ?? "claude-sonnet-5"
+// `?? "claude-sonnet-5"` looks right but isn't: a declared-but-blank
+// TAKEOFF_MODEL= line in .env makes process.env.TAKEOFF_MODEL "" (not
+// undefined), which ?? treats as already-set — found live during the step
+// 36 load test via the identical bug in index.ts's POLL_INTERVAL_MS.
+const MODEL = process.env.TAKEOFF_MODEL || "claude-sonnet-5"
 
 const SYSTEM_PROMPT = `You are doing a construction quantity takeoff from civil/roadway and site-work plan sheets (grading, paving, earthwork, utilities — the trades a civil site contractor bids). You're shown every sheet of a real plan set as images, in page order.
 

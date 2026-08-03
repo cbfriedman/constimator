@@ -31,5 +31,5 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules", "scripts/takeoff-validation/**", "worker/**"]
+  "exclude": ["node_modules", "scripts/takeoff-validation/**", "scripts/load-test/**", "worker/**"]
 }
