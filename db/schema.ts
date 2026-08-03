@@ -118,6 +118,24 @@ export const reconciliationFilterEnum = pgEnum("reconciliation_filter", [
   "unit_converted",
 ])
 
+// Step 31 — mirrors Stripe's own subscription status values exactly
+// (trialing/active/past_due/canceled/unpaid/incomplete/incomplete_expired/
+// paused), plus "none" for an org that has never started a Stripe
+// subscription at all — the state every org is in at signup, and stays in
+// for its entire free trial window (see lib/billing.ts — trial length is
+// computed from org.createdAt, not stored here).
+export const subscriptionStatusEnum = pgEnum("subscription_status", [
+  "none",
+  "trialing",
+  "active",
+  "past_due",
+  "canceled",
+  "unpaid",
+  "incomplete",
+  "incomplete_expired",
+  "paused",
+])
+
 // ---------------------------------------------------------------------------
 // org
 // ---------------------------------------------------------------------------
@@ -141,6 +159,23 @@ export const orgs = pgTable(
     })
       .notNull()
       .default("20.00"),
+    // Step 31 — seat-based billing, tied to the org (see docs/DECISIONS.md
+    // and lib/billing.ts for why seat-based rather than usage-based: the
+    // product wedge is a team workspace — estimating + reconciliation used
+    // by a company's estimators together — not a metered API, and the one
+    // genuinely usage-sensitive cost in this app (AI takeoff calls) already
+    // has its own hard spend cap from step 25 rather than being the
+    // billing axis itself).
+    stripeCustomerId: text("stripe_customer_id"),
+    stripeSubscriptionId: text("stripe_subscription_id"),
+    subscriptionStatus: subscriptionStatusEnum("subscription_status")
+      .notNull()
+      .default("none"),
+    // When the current billing period ends — null until a subscription has
+    // actually started. Kept in sync from Stripe webhook events
+    // (app/api/webhooks/stripe), not computed locally; Stripe is the
+    // source of truth for anything billing-period-shaped.
+    currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

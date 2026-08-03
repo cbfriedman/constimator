@@ -49,6 +49,16 @@ type ProjectStateValue = {
   resetKey: number
   /** Reset all client-side demo state back to its initial values. */
   reset: () => void
+  /**
+   * Whether the org is entitled to paid features right now (an active
+   * subscription, Stripe's own trialing status, or still inside the
+   * pre-Stripe free trial window). components/billing-gate.tsx is the
+   * only consumer that should actually act on this — see that file.
+   */
+  billingEntitled: boolean
+  billingStatus: string
+  billingIsOnFreeTrial: boolean
+  billingTrialEndsAt: string | null
 }
 
 // Used only when there's no real estimate to back these fields yet — a
@@ -143,6 +153,16 @@ export function ProjectStateProvider({
       recalculate,
       resetKey,
       reset,
+      // Fails open (true) when there's no snapshot to read — a transient
+      // DB blip shouldn't lock a paying customer out of their own
+      // workspace. The real gate is whatever getBillingStatus() actually
+      // computes whenever the snapshot *does* load; this default only
+      // ever applies to the "couldn't even check" case, not "checked and
+      // it's expired."
+      billingEntitled: initialProjectState?.billing.isEntitled ?? true,
+      billingStatus: initialProjectState?.billing.status ?? "none",
+      billingIsOnFreeTrial: initialProjectState?.billing.isOnFreeTrial ?? false,
+      billingTrialEndsAt: initialProjectState?.billing.trialEndsAt ?? null,
     }),
     [
       initialProjectState,

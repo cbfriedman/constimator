@@ -39,3 +39,13 @@ This confirms rather than changes direction: `/cost-setup` (see [lib/cost-setup-
 **Why:** Extraction accuracy for the wedge (see [[Product wedge]]) can only be validated by someone who can look at the AI's output and know it's right or wrong. Civil/roadway is also a favorable vertical to start with: public-agency bid forms in this space (Caltrans/DOT-style) are typically standardized unit-price schedules, which are more extraction-friendly than negotiated/private commercial bid formats.
 
 **How to apply:** Tune and test the document-extraction pipeline against real civil/roadway bid packages first. Treat other trades (concrete, mechanical, electrical, general building, etc.) as Phase 2+ expansion once extraction accuracy is proven and validated here — don't try to generalize the extraction prompts/logic across trades before this one is solid.
+
+## Billing model
+
+**Decision: Seat-based subscription, tied to org** — not usage-based. One plan, priced per user in the org, via Stripe (`lib/billing.ts`, `app/billing/`).
+
+**Why:** The [[Product wedge]] is a team workspace — estimating plus reconciliation, used by a contractor's own estimators together — not a metered API a customer consumes programmatically. Seat-based pricing is how virtually every B2B tool shaped like this one prices (Procore, PlanSwift, etc.), and it matches the Scope decision's framing of "40–50 contractor customers" as companies, not usage volume. The one place this product genuinely has a metered, usage-sensitive cost — AI takeoff extraction calls — was deliberately *not* made the billing axis: step 25 gave it a hard per-org monthly spend cap instead of pass-through usage billing, which is itself a signal that usage isn't the intended axis for what customers pay for.
+
+**How it works today:** every org gets a 14-day free trial with no Stripe involvement at all (computed from `org.createdAt`, not a stored flag). Subscribing creates a Stripe Checkout session with quantity = the org's current user count. There's no team-invite feature built yet, so quantity is always 1 today — this is architecturally real seat-based billing, not faked, it'll just start actually varying once org membership can grow past the founding user.
+
+**How to apply:** Don't add a second (e.g. usage-based) billing dimension without revisiting this decision explicitly — the spend cap already covers the cost-containment need usage billing would otherwise be reached for. If/when a team-invite feature is built, subscription quantity needs to be kept in sync with headcount (not done yet — see the note in `app/billing/actions.ts`).

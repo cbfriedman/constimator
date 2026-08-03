@@ -43,6 +43,13 @@
       "when": 1785720884996,
       "tag": "0005_youthful_sentinels",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1785723578141,
+      "tag": "0006_bouncy_meltdown",
+      "breakpoints": true
     }
   ]
 }

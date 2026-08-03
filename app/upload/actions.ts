@@ -7,6 +7,7 @@ import { z } from "zod"
 
 import { documents, projects } from "@/db/schema"
 import { checkSpendCap, checkTakeoffRateLimit, formatUsd } from "@/lib/ai-limits"
+import { getBillingStatus } from "@/lib/billing"
 import { getScopedDb } from "@/lib/db/scoped"
 import { logger } from "@/lib/logger"
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server"
@@ -154,6 +155,22 @@ export async function confirmDocumentUpload(rawInput: {
   // request doesn't even take up a worker poll cycle, and the reason shows
   // up immediately on /processing instead of after a wasted round trip.
   try {
+    // Step 31: the page-level gate (components/billing-gate.tsx) already
+    // keeps a non-entitled org off the /upload page in the normal UI flow
+    // — checked again here for the same reason every other check in this
+    // function is checked again here, not trusted from whichever page
+    // called it (step 30): this is the action that actually spends money,
+    // and it's directly callable on its own regardless of the page.
+    const org = await scopedDb.org.get()
+    if (!org || !getBillingStatus(org).isEntitled) {
+      await scopedDb.takeoffJobs.insert({
+        documentId: document.id,
+        status: "failed",
+        error: "Your organization's trial has ended. Subscribe to continue using AI document processing.",
+      })
+      return document
+    }
+
     const rateLimit = await checkTakeoffRateLimit(scopedDb.orgId)
     if (!rateLimit.allowed) {
       await scopedDb.takeoffJobs.insert({

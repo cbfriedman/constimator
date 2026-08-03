@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation"
 
 import { AppSidebar } from "@/components/app-sidebar"
+import { BillingGate } from "@/components/billing-gate"
 import { PrototypeBanner } from "@/components/prototype-banner"
 import {
   ProjectStateProvider,
@@ -48,8 +49,8 @@ export function AppShell({
           <SidebarInset>
             <PrototypeBanner />
             <TopBar />
-            <ResettableMain className="flex-1 overflow-auto">
-              {children}
+            <ResettableMain className="flex flex-1 flex-col overflow-auto">
+              <BillingGate>{children}</BillingGate>
             </ResettableMain>
           </SidebarInset>
         </SidebarProvider>

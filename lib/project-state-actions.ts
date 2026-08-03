@@ -8,6 +8,7 @@ import {
   NoOrgMembershipError,
   UnauthenticatedError,
 } from "@/lib/db/scoped"
+import { getBillingStatus } from "@/lib/billing"
 import { getCurrentProject, getOrCreateCurrentEstimate } from "@/lib/current-project"
 import { formatDisplayDate, todayIsoDate } from "@/lib/format-date"
 import { logger } from "@/lib/logger"
@@ -31,6 +32,15 @@ export type ProjectStateSnapshot = {
   // reconciliation_item rows (this runs on every route via the root layout,
   // so it stays read-only rather than rewriting DB rows on every nav).
   reconciliationAttentionCount: number
+  // Step 31 — read by components/billing-gate.tsx via ProjectStateProvider,
+  // same pattern as every other field here.
+  billing: {
+    status: string
+    isEntitled: boolean
+    isOnFreeTrial: boolean
+    trialEndsAt: string
+    currentPeriodEnd: string | null
+  }
 }
 
 // Called from the root layout, so it runs for every route — including the
@@ -64,6 +74,8 @@ export async function getProjectStateSnapshot(): Promise<ProjectStateSnapshot | 
       }
     }
 
+    const billingStatus = getBillingStatus(org)
+
     return {
       costSetupComplete: org.costSetupComplete,
       estimate: estimate
@@ -76,6 +88,13 @@ export async function getProjectStateSnapshot(): Promise<ProjectStateSnapshot | 
           }
         : null,
       reconciliationAttentionCount,
+      billing: {
+        status: billingStatus.status,
+        isEntitled: billingStatus.isEntitled,
+        isOnFreeTrial: billingStatus.isOnFreeTrial,
+        trialEndsAt: billingStatus.trialEndsAt.toISOString(),
+        currentPeriodEnd: billingStatus.currentPeriodEnd?.toISOString() ?? null,
+      },
     }
   } catch (err) {
     const isExpected =

@@ -3,15 +3,18 @@ import { NextResponse, type NextRequest } from "next/server"
 
 const PUBLIC_PATHS = new Set(["/", "/demo-guide", "/sign-in", "/sign-up"])
 
-// Routes with their own auth (a token, not a Supabase session) — an
-// external uptime monitor hitting /api/health has no session cookie and
-// can't complete a sign-in redirect, so it needs to bypass this middleware
-// entirely rather than just being added to PUBLIC_PATHS (which would still
-// run the Supabase auth revalidation below for every ping, for no reason).
-// Found during the step 30 security review: without this, /api/health was
-// unreachable by anything unauthenticated — it just 307'd to /sign-in,
-// silently defeating the uptime check it exists for.
-const BYPASS_PATHS = new Set(["/api/health"])
+// Routes with their own auth (a token or a cryptographic signature, not a
+// Supabase session) — an external caller (an uptime monitor, Stripe's
+// webhook delivery) has no session cookie and can't complete a sign-in
+// redirect, so these need to bypass this middleware entirely rather than
+// just being added to PUBLIC_PATHS (which would still run the Supabase
+// auth revalidation below for every call, for no reason).
+// /api/health: found during the step 30 security review — without this it
+// was unreachable by anything unauthenticated, silently defeating the
+// uptime check it exists for.
+// /api/webhooks/stripe: same failure mode would apply — Stripe's servers
+// have no session either, and the route verifies its own signature.
+const BYPASS_PATHS = new Set(["/api/health", "/api/webhooks/stripe"])
 
 export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl
