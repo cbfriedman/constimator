@@ -387,6 +387,29 @@ export const takeoffJobsRelations = relations(takeoffJobs, ({ one }) => ({
 }))
 
 // ---------------------------------------------------------------------------
+// worker_heartbeat — step 29. A single row the worker (worker/src/poll.ts)
+// upserts on every poll cycle, so app/api/health can tell "worker process
+// is alive and polling" apart from "worker is down" without the worker
+// needing to expose any port of its own (deliberately not done — see
+// worker/README.md's "No public port needed"). Not tenant data — there's
+// no org_id, and no RLS: every caller of the health check needs to see
+// this regardless of org, which is the opposite of what org isolation is
+// for. This is the one intentional exception; see lib/db/system.ts for the
+// (also intentionally narrow) read path.
+// ---------------------------------------------------------------------------
+
+export const workerHeartbeats = pgTable("worker_heartbeat", {
+  // Fixed singleton id — always upserted onto this one row, never inserted
+  // fresh, so there's exactly one heartbeat per worker deployment rather
+  // than an ever-growing table.
+  id: text("id").primaryKey().default("worker"),
+  lastPolledAt: timestamp("last_polled_at", { withTimezone: true }).notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+})
+
+// ---------------------------------------------------------------------------
 // cost_item — company default rates (lib/cost-setup-data.ts)
 // One table covers labor rates, equipment rates, and markup/margin fields;
 // `category` picks out which of the below columns apply to a given row:

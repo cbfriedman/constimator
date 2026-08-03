@@ -32,6 +32,24 @@ see `.env.example`.
    regenerates the estimate's AI-extracted lines from it (see
    `generateEstimateFromTakeoff` in `app/estimate/actions.ts`) — the worker
    itself never talks to the Next.js app directly.
+5. `src/heartbeat.ts` upserts a single `worker_heartbeat` row on every poll
+   cycle (step 29) — not the worker talking to the app, just writing a
+   timestamp to the same database it already has a connection to. The main
+   app's `/api/health` reads it to tell "worker is alive and polling" apart
+   from "worker is down," without the worker needing a public port (see
+   below — that decision hasn't changed).
+
+## Observability (step 29)
+
+- `src/logger.ts` — structured JSON to stdout (Railway captures this
+  natively) instead of free-text `console.log`. `logger.error(message,
+  context, error?)` also reports to Sentry when `SENTRY_DSN` is set.
+- `src/sentry.ts` — imported first thing in `src/index.ts`, before
+  anything else can throw. No-ops without `SENTRY_DSN`.
+- No public HTTP endpoint here for uptime checking — see "No public port
+  needed" below. The main app's `app/api/health` route is the actual
+  uptime-check target; it reads this worker's heartbeat and the
+  `takeoff_job` queue's health from the database.
 
 Why polling instead of Supabase Realtime's `postgres_changes`: Realtime
 would still need a polling fallback for correctness (a worker that's
@@ -66,7 +84,9 @@ npm run dev
 No public port needed — this is a worker, not a web service. If Railway's
 UI insists on a healthcheck for a "web" service type, set the service type
 to a plain deployment/worker (not exposed) rather than adding an HTTP
-server just to satisfy a healthcheck.
+server just to satisfy a healthcheck. This still holds even with step 29's
+uptime-check requirement — see "Observability" above for where that
+actually lives (the main app, which already has to be public).
 
 ## What's isolated here, and why
 

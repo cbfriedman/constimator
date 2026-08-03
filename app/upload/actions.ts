@@ -8,6 +8,7 @@ import { z } from "zod"
 import { documents, projects } from "@/db/schema"
 import { checkSpendCap, checkTakeoffRateLimit, formatUsd } from "@/lib/ai-limits"
 import { getScopedDb } from "@/lib/db/scoped"
+import { logger } from "@/lib/logger"
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server"
 import { parseInput, uuidSchema } from "@/lib/validation"
 
@@ -139,7 +140,7 @@ export async function confirmDocumentUpload(rawInput: {
       status: "queued",
     })
   } catch (err) {
-    console.error(`Failed to queue takeoff job for document ${document.id}:`, err)
+    logger.error("Failed to queue takeoff job", { documentId: document.id }, err)
   }
 
   return document

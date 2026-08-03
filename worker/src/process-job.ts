@@ -3,6 +3,7 @@ import { downloadDocument } from "./download-document.js"
 import { rasterizePdf } from "./rasterize.js"
 import { extractQuantities } from "./extract.js"
 import { checkSpendCap, checkTakeoffRateLimit, formatUsd, recordAiUsage } from "./ai-limits.js"
+import { logger } from "./logger.js"
 import type { TakeoffResult } from "./types.js"
 
 export type ClaimedJob = {
@@ -11,7 +12,11 @@ export type ClaimedJob = {
   document_id: string
 }
 
-async function failJob(job: ClaimedJob, message: string): Promise<void> {
+// error is optional — pass the actual caught exception when there is one
+// (an unexpected failure) so Sentry gets a real stack trace, not just a
+// message. The rate-limit/spend-cap paths below aren't bugs, they're
+// expected control flow, so they don't pass one.
+async function failJob(job: ClaimedJob, message: string, error?: unknown): Promise<void> {
   await sql`
     update takeoff_job set status = 'failed', error = ${message}, updated_at = now()
     where id = ${job.id} and org_id = ${job.org_id}
@@ -20,11 +25,15 @@ async function failJob(job: ClaimedJob, message: string): Promise<void> {
     update document set status = 'failed', updated_at = now()
     where id = ${job.document_id} and org_id = ${job.org_id}
   `
-  console.error(`[job ${job.id}] failed: ${message}`)
+  logger.error(
+    "Takeoff job failed",
+    { jobId: job.id, orgId: job.org_id, documentId: job.document_id, reason: message },
+    error,
+  )
 }
 
 export async function processJob(job: ClaimedJob) {
-  console.log(`[job ${job.id}] processing (document ${job.document_id})`)
+  logger.info("Processing takeoff job", { jobId: job.id, orgId: job.org_id, documentId: job.document_id })
 
   try {
     const [document] = await sql`
@@ -80,9 +89,16 @@ export async function processJob(job: ClaimedJob) {
       update document set status = 'processed', updated_at = now()
       where id = ${job.document_id} and org_id = ${job.org_id}
     `
-    console.log(`[job ${job.id}] complete — extracted ${items.length} item(s)`)
+    logger.info("Takeoff job complete", {
+      jobId: job.id,
+      orgId: job.org_id,
+      documentId: job.document_id,
+      itemCount: items.length,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+    })
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    await failJob(job, message)
+    await failJob(job, message, err)
   }
 }

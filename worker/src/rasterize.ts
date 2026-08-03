@@ -1,5 +1,7 @@
 import { pdf } from "pdf-to-img"
 
+import { logger } from "./logger.js"
+
 export type RasterizedPage = {
   pageNumber: number
   base64: string
@@ -21,9 +23,7 @@ export async function rasterizePdf(pdfBytes: Buffer): Promise<RasterizedPage[]> 
 
   const pageCount = doc.length
   if (pageCount > MAX_PAGES) {
-    console.warn(
-      `  ⚠ ${pageCount} pages in document, capping extraction at the first ${MAX_PAGES}.`,
-    )
+    logger.warn("Document exceeds max pages — capping extraction", { pageCount, maxPages: MAX_PAGES })
   }
 
   const pages: RasterizedPage[] = []

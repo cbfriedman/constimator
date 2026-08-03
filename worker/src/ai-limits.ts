@@ -2,6 +2,7 @@ import { Ratelimit } from "@upstash/ratelimit"
 import { Redis } from "@upstash/redis"
 
 import { sql } from "./db.js"
+import { logger } from "./logger.js"
 
 // Step 25. Mirrors lib/ai-limits.ts in the main app — duplicated rather
 // than imported (this worker doesn't have access to that app's lib/, see
@@ -38,9 +39,7 @@ function getRateLimiter(): Ratelimit | null {
   const url = process.env.UPSTASH_REDIS_REST_URL
   const token = process.env.UPSTASH_REDIS_REST_TOKEN
   if (!url || !token) {
-    console.warn(
-      "UPSTASH_REDIS_REST_URL/UPSTASH_REDIS_REST_TOKEN not set — takeoff rate limiting is disabled.",
-    )
+    logger.warn("UPSTASH_REDIS_REST_URL/UPSTASH_REDIS_REST_TOKEN not set — takeoff rate limiting is disabled.")
     limiter = null
     return limiter
   }

@@ -10,6 +10,7 @@ import {
 } from "@/lib/db/scoped"
 import { getCurrentProject, getOrCreateCurrentEstimate } from "@/lib/current-project"
 import { formatDisplayDate, todayIsoDate } from "@/lib/format-date"
+import { logger } from "@/lib/logger"
 import { diffBidAgainstEstimate } from "@/lib/reconciliation-diff"
 
 export type ProjectStateSnapshot = {
@@ -82,7 +83,7 @@ export async function getProjectStateSnapshot(): Promise<ProjectStateSnapshot | 
       err instanceof NoOrgMembershipError ||
       (err as { digest?: string } | null)?.digest === "DYNAMIC_SERVER_USAGE"
     if (!isExpected) {
-      console.error("getProjectStateSnapshot failed, falling back to defaults:", err)
+      logger.error("getProjectStateSnapshot failed, falling back to defaults", undefined, err)
     }
     return null
   }

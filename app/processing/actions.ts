@@ -5,6 +5,7 @@ import { eq, inArray } from "drizzle-orm"
 import { generateEstimateFromTakeoff } from "@/app/estimate/actions"
 import { documents, takeoffJobs } from "@/db/schema"
 import { getScopedDb } from "@/lib/db/scoped"
+import { logger } from "@/lib/logger"
 import { parseInput, uuidSchema } from "@/lib/validation"
 
 export type ProcessingItemStatus =
@@ -45,7 +46,7 @@ async function syncEstimateFromCompleteJobs(
   if (items.length === 0) return
 
   await generateEstimateFromTakeoff(projectId, items).catch((err) => {
-    console.error(`Failed to sync estimate from takeoff results for project ${projectId}:`, err)
+    logger.error("Failed to sync estimate from takeoff results", { projectId }, err)
   })
 }
 

@@ -6,6 +6,7 @@ import { Redis } from "@upstash/redis"
 
 import { aiUsageEvents } from "@/db/schema"
 import type { getScopedDb } from "@/lib/db/scoped"
+import { logger } from "@/lib/logger"
 
 type ScopedDb = Awaited<ReturnType<typeof getScopedDb>>
 
@@ -47,9 +48,7 @@ function getRateLimiter(): Ratelimit | null {
     // actually bounds spend (the monthly cap does that, and only needs the
     // database) — so a missing Upstash config degrades to "no rate limit"
     // with a loud warning, rather than blocking every takeoff request.
-    console.warn(
-      "UPSTASH_REDIS_REST_URL/UPSTASH_REDIS_REST_TOKEN not set — takeoff rate limiting is disabled.",
-    )
+    logger.warn("UPSTASH_REDIS_REST_URL/UPSTASH_REDIS_REST_TOKEN not set — takeoff rate limiting is disabled.")
     limiter = null
     return limiter
   }
