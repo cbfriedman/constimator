@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm"
 import { z } from "zod"
 
 import { getEstimateData } from "@/app/estimate/actions"
-import { bids, estimateLines, reconciliationItems } from "@/db/schema"
+import { bids, estimateLines, projects, reconciliationItems } from "@/db/schema"
 import { getCurrentProject, getOrCreateCurrentEstimate } from "@/lib/current-project"
 import { getScopedDb } from "@/lib/db/scoped"
 import { diffBidAgainstEstimate } from "@/lib/reconciliation-diff"
@@ -24,6 +24,18 @@ export async function addBidLineAction(rawProjectId: string, rawInput: BidLineIn
   const projectId = parseInput(uuidSchema, rawProjectId)
   const input = parseInput(bidLineInputSchema, rawInput)
   const scopedDb = await getScopedDb()
+
+  // Found during the step 30 security review — same class of bug as
+  // confirmDocumentUpload and getOrCreateCurrentEstimate: without this,
+  // a bid row could be inserted referencing another org's project via the
+  // foreign key. Still stamped with the caller's own org (bids.insert
+  // always does that), so nothing readable leaked, but a real
+  // cross-tenant reference an attacker could trigger directly.
+  const project = await scopedDb.projects.findFirst(eq(projects.id, projectId))
+  if (!project) {
+    throw new Error("Project not found.")
+  }
+
   const [bid] = await scopedDb.bids.insert({ projectId, ...input })
   return bid
 }

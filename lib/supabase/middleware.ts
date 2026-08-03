@@ -3,7 +3,22 @@ import { NextResponse, type NextRequest } from "next/server"
 
 const PUBLIC_PATHS = new Set(["/", "/demo-guide", "/sign-in", "/sign-up"])
 
+// Routes with their own auth (a token, not a Supabase session) — an
+// external uptime monitor hitting /api/health has no session cookie and
+// can't complete a sign-in redirect, so it needs to bypass this middleware
+// entirely rather than just being added to PUBLIC_PATHS (which would still
+// run the Supabase auth revalidation below for every ping, for no reason).
+// Found during the step 30 security review: without this, /api/health was
+// unreachable by anything unauthenticated — it just 307'd to /sign-in,
+// silently defeating the uptime check it exists for.
+const BYPASS_PATHS = new Set(["/api/health"])
+
 export async function updateSession(request: NextRequest) {
+  const { pathname } = request.nextUrl
+  if (BYPASS_PATHS.has(pathname)) {
+    return NextResponse.next({ request })
+  }
+
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -33,7 +48,6 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const { pathname } = request.nextUrl
   const isPublicPath = PUBLIC_PATHS.has(pathname) || pathname.startsWith("/auth")
 
   if (!user && !isPublicPath) {

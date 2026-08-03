@@ -45,6 +45,21 @@ export async function processJob(job: ClaimedJob) {
       throw new Error(`Document ${job.document_id} not found (or not in org ${job.org_id})`)
     }
 
+    // Step 30 security review: downloadDocument uses the service-role key,
+    // which bypasses Supabase Storage's own RLS entirely — this worker has
+    // no session for Storage to check against, that's the whole reason it
+    // needs the service-role key in the first place. app/upload/actions.ts's
+    // confirmDocumentUpload now guarantees a document's storage_path always
+    // starts with its own org_id, but this is the one place that actually
+    // performs the RLS-bypassing download, so it gets its own check too
+    // rather than trusting that guarantee was never violated upstream (by a
+    // bug, or a future code path that writes a document row some other way).
+    if (!document.storage_path.startsWith(`${job.org_id}/`)) {
+      throw new Error(
+        `Document ${job.document_id}'s storage path doesn't match its own org — refusing to download.`,
+      )
+    }
+
     // Step 25: authoritative checks, immediately before the paid Claude
     // call — the app's confirmDocumentUpload already checked both at
     // queue time, but a job can sit queued across a rate-limit window

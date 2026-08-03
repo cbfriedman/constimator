@@ -90,6 +90,45 @@ export async function confirmDocumentUpload(rawInput: {
 }) {
   const input = parseInput(confirmUploadSchema, rawInput)
   const scopedDb = await getScopedDb()
+
+  // Found during the step 30 security review: requestDocumentUpload (just
+  // above) already checks this before handing back a signed upload URL,
+  // but confirmDocumentUpload is its own separately-callable Server
+  // Action — calling it directly with another org's project id, skipping
+  // requestDocumentUpload entirely, inserted a document row referencing
+  // that project via the foreign key. The row itself is still stamped
+  // with the caller's own org (documents.insert always does that), so
+  // nothing readable leaked — but it's a real cross-tenant reference an
+  // attacker could trigger, same class of bug as
+  // lib/current-project.ts's getOrCreateCurrentEstimate.
+  const project = await scopedDb.projects.findFirst(
+    eq(projects.id, input.projectId),
+  )
+  if (!project) {
+    throw new Error("Project not found.")
+  }
+
+  // Found during the step 30 security review, and the most serious issue
+  // it turned up: without this, an org could call confirmDocumentUpload
+  // directly with a `path` pointing at ANOTHER org's real storage object
+  // (Supabase Storage paths are predictable — "{org_id}/{project_id}/
+  // {uuid}-{filename}" — and reusing a previously-seen one is exactly the
+  // "reuse IDs" scenario this review was asked to test). The resulting
+  // document row would be stamped with the caller's own org (so nothing
+  // in *this* table leaks by itself), but worker/src/download-document.ts
+  // downloads whatever storage_path a queued job's document row says,
+  // using the service-role key — which bypasses Storage's own RLS
+  // entirely. That combination would let an attacker get the worker to
+  // download and AI-extract another org's real document and read the
+  // result back through their own account. Requiring the path to be
+  // under the caller's own org prefix closes this at the one point that
+  // actually creates the row, rather than trying to re-derive trust in
+  // the worker (which has no session to check against anyway).
+  const expectedPrefix = `${scopedDb.orgId}/`
+  if (!input.path.startsWith(expectedPrefix)) {
+    throw new Error("Storage path does not belong to your organization.")
+  }
+
   const [document] = await scopedDb.documents.insert({
     projectId: input.projectId,
     type: input.type,

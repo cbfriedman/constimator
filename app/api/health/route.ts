@@ -1,9 +1,27 @@
+import { createHash, timingSafeEqual } from "node:crypto"
+
 import { NextResponse } from "next/server"
 import { and, inArray, lt } from "drizzle-orm"
 
 import { takeoffJobs, workerHeartbeats } from "@/db/schema"
 import { getSystemDb } from "@/lib/db/system"
 import { logger } from "@/lib/logger"
+
+// Found during the step 30 security review: a plain !== compares strings
+// byte-by-byte and returns as soon as it finds a mismatch, so how long the
+// comparison takes leaks how many leading characters of a guess were
+// right — a timing side-channel against the token. SHA-256 both sides
+// first (fixed-length digest, sidesteps timingSafeEqual's requirement
+// that both buffers be the same length) and compare the digests instead.
+// Realistically low-severity here (network jitter dwarfs this over the
+// internet, and the token isn't gating anything more sensitive than
+// aggregate operational counts) but it's a one-line fix for something
+// that's easy to get wrong, so it's worth just doing correctly.
+function tokensMatch(a: string, b: string): boolean {
+  const digestA = createHash("sha256").update(a).digest()
+  const digestB = createHash("sha256").update(b).digest()
+  return timingSafeEqual(digestA, digestB)
+}
 
 // Step 29 — uptime check target for the Railway worker (step 17) and its
 // takeoff_job queue. Point an external uptime monitor (Better Uptime,
@@ -36,7 +54,7 @@ export async function GET(request: Request) {
   // local/dev). Set HEALTH_CHECK_TOKEN in production so this can't be
   // polled by anyone who finds the URL; point your uptime monitor at
   // /api/health?token=<the same value>.
-  if (expectedToken && token !== expectedToken) {
+  if (expectedToken && (!token || !tokensMatch(token, expectedToken))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
