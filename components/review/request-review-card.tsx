@@ -15,6 +15,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox"
 import { Field, FieldLabel } from "@/components/ui/field"
 import { Textarea } from "@/components/ui/textarea"
+import { useProjectState } from "@/components/project-state-provider"
 
 const scopeOptions = [
   {
@@ -45,6 +46,7 @@ const scopeOptions = [
 ]
 
 export function RequestReviewCard({ onRequest }: { onRequest: () => void }) {
+  const { currentProjectDaysOut } = useProjectState()
   const [checked, setChecked] = React.useState<Record<string, boolean>>(() =>
     Object.fromEntries(scopeOptions.map((o) => [o.id, !!o.defaultChecked])),
   )
@@ -100,7 +102,10 @@ export function RequestReviewCard({ onRequest }: { onRequest: () => void }) {
         <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-foreground">
           <Clock className="size-4 shrink-0 text-primary" />
           <span>
-            Typical turnaround 1&ndash;2 business days. Bid date is 42 days away.
+            Typical turnaround 1&ndash;2 business days.
+            {currentProjectDaysOut !== null
+              ? ` Bid date is ${currentProjectDaysOut} ${currentProjectDaysOut === 1 ? "day" : "days"} away.`
+              : null}
           </span>
         </div>
 

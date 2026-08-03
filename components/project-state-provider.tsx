@@ -13,6 +13,10 @@ import {
 import { formatDisplayDate, todayIsoDate } from "@/lib/format-date"
 
 type ProjectStateValue = {
+  /** The org's current project id (see lib/current-project.ts), or null. */
+  currentProjectId: string | null
+  /** Real days-until-bid for the current project, or null with no bid date. */
+  currentProjectDaysOut: number | null
   /** Real count of reconciliation diff rows needing attention. */
   attentionCount: number
   /**
@@ -141,6 +145,8 @@ export function ProjectStateProvider({
 
   const value = React.useMemo<ProjectStateValue>(
     () => ({
+      currentProjectId: initialProjectState?.currentProjectId ?? null,
+      currentProjectDaysOut: initialProjectState?.currentProjectDaysOut ?? null,
       attentionCount: initialProjectState?.reconciliationAttentionCount ?? 0,
       costSetupComplete,
       setCostSetupComplete,

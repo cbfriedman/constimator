@@ -75,7 +75,7 @@ function isActivePath(pathname: string, href: string) {
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const { attentionCount, costSetupComplete } = useProjectState()
+  const { attentionCount, costSetupComplete, currentProjectId } = useProjectState()
 
   return (
     <Sidebar>
@@ -92,7 +92,7 @@ export function AppSidebar() {
               Constimator
             </span>
             <span className="text-xs leading-tight text-muted-foreground">
-              AI Estimating
+              Bid Reconciliation
             </span>
           </div>
         </Link>
@@ -111,10 +111,14 @@ export function AppSidebar() {
                   item.href === "/reconciliation" && item.badge
                     ? String(attentionCount)
                     : item.badge?.text
+                const href =
+                  item.href === "/upload" && currentProjectId
+                    ? `/upload?project=${currentProjectId}`
+                    : item.href
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
-                      render={<Link href={item.href} />}
+                      render={<Link href={href} />}
                       isActive={isActivePath(pathname, item.href)}
                     >
                       <item.icon />

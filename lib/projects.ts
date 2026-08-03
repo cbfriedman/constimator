@@ -82,7 +82,7 @@ function formatDeadlineDate(bidDate: string | null): string {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
 }
 
-function computeDaysOut(bidDate: string | null): number {
+export function computeDaysOut(bidDate: string | null): number {
   const date = parseDate(bidDate)
   if (!date) return 0
   const today = new Date()

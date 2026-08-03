@@ -12,9 +12,18 @@ import { getBillingStatus } from "@/lib/billing"
 import { getCurrentProject, getOrCreateCurrentEstimate } from "@/lib/current-project"
 import { formatDisplayDate, todayIsoDate } from "@/lib/format-date"
 import { logger } from "@/lib/logger"
+import { computeDaysOut } from "@/lib/projects"
 import { diffBidAgainstEstimate } from "@/lib/reconciliation-diff"
 
 export type ProjectStateSnapshot = {
+  // The org's current project (see lib/current-project.ts) — null when the
+  // org has no projects yet. Read by the sidebar so "Upload Documents"
+  // links to a real project instead of dead-ending on "No project selected."
+  currentProjectId: string | null
+  // Real days-until-bid for the current project — the single source every
+  // "N days to bid" chip (BidCountdownBadge) and the dashboard's deadline
+  // card both read, so they can't drift out of sync with each other again.
+  currentProjectDaysOut: number | null
   costSetupComplete: boolean
   // null when the org has no projects yet — there's nothing to attach a
   // rate snapshot to. ProjectStateProvider falls back to defaults for these
@@ -77,6 +86,8 @@ export async function getProjectStateSnapshot(): Promise<ProjectStateSnapshot | 
     const billingStatus = getBillingStatus(org)
 
     return {
+      currentProjectId: project?.id ?? null,
+      currentProjectDaysOut: project ? computeDaysOut(project.bidDate) : null,
       costSetupComplete: org.costSetupComplete,
       estimate: estimate
         ? {
