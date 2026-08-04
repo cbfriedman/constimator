@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "description": "Standalone background worker — not part of the Next.js app. Polls takeoff_job for queued rows and processes them. Deployed separately (Railway) to avoid Vercel's function execution time limits.",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
