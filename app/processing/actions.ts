@@ -6,6 +6,7 @@ import { generateEstimateFromTakeoff } from "@/app/estimate/actions"
 import { documents, takeoffJobs } from "@/db/schema"
 import { getScopedDb } from "@/lib/db/scoped"
 import { logger } from "@/lib/logger"
+import { queueTakeoffJob } from "@/lib/takeoff-queue"
 import { parseInput, uuidSchema } from "@/lib/validation"
 
 export type ProcessingItemStatus =
@@ -24,6 +25,19 @@ export type ProcessingItem = {
   fileName: string
   status: ProcessingItemStatus
   error: string | null
+}
+
+// A retry inserts a new takeoff_job row rather than resetting the failed
+// one in place, so a document can end up with more than one job row over
+// its lifetime — this picks the one that actually reflects "what's
+// happening now."
+function latestJob(
+  jobs: (typeof takeoffJobs.$inferSelect)[],
+  documentId: string,
+): (typeof takeoffJobs.$inferSelect) | undefined {
+  return jobs
+    .filter((j) => j.documentId === documentId)
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0]
 }
 
 // The worker (a separate process) can't call a Next.js Server Action
@@ -68,7 +82,7 @@ export async function getProcessingStatus(
   await syncEstimateFromCompleteJobs(scopedDb, projectId, jobs)
 
   return docs.map((doc) => {
-    const job = jobs.find((j) => j.documentId === doc.id)
+    const job = latestJob(jobs, doc.id)
     return {
       documentId: doc.id,
       fileName: doc.fileName,
@@ -76,4 +90,25 @@ export async function getProcessingStatus(
       error: job?.error ?? null,
     }
   })
+}
+
+export async function retryTakeoffJobAction(rawDocumentId: string): Promise<void> {
+  const documentId = parseInput(uuidSchema, rawDocumentId)
+  const scopedDb = await getScopedDb()
+
+  // Org isolation via getScopedDb() means this returns undefined for a
+  // document id from a different org — same defense-in-depth pattern as
+  // every other directly-callable Server Action here (step 30).
+  const document = await scopedDb.documents.findFirst(eq(documents.id, documentId))
+  if (!document) {
+    throw new Error("Document not found.")
+  }
+
+  const jobs = await scopedDb.takeoffJobs.findMany(eq(takeoffJobs.documentId, documentId))
+  const current = latestJob(jobs, documentId)
+  if (current?.status !== "failed") {
+    throw new Error("Only a failed document can be retried.")
+  }
+
+  await queueTakeoffJob(scopedDb, documentId)
 }

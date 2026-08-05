@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { AlertTriangle, Check, Circle, Loader2 } from "lucide-react"
+import { AlertTriangle, Check, Circle, Loader2, RotateCcw } from "lucide-react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,6 +11,7 @@ import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import {
   getProcessingStatus,
+  retryTakeoffJobAction,
   type ProcessingItem,
 } from "@/app/processing/actions"
 
@@ -73,6 +75,7 @@ export function ProcessingShell({
   const router = useRouter()
   const [items, setItems] = useState<ProcessingItem[]>(initialItems)
   const [gaveUp, setGaveUp] = useState(false)
+  const [retryingId, setRetryingId] = useState<string | null>(null)
   const pollCount = useRef(0)
 
   const allTerminal = items.length > 0 && items.every((item) => isTerminal(item.status))
@@ -92,6 +95,20 @@ export function ProcessingShell({
 
     return () => clearInterval(timer)
   }, [projectId, items.length, allTerminal, gaveUp])
+
+  async function handleRetry(documentId: string) {
+    setRetryingId(documentId)
+    try {
+      await retryTakeoffJobAction(documentId)
+      pollCount.current = 0
+      setGaveUp(false)
+      setItems(await getProcessingStatus(projectId))
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't retry — try again.")
+    } finally {
+      setRetryingId(null)
+    }
+  }
 
   const canContinue = items.length === 0 || allTerminal || gaveUp
 
@@ -164,6 +181,22 @@ export function ProcessingShell({
                       >
                         {statusLabel(item.status)}
                       </span>
+                      {failed ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={retryingId === item.documentId}
+                          onClick={() => handleRetry(item.documentId)}
+                        >
+                          <RotateCcw
+                            data-icon="inline-start"
+                            className={cn(
+                              retryingId === item.documentId && "animate-spin",
+                            )}
+                          />
+                          {retryingId === item.documentId ? "Retrying…" : "Retry"}
+                        </Button>
+                      ) : null}
                     </div>
                     {failed && item.error ? (
                       <p className="pl-8 text-xs text-destructive">{item.error}</p>

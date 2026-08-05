@@ -6,12 +6,10 @@ import { eq } from "drizzle-orm"
 import { z } from "zod"
 
 import { documents, projects } from "@/db/schema"
-import { checkSpendCap, checkTakeoffRateLimit, formatUsd } from "@/lib/ai-limits"
 import { captureEvent } from "@/lib/analytics"
-import { getBillingStatus } from "@/lib/billing"
 import { getScopedDb } from "@/lib/db/scoped"
-import { logger } from "@/lib/logger"
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server"
+import { queueTakeoffJob } from "@/lib/takeoff-queue"
 import { parseInput, uuidSchema } from "@/lib/validation"
 
 const DOCUMENTS_BUCKET = "project-documents"
@@ -152,59 +150,11 @@ export async function confirmDocumentUpload(rawInput: {
   // immediately rather than running takeoff extraction inline, since that
   // can be a slow multi-page PDF job and this is a Vercel function with a
   // execution time limit. See worker/src/process-job.ts (step 16) for what
-  // actually processes this.
-  //
-  // Step 25: this is "the takeoff-triggering endpoint" — the queue-time
-  // check. It's not the authoritative one (the worker repeats both checks
-  // immediately before the paid Claude call, since that's where money is
-  // actually spent and a job could sit queued across a rate-limit window
-  // or into a new spend-cap month) — but failing fast here means a blocked
-  // request doesn't even take up a worker poll cycle, and the reason shows
-  // up immediately on /processing instead of after a wasted round trip.
-  try {
-    // Step 31: the page-level gate (components/billing-gate.tsx) already
-    // keeps a non-entitled org off the /upload page in the normal UI flow
-    // — checked again here for the same reason every other check in this
-    // function is checked again here, not trusted from whichever page
-    // called it (step 30): this is the action that actually spends money,
-    // and it's directly callable on its own regardless of the page.
-    const org = await scopedDb.org.get()
-    if (!org || !getBillingStatus(org).isEntitled) {
-      await scopedDb.takeoffJobs.insert({
-        documentId: document.id,
-        status: "failed",
-        error: "Your organization's trial has ended. Subscribe to continue using AI document processing.",
-      })
-      return document
-    }
-
-    const rateLimit = await checkTakeoffRateLimit(scopedDb.orgId)
-    if (!rateLimit.allowed) {
-      await scopedDb.takeoffJobs.insert({
-        documentId: document.id,
-        status: "failed",
-        error: `Too many takeoff requests — please wait about ${rateLimit.retryAfterSeconds}s and try again.`,
-      })
-      return document
-    }
-
-    const spendCap = await checkSpendCap(scopedDb)
-    if (spendCap.overCap) {
-      await scopedDb.takeoffJobs.insert({
-        documentId: document.id,
-        status: "failed",
-        error: `Your organization has reached its monthly AI usage limit (${formatUsd(spendCap.capUsd)} used this month). AI document processing is paused until next month — you can still upload documents and build your estimate manually.`,
-      })
-      return document
-    }
-
-    await scopedDb.takeoffJobs.insert({
-      documentId: document.id,
-      status: "queued",
-    })
-  } catch (err) {
-    logger.error("Failed to queue takeoff job", { documentId: document.id }, err)
-  }
+  // actually processes this. The entitlement/rate-limit/spend-cap gate
+  // lives in lib/takeoff-queue.ts, shared with retryTakeoffJobAction
+  // (app/processing/actions.ts) so a retry can't skip a check the original
+  // queue path enforces.
+  await queueTakeoffJob(scopedDb, document.id)
 
   return document
 }
