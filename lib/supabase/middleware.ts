@@ -14,6 +14,11 @@ const PUBLIC_PATHS = new Set([
   "/sign-in",
   "/sign-up",
   "/accept-invite",
+  // Same reason as /accept-invite above — the reset-password email link
+  // carries the session as a hash fragment the server can't see yet on the
+  // first request. See app/reset-password/page.tsx.
+  "/forgot-password",
+  "/reset-password",
   // Step 33 — need to be readable by a prospective customer before they
   // ever sign in, not just by an existing user.
   "/terms",
