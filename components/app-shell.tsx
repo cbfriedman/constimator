@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation"
 
 import { AppSidebar } from "@/components/app-sidebar"
+import { AuthHashErrorToast } from "@/components/auth-hash-error-toast"
 import { BillingGate } from "@/components/billing-gate"
 import { PrototypeBanner } from "@/components/prototype-banner"
 import {
@@ -41,6 +42,7 @@ export function AppShell({
 
   return (
     <ProjectStateProvider initialProjectState={initialProjectState}>
+      <AuthHashErrorToast />
       {isMaintenance ? (
         children
       ) : isNoSidebar ? (
