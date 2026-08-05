@@ -1,69 +1,32 @@
-"use client"
+import { getReviewData } from "@/app/review/actions"
+import { NoProjectState } from "@/components/no-project-state"
+import { ReviewShell } from "@/components/review/review-shell"
 
-import * as React from "react"
-import { useRouter } from "next/navigation"
-import { toast } from "sonner"
+export default async function ReviewPage() {
+  const { project, latestRequest } = await getReviewData()
 
-import { Button } from "@/components/ui/button"
-import { BidCountdownBadge } from "@/components/bid-countdown-badge"
-import { RequestReviewCard } from "@/components/review/request-review-card"
-import { ReviewDetail } from "@/components/review/review-detail"
-import { demoProject } from "@/lib/mock-data"
-
-export default function ReviewPage() {
-  const router = useRouter()
-  // Default to State B so the demo shows content.
-  const [inReview, setInReview] = React.useState(true)
+  if (!project) {
+    return (
+      <NoProjectState
+        title="No project yet"
+        description="Create a project before requesting a review."
+      />
+    )
+  }
 
   return (
-    <div className="flex flex-col">
-      <div className="border-b bg-card px-8 py-5">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-semibold tracking-tight text-balance">
-                Human Review
-              </h1>
-              <BidCountdownBadge />
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {demoProject.name} · #{demoProject.number}
-            </p>
-          </div>
-          {inReview ? (
-            <button
-              type="button"
-              onClick={() => setInReview(false)}
-              className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
-            >
-              Reset demo
-            </button>
-          ) : null}
-        </div>
-      </div>
-
-      <div className="px-8 py-6">
-        {inReview ? (
-          <ReviewDetail />
-        ) : (
-          <RequestReviewCard
-            onRequest={() => {
-              setInReview(true)
-              toast.success("Human review requested — assigned to Dan Whitfield, P.E.")
-            }}
-          />
-        )}
-      </div>
-
-      <div className="sticky bottom-0 mt-auto flex items-center justify-between gap-3 border-t bg-card/95 px-8 py-4 backdrop-blur">
-        <Button
-          variant="outline"
-          onClick={() => router.push("/reconciliation")}
-        >
-          Back to Reconciliation
-        </Button>
-        <Button onClick={() => router.push("/reports")}>Generate Reports</Button>
-      </div>
-    </div>
+    <ReviewShell
+      project={project}
+      initialRequest={
+        latestRequest
+          ? {
+              scope: latestRequest.scope,
+              notes: latestRequest.notes,
+              status: latestRequest.status,
+              createdAt: latestRequest.createdAt,
+            }
+          : null
+      }
+    />
   )
 }

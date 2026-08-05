@@ -2,7 +2,9 @@
 
 import * as React from "react"
 import { Clock } from "lucide-react"
+import { toast } from "sonner"
 
+import { requestReviewAction } from "@/app/review/actions"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -17,46 +19,72 @@ import { Field, FieldLabel } from "@/components/ui/field"
 import { Textarea } from "@/components/ui/textarea"
 import { useProjectState } from "@/components/project-state-provider"
 
-const scopeOptions = [
-  {
-    id: "full",
-    label: "Full estimate review",
-    description: "Every line item, quantities, and pricing.",
-    defaultChecked: false,
-  },
-  {
-    id: "reconciliation",
-    label: "Bid form reconciliation review",
-    description: "Verify estimate lines against the official bid form.",
-    defaultChecked: true,
-  },
-  {
-    id: "discrepancy",
-    label: "Quantity discrepancy review",
-    description: "Focus on the 3 flagged items.",
-    badge: "3 flagged items",
-    defaultChecked: true,
-  },
-  {
-    id: "proposal",
-    label: "Final proposal review",
-    description: "Sign-off on the packaged bid proposal.",
-    defaultChecked: false,
-  },
-]
-
-export function RequestReviewCard({ onRequest }: { onRequest: () => void }) {
-  const { currentProjectDaysOut } = useProjectState()
+export function RequestReviewCard({
+  projectId,
+  onRequested,
+}: {
+  projectId: string
+  onRequested: () => void
+}) {
+  const { currentProjectDaysOut, attentionCount } = useProjectState()
+  const scopeOptions = [
+    {
+      id: "full" as const,
+      label: "Full estimate review",
+      description: "Every line item, quantities, and pricing.",
+      defaultChecked: false,
+    },
+    {
+      id: "reconciliation" as const,
+      label: "Bid form reconciliation review",
+      description: "Verify estimate lines against the official bid form.",
+      defaultChecked: true,
+    },
+    {
+      id: "discrepancy" as const,
+      label: "Quantity discrepancy review",
+      description: `Focus on the ${attentionCount} flagged item${attentionCount === 1 ? "" : "s"}.`,
+      badge: attentionCount > 0 ? `${attentionCount} flagged items` : undefined,
+      defaultChecked: attentionCount > 0,
+    },
+    {
+      id: "proposal" as const,
+      label: "Final proposal review",
+      description: "Sign-off on the packaged bid proposal.",
+      defaultChecked: false,
+    },
+  ]
   const [checked, setChecked] = React.useState<Record<string, boolean>>(() =>
-    Object.fromEntries(scopeOptions.map((o) => [o.id, !!o.defaultChecked])),
+    Object.fromEntries(scopeOptions.map((o) => [o.id, o.defaultChecked])),
   )
+  const [notes, setNotes] = React.useState("")
+  const [submitting, setSubmitting] = React.useState(false)
+
+  async function handleSubmit() {
+    const scope = scopeOptions.filter((o) => checked[o.id]).map((o) => o.id)
+    if (scope.length === 0) {
+      toast.error("Select at least one review scope")
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      await requestReviewAction({ projectId, scope, notes })
+      toast.success("Review request submitted")
+      onRequested()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't submit — try again.")
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Request Human Review</CardTitle>
         <CardDescription>
-          Choose what a licensed estimator should verify before you bid.
+          Choose what you&apos;d like a second set of eyes on before you bid.
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
@@ -102,7 +130,7 @@ export function RequestReviewCard({ onRequest }: { onRequest: () => void }) {
         <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-foreground">
           <Clock className="size-4 shrink-0 text-primary" />
           <span>
-            Typical turnaround 1&ndash;2 business days.
+            We aim to follow up within 1&ndash;2 business days.
             {currentProjectDaysOut !== null
               ? ` Bid date is ${currentProjectDaysOut} ${currentProjectDaysOut === 1 ? "day" : "days"} away.`
               : null}
@@ -110,16 +138,20 @@ export function RequestReviewCard({ onRequest }: { onRequest: () => void }) {
         </div>
 
         <Field>
-          <FieldLabel htmlFor="reviewer-notes">Notes to reviewer</FieldLabel>
+          <FieldLabel htmlFor="reviewer-notes">Notes (optional)</FieldLabel>
           <Textarea
             id="reviewer-notes"
             rows={3}
-            defaultValue="Please verify the RCP quantity on C-301 and the sign count conflict."
+            placeholder="Anything specific you'd like checked?"
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
           />
         </Field>
       </CardContent>
       <CardFooter>
-        <Button onClick={onRequest}>Request Human Review</Button>
+        <Button onClick={handleSubmit} disabled={submitting}>
+          {submitting ? "Submitting…" : "Request Human Review"}
+        </Button>
       </CardFooter>
     </Card>
   )

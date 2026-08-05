@@ -118,6 +118,20 @@ export const reconciliationFilterEnum = pgEnum("reconciliation_filter", [
   "unit_converted",
 ])
 
+// Mirrors components/review/request-review-card.tsx's scopeOptions ids.
+export const reviewScopeEnum = pgEnum("review_scope", [
+  "full",
+  "reconciliation",
+  "discrepancy",
+  "proposal",
+])
+
+export const reviewRequestStatusEnum = pgEnum("review_request_status", [
+  "requested",
+  "in_progress",
+  "completed",
+])
+
 // Step 31 — mirrors Stripe's own subscription status values exactly
 // (trialing/active/past_due/canceled/unpaid/incomplete/incomplete_expired/
 // paused), plus "none" for an org that has never started a Stripe
@@ -776,3 +790,53 @@ export const reconciliationItemsRelations = relations(
     }),
   }),
 )
+
+// ---------------------------------------------------------------------------
+// review_request — "Request Human Review" (components/review). Just the
+// request itself: what scope was asked for, notes, and status. There's no
+// reviewer pool/marketplace to assign to yet (this project has no reviewer
+// role or matching logic) — status starts at "requested" and is expected to
+// be moved along manually for now rather than automatically.
+// ---------------------------------------------------------------------------
+
+export const reviewRequests = pgTable(
+  "review_request",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => orgs.id, { onDelete: "cascade" }),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    requestedBy: uuid("requested_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    scope: reviewScopeEnum("scope").array().notNull().default([]),
+    notes: text("notes"),
+    status: reviewRequestStatusEnum("status").notNull().default("requested"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("review_request_org_id_idx").on(table.orgId),
+    index("review_request_project_id_idx").on(table.projectId),
+    orgIsolationPolicy("review_request", table.orgId),
+  ],
+).enableRLS()
+
+export const reviewRequestsRelations = relations(reviewRequests, ({ one }) => ({
+  org: one(orgs, { fields: [reviewRequests.orgId], references: [orgs.id] }),
+  project: one(projects, {
+    fields: [reviewRequests.projectId],
+    references: [projects.id],
+  }),
+  requestedByUser: one(users, {
+    fields: [reviewRequests.requestedBy],
+    references: [users.id],
+  }),
+}))

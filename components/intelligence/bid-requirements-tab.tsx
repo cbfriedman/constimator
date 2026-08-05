@@ -1,3 +1,5 @@
+import { Info } from "lucide-react"
+
 import {
   Card,
   CardContent,
@@ -13,74 +15,63 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { SourceChip } from "@/components/intelligence/source-reference"
+import type { IntelligenceProjectView } from "@/app/intelligence/actions"
 
-const requirements = [
-  {
-    item: "Bid Bond",
-    detail: "10% of bid amount",
-    source: "Spec 00 21 13 p.4",
-  },
-  {
-    item: "Contractor License",
-    detail: "Class A required",
-    source: "Notice to Bidders p.1",
-  },
-  {
-    item: "Acknowledgment of Addenda",
-    detail: "Addendum 01 must be acknowledged on bid form",
-    source: "Bid Form p.2",
-  },
-  {
-    item: "Subcontractor Listing",
-    detail: "Subs > 0.5% must be listed",
-    source: "Spec 00 43 36",
-  },
-  {
-    item: "Prevailing Wage",
-    detail: "CA DIR rates; certified payroll required",
-    source: "Spec 00 73 43",
-  },
-  {
-    item: "Non-Collusion Declaration",
-    detail: "Notarized, submitted with bid",
-    source: "Bid Form p.8",
-  },
-]
+export function BidRequirementsTab({
+  project,
+}: {
+  project: IntelligenceProjectView
+}) {
+  const requirements = [
+    {
+      item: "Prevailing Wage",
+      detail: project.prevailingWage
+        ? "Required on this project"
+        : "Not required on this project",
+    },
+    project.bidDate && { item: "Bid Deadline", detail: project.bidDate },
+    project.workingDays != null && {
+      item: "Contract Time",
+      detail: `${project.workingDays} working days`,
+    },
+    project.liquidatedDamagesPerDay && {
+      item: "Liquidated Damages",
+      detail: project.liquidatedDamagesPerDay,
+    },
+  ].filter(Boolean) as { item: string; detail: string }[]
 
-export function BidRequirementsTab() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Bid Requirements Checklist</CardTitle>
+        <CardTitle>Bid Requirements</CardTitle>
         <CardDescription>
-          Submission requirements extracted from the specifications and bid
-          form.
+          What&apos;s on file for this project.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex flex-col gap-4">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[28%]">Requirement</TableHead>
+              <TableHead className="w-[35%]">Requirement</TableHead>
               <TableHead>Detail</TableHead>
-              <TableHead className="w-[22%]">Source</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {requirements.map((req) => (
               <TableRow key={req.item}>
                 <TableCell className="font-medium">{req.item}</TableCell>
-                <TableCell className="text-muted-foreground">
-                  {req.detail}
-                </TableCell>
-                <TableCell>
-                  <SourceChip label={req.source} />
-                </TableCell>
+                <TableCell className="text-muted-foreground">{req.detail}</TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
+        <p className="flex items-start gap-2 text-xs text-muted-foreground">
+          <Info className="mt-0.5 size-3.5 shrink-0" />
+          Submission-level requirements — bid bonds, licensing, subcontractor
+          listing thresholds, required declarations — aren&apos;t extracted
+          from your documents yet. Check the official bid form and
+          specifications directly for those.
+        </p>
       </CardContent>
     </Card>
   )

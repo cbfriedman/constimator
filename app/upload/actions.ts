@@ -166,6 +166,26 @@ export async function updateDocumentType(documentId: string, type: DbDocType) {
   await scopedDb.documents.update(eq(documents.id, validDocumentId), { type: validType })
 }
 
+export async function getDocumentViewUrlAction(documentId: string): Promise<string> {
+  const validDocumentId = parseInput(uuidSchema, documentId)
+  const scopedDb = await getScopedDb()
+  const document = await scopedDb.documents.findFirst(eq(documents.id, validDocumentId))
+  if (!document) {
+    throw new Error("Document not found.")
+  }
+
+  const supabase = await createSupabaseServerClient()
+  const { data, error } = await supabase.storage
+    .from(document.storageBucket)
+    .createSignedUrl(document.storagePath, 60)
+
+  if (error || !data) {
+    throw new Error(error?.message ?? "Could not open this document.")
+  }
+
+  return data.signedUrl
+}
+
 export async function removeDocument(documentId: string) {
   const validDocumentId = parseInput(uuidSchema, documentId)
   const scopedDb = await getScopedDb()

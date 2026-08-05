@@ -2,19 +2,13 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Lock } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 import posthog from "posthog-js"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { BidCountdownBadge } from "@/components/bid-countdown-badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
 import {
   Dialog,
   DialogClose,
@@ -26,6 +20,13 @@ import {
 } from "@/components/ui/dialog"
 import { useProjectState } from "@/components/project-state-provider"
 import { reports, type ReportId } from "@/lib/report-data"
+import {
+  exportEstimateSummaryExcel,
+  exportEstimateSummaryPdf,
+  exportReconciliationExcel,
+  exportReconciliationPdf,
+  formatFileSize,
+} from "@/lib/report-export"
 import { ReportPicker } from "@/components/reports/report-picker"
 import {
   ExportBar,
@@ -101,15 +102,29 @@ export function ReportsShell({
   function performExport(preliminary: boolean, exportFormat: ExportFormat = format) {
     const ext = exportFormat === "pdf" ? "pdf" : "xlsx"
     const name = `${fileSlug[selected]}_${context.projectNumber}.${ext}`
-    toast.success(`${name} ready${preliminary ? " (marked Preliminary)" : ""}`)
 
-    // Named "_requested," not "_completed" — export generation itself is
-    // still simulated UI (see this function's fake size/toast above, not
-    // this step's finding to fix), so what's actually real to measure is
-    // "did someone try to export" and in what format/report, not that a
-    // real file was produced. The only one of step 34's five events that's
-    // client-side rather than a Server Action: there's no real server-side
-    // export action yet to hook this into.
+    // Only estimate-summary and reconciliation have real preview data
+    // behind them (current?.hasPreview below) — the other report ids in
+    // lib/report-data.ts are still placeholders with nothing real to
+    // generate a file from yet.
+    let bytes: number
+    if (selected === "estimate-summary") {
+      bytes =
+        exportFormat === "pdf"
+          ? exportEstimateSummaryPdf(context, estimateRows, subtotal, markup, bidTotal, name)
+          : exportEstimateSummaryExcel(context, estimateRows, subtotal, markup, bidTotal, name)
+    } else if (selected === "reconciliation") {
+      bytes =
+        exportFormat === "pdf"
+          ? exportReconciliationPdf(context, reconciliationRows, bidTotal, name)
+          : exportReconciliationExcel(context, reconciliationRows, name)
+    } else {
+      toast.error(`${current?.name ?? "This report"} isn't available to export yet.`)
+      return
+    }
+
+    toast.success(`${name} downloaded${preliminary ? " (marked Preliminary)" : ""}`)
+
     posthog.capture("estimate_export_requested", {
       format: exportFormat,
       reportId: selected,
@@ -121,7 +136,7 @@ export function ReportsShell({
       {
         id: downloadId.current,
         name,
-        size: exportFormat === "pdf" ? "1.4 MB" : "486 KB",
+        size: formatFileSize(bytes),
         time: "Just now",
       },
       ...prev,
@@ -167,37 +182,6 @@ export function ReportsShell({
             onExport={handleExport}
             downloads={downloads}
           />
-
-          <div className="flex flex-col gap-2">
-            <span className="text-xs font-medium text-muted-foreground">
-              Export history
-            </span>
-            <div className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-card px-3 py-2">
-              <span className="text-sm font-medium text-foreground">
-                Reconciliation_Report_{context.projectNumber}.pdf
-              </span>
-              <span className="text-xs text-muted-foreground">
-                exported Jul 10, 2026
-              </span>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <span className="ml-auto inline-flex cursor-default items-center gap-1.5 rounded-full border border-border bg-muted/50 px-2 py-0.5 text-xs text-muted-foreground" />
-                    }
-                  >
-                    <Lock className="size-3" />
-                    Locked to Jul 9 rate snapshot
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    Exported and approved estimates keep the rates they were
-                    built with. Recalculation creates a new revision; it never
-                    rewrites this file.
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          </div>
 
           <div className="flex justify-center rounded-lg bg-muted/40 p-6">
             <div className="w-full max-w-3xl rounded-md border border-border bg-background p-8 shadow-lg">

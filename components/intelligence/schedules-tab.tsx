@@ -2,8 +2,7 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { ArrowRight, Download, FileX } from "lucide-react"
-import { toast } from "sonner"
+import { ArrowRight, Download, FileSearch } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -24,168 +23,136 @@ import {
 } from "@/components/ui/empty"
 import { SourceChip } from "@/components/intelligence/source-reference"
 import { cn } from "@/lib/utils"
+import type { ExtractedItemView } from "@/app/intelligence/actions"
 
-type Schedule = {
-  id: string
-  name: string
-  meta: string
-  source: string
+function toCsv(items: ExtractedItemView[]): string {
+  const escape = (value: string) => `"${value.replace(/"/g, '""')}"`
+  const header = ["Trade", "Description", "Quantity", "Unit", "Confidence", "Source Sheets", "Document"]
+  const rows = items.map((item) => [
+    item.trade,
+    item.description,
+    String(item.quantity),
+    item.unit,
+    item.confidence != null ? `${item.confidence}%` : "",
+    item.sourceSheets ?? "",
+    item.documentName,
+  ])
+  return [header, ...rows].map((row) => row.map(escape).join(",")).join("\n")
 }
 
-const schedules: Schedule[] = [
-  { id: "bid", name: "Bid Schedule", meta: "15 items", source: "Official_Bid_Form.pdf p.3–5" },
-  { id: "pipe", name: "Pipe Schedule", meta: "3 runs", source: "Sheet C-301" },
-  { id: "striping", name: "Striping Schedule", meta: "5 items", source: "Sheet C-601" },
-  { id: "pavement", name: "Pavement Quantities", meta: "3 items", source: "Sheet C-201, Spec 39-2" },
-  { id: "terms", name: "Contract Terms", meta: "6 terms", source: "Spec 00 73 00" },
-  { id: "planting", name: "Planting / Landscape Schedule", meta: "Not found", source: "—" },
-]
+function downloadCsv(items: ExtractedItemView[]) {
+  const blob = new Blob([toCsv(items)], { type: "text/csv;charset=utf-8;" })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement("a")
+  link.href = url
+  link.download = "extracted-items.csv"
+  link.click()
+  URL.revokeObjectURL(url)
+}
 
-const bidItems = [
-  ["1", "Mobilization", "LS", "1"],
-  ["2", "Traffic Control System", "LS", "1"],
-  ["3", "Clearing & Grubbing", "LS", "1"],
-  ["4", "Roadway Excavation", "CY", "8,450"],
-  ["5", "Class 2 Aggregate Base", "TON", "6,200"],
-  ["6", "HMA Type A", "TON", "4,850"],
-  ["7", "Cold Plane AC (2\")", "SY", "12,300"],
-  ["8", "18\" RCP Class III", "LF", "640"],
-  ["9", "Drainage Inlet (Type GO)", "EA", "12"],
-  ["10", "Adjust Manhole to Grade", "EA", "9"],
-  ["11", "Thermoplastic Traffic Stripe", "LF", "24,500"],
-  ["12", "Pavement Marking Thermo", "SF", "1,850"],
-  ["13", "Roadside Sign (One Post)", "EA", "14"],
-  ["14", "Erosion Control (Hydroseed)", "SF", "45,000"],
-  ["15", "Minor Concrete (Curb & Gutter)", "LF", "2,150"],
-]
-
-const pipeRuns = [
-  ["SD-1", "18\" RCP CL III", "DI-1 → DI-2", "220 LF", "0.5%"],
-  ["SD-2", "18\" RCP CL III", "DI-2 → EX MH", "185 LF", "0.6%"],
-  ["SD-3", "18\" RCP CL III", "DI-3 → DI-4", "235 LF", "0.5%"],
-]
-
-const stripingItems = [
-  ["Detail 22", "4\" Solid White Thermo", "9,800 LF"],
-  ["Detail 21", "4\" Broken Yellow Thermo", "8,200 LF"],
-  ["Detail 27B", "8\" Solid White (channelizing)", "4,100 LF"],
-  ["Detail 38", "12\" Crosswalk / Limit Line", "2,400 LF"],
-  ["—", "Pavement markings (arrows, legends)", "1,850 SF"],
-]
-
-const pavementItems: {
-  item: string
-  quantity: string
-  note: string
-  noteType: "amber" | "muted"
-}[] = [
-  {
-    item: "Cold Plane (2\")",
-    quantity: "12,300 SY",
-    note: "2.5-inch at intersections per C-501 — verify",
-    noteType: "amber",
-  },
-  {
-    item: "HMA Type A Overlay",
-    quantity: "4,850 TON",
-    note: "Revised by Addendum 01",
-    noteType: "muted",
-  },
-  {
-    item: "Dig-out Repair (localized)",
-    quantity: "380 TON",
-    note: "Included in HMA per Spec 39-2.03 — verify",
-    noteType: "amber",
-  },
-]
-
-const contractTerms = [
-  ["Working Days", "60"],
-  ["Liquidated Damages", "$2,500/day"],
-  ["Bonds", "10% / 100% / 100%"],
-  ["Retention", "5%"],
-  ["Prevailing Wage", "Yes"],
-  ["DBE Goal", "None stated"],
-]
-
-export function SchedulesTab() {
+export function SchedulesTab({ items }: { items: ExtractedItemView[] }) {
   const router = useRouter()
-  const [selected, setSelected] = React.useState("bid")
-  const active = schedules.find((s) => s.id === selected)!
+  const [tradeFilter, setTradeFilter] = React.useState<string | null>(null)
 
-  function handleSendToEstimate() {
-    if (selected === "bid") {
-      toast.success("15 bid items added to Estimate Workspace")
-      router.push("/estimate")
-      return
-    }
-    toast.success(`${active.name} sent to Estimate Workspace`)
+  const trades = React.useMemo(
+    () => [...new Set(items.map((item) => item.trade))].sort(),
+    [items],
+  )
+  const filteredItems = tradeFilter
+    ? items.filter((item) => item.trade === tradeFilter)
+    : items
+  // Zero-quantity items are Claude explaining why nothing could be
+  // extracted (a mismatched upload, a non-plan document) rather than a
+  // real bid item — see worker/src/extract.ts.
+  const realItems = filteredItems.filter((item) => item.quantity > 0)
+  const notices = filteredItems.filter((item) => item.quantity === 0 && item.notes)
+
+  if (items.length === 0) {
+    return (
+      <Empty className="border py-16">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <FileSearch />
+          </EmptyMedia>
+          <EmptyTitle>No extracted items yet</EmptyTitle>
+          <EmptyDescription>
+            Upload documents and wait for AI processing to finish — extracted
+            quantities will show up here automatically.
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    )
   }
 
   return (
     <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-      <aside className="lg:w-72 lg:shrink-0">
-        <div className="rounded-lg border bg-card">
-          <div className="border-b px-3 py-2">
-            <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Extracted Schedules
-            </h2>
-          </div>
-          <nav className="flex flex-col p-1.5">
-            {schedules.map((schedule) => (
+      {trades.length > 1 ? (
+        <aside className="lg:w-56 lg:shrink-0">
+          <div className="rounded-lg border bg-card">
+            <div className="border-b px-3 py-2">
+              <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Trade
+              </h2>
+            </div>
+            <nav className="flex flex-col p-1.5">
               <button
-                key={schedule.id}
                 type="button"
-                onClick={() => setSelected(schedule.id)}
+                onClick={() => setTradeFilter(null)}
                 className={cn(
-                  "flex flex-col gap-0.5 rounded-md px-3 py-2 text-left transition-colors",
-                  selected === schedule.id
-                    ? "bg-primary/10 text-foreground"
+                  "rounded-md px-3 py-2 text-left text-sm transition-colors",
+                  tradeFilter === null
+                    ? "bg-primary/10 font-medium text-foreground"
                     : "text-muted-foreground hover:bg-muted",
                 )}
               >
-                <span
+                All trades
+              </button>
+              {trades.map((trade) => (
+                <button
+                  key={trade}
+                  type="button"
+                  onClick={() => setTradeFilter(trade)}
                   className={cn(
-                    "text-sm",
-                    selected === schedule.id
-                      ? "font-medium text-foreground"
-                      : "font-normal",
+                    "rounded-md px-3 py-2 text-left text-sm transition-colors",
+                    tradeFilter === trade
+                      ? "bg-primary/10 font-medium text-foreground"
+                      : "text-muted-foreground hover:bg-muted",
                   )}
                 >
-                  {schedule.name}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {schedule.meta}
-                </span>
-              </button>
-            ))}
-          </nav>
-        </div>
-      </aside>
+                  {trade}
+                </button>
+              ))}
+            </nav>
+          </div>
+        </aside>
+      ) : null}
 
       <div className="min-w-0 flex-1">
         <div className="rounded-lg border bg-card">
           <div className="flex flex-col gap-3 border-b px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-col gap-1">
-              <h2 className="text-base font-semibold">{active.name}</h2>
-              {selected !== "planting" ? (
-                <div>
-                  <SourceChip label={active.source} />
-                </div>
-              ) : null}
+              <h2 className="text-base font-semibold">
+                {tradeFilter ?? "Extracted Items"}
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                {realItems.length} item{realItems.length === 1 ? "" : "s"} extracted
+                {realItems.length > 0
+                  ? " — already reflected in your estimate"
+                  : ""}
+              </p>
             </div>
-            {selected !== "planting" ? (
+            {realItems.length > 0 ? (
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => toast.success("CSV downloaded")}
+                  onClick={() => downloadCsv(realItems)}
                 >
                   <Download data-icon="inline-start" />
                   Download CSV
                 </Button>
-                <Button size="sm" onClick={handleSendToEstimate}>
-                  Send to Estimate
+                <Button size="sm" onClick={() => router.push("/estimate")}>
+                  Open Estimate
                   <ArrowRight data-icon="inline-end" />
                 </Button>
               </div>
@@ -193,161 +160,62 @@ export function SchedulesTab() {
           </div>
 
           <div className="p-1">
-            {selected === "bid" ? (
+            {realItems.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-16">Item</TableHead>
+                    <TableHead>Trade</TableHead>
                     <TableHead>Description</TableHead>
                     <TableHead className="w-20">Unit</TableHead>
                     <TableHead className="w-28 text-right">Quantity</TableHead>
+                    <TableHead className="w-24">Confidence</TableHead>
+                    <TableHead>Source</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {bidItems.map((row) => (
-                    <TableRow key={row[0]}>
-                      <TableCell className="text-muted-foreground">
-                        {row[0]}
-                      </TableCell>
-                      <TableCell className="font-medium">{row[1]}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {row[2]}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {row[3]}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : null}
-
-            {selected === "pipe" ? (
-              <div>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-20">Run</TableHead>
-                      <TableHead>Pipe</TableHead>
-                      <TableHead>Segment</TableHead>
-                      <TableHead className="text-right">Length</TableHead>
-                      <TableHead className="w-20 text-right">Slope</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {pipeRuns.map((row) => (
-                      <TableRow key={row[0]}>
-                        <TableCell className="font-medium">{row[0]}</TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {row[1]}
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {row[2]}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {row[3]}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {row[4]}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-                <p className="px-4 py-3 text-xs text-muted-foreground">
-                  Total 640 LF per profile stationing; see reconciliation note.
-                </p>
-              </div>
-            ) : null}
-
-            {selected === "striping" ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-28">Detail</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="w-32 text-right">Quantity</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {stripingItems.map((row, i) => (
+                  {realItems.map((item, i) => (
                     <TableRow key={i}>
-                      <TableCell className="text-muted-foreground">
-                        {row[0]}
-                      </TableCell>
-                      <TableCell className="font-medium">{row[1]}</TableCell>
+                      <TableCell className="text-muted-foreground">{item.trade}</TableCell>
+                      <TableCell className="font-medium">{item.description}</TableCell>
+                      <TableCell className="text-muted-foreground">{item.unit}</TableCell>
                       <TableCell className="text-right tabular-nums">
-                        {row[2]}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : null}
-
-            {selected === "pavement" ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Item</TableHead>
-                    <TableHead className="w-32 text-right">Quantity</TableHead>
-                    <TableHead>Note</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pavementItems.map((row) => (
-                    <TableRow key={row.item}>
-                      <TableCell className="font-medium">{row.item}</TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {row.quantity}
+                        {item.quantity.toLocaleString("en-US")}
                       </TableCell>
                       <TableCell>
-                        {row.noteType === "amber" ? (
-                          <Badge className="h-auto whitespace-normal border border-warning/30 bg-warning/10 py-1 font-normal leading-tight text-warning">
-                            {row.note}
-                          </Badge>
+                        {item.confidence != null ? (
+                          <Badge variant="outline">{item.confidence}%</Badge>
                         ) : (
-                          <span className="text-sm text-muted-foreground">
-                            {row.note}
-                          </span>
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {item.sourceSheets ? (
+                          <SourceChip label={item.sourceSheets} />
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
                         )}
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            ) : null}
-
-            {selected === "terms" ? (
-              <Table>
-                <TableBody>
-                  {contractTerms.map((row) => (
-                    <TableRow key={row[0]}>
-                      <TableCell className="w-1/2 font-medium">
-                        {row[0]}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {row[1]}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : null}
-
-            {selected === "planting" ? (
-              <Empty className="py-16">
-                <EmptyHeader>
-                  <EmptyMedia variant="icon">
-                    <FileX />
-                  </EmptyMedia>
-                  <EmptyTitle>No schedule found</EmptyTitle>
-                  <EmptyDescription>
-                    No planting schedule found in this plan set.
-                  </EmptyDescription>
-                </EmptyHeader>
-              </Empty>
-            ) : null}
+            ) : (
+              <div className="flex flex-col gap-3 px-4 py-8">
+                {notices.map((notice, i) => (
+                  <p key={i} className="text-sm leading-relaxed text-muted-foreground">
+                    <span className="font-medium text-foreground">
+                      {notice.documentName}:
+                    </span>{" "}
+                    {notice.notes}
+                  </p>
+                ))}
+                {notices.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No quantities were extracted from this document.
+                  </p>
+                ) : null}
+              </div>
+            )}
           </div>
         </div>
       </div>

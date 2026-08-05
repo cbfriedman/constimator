@@ -1,16 +1,24 @@
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 
+import { getIntelligenceData } from "@/app/intelligence/actions"
 import { SourceReferenceProvider } from "@/components/intelligence/source-reference"
 import { SchedulesTab } from "@/components/intelligence/schedules-tab"
 import { ProjectHeader } from "@/components/project-header"
+import { NoProjectState } from "@/components/no-project-state"
 import { Button } from "@/components/ui/button"
-import { getScopedDb } from "@/lib/db/scoped"
-import { getCurrentProject } from "@/lib/current-project"
 
 export default async function SchedulesPage() {
-  const scopedDb = await getScopedDb()
-  const project = await getCurrentProject(scopedDb)
+  const { project, items } = await getIntelligenceData()
+
+  if (!project) {
+    return (
+      <NoProjectState
+        title="No project yet"
+        description="Create a project and upload documents to see extracted schedules."
+      />
+    )
+  }
 
   return (
     <SourceReferenceProvider>
@@ -19,14 +27,10 @@ export default async function SchedulesPage() {
           <div className="mb-6">
             <ProjectHeader
               title="Schedules & Tables"
-              subtitle={
-                project
-                  ? `${project.name} · #${project.number}`
-                  : "No project yet"
-              }
+              subtitle={`${project.name} · #${project.number}`}
             />
           </div>
-          <SchedulesTab />
+          <SchedulesTab items={items} />
         </div>
         <div className="sticky bottom-0 z-10 border-t bg-background/95 supports-backdrop-filter:backdrop-blur">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-end gap-2 px-6 py-3">

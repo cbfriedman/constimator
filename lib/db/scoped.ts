@@ -15,6 +15,7 @@ import {
   orgs,
   projects,
   reconciliationItems,
+  reviewRequests,
   takeoffJobs,
   users,
 } from "@/db/schema"
@@ -197,5 +198,6 @@ export const getScopedDb = cache(async function getScopedDb() {
     takeoffJobs: orgScoped(takeoffJobs, takeoffJobs.orgId, orgId),
     aiUsageEvents: orgScoped(aiUsageEvents, aiUsageEvents.orgId, orgId),
     invites: orgScoped(invites, invites.orgId, orgId),
+    reviewRequests: orgScoped(reviewRequests, reviewRequests.orgId, orgId),
   }
 })

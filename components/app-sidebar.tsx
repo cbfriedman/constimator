@@ -62,8 +62,8 @@ const mainNav = [
 const footerNav = [
   { title: "Team", href: "/team", icon: Users },
   { title: "Billing", href: "/billing", icon: CreditCard },
-  { title: "Settings", href: "#", icon: Settings },
-  { title: "Help", href: "#", icon: HelpCircle },
+  { title: "Settings", href: "/settings", icon: Settings },
+  { title: "Help", href: "/help", icon: HelpCircle },
 ]
 
 function isActivePath(pathname: string, href: string) {
