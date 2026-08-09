@@ -43,8 +43,10 @@ export default function DemoGuidePage() {
             Recommended Demo Path for OPS
           </h1>
           <p className="text-muted-foreground leading-relaxed">
-            Use this sequence when presenting Constimator. Every step uses
-            sample data only — no real AI processing, auth, or project files.
+            Use this sequence when presenting Constimator. Most steps open
+            the real, signed-in app — you&apos;ll need to be logged in
+            (or the browser will bounce to sign-in) before walking through
+            them.
           </p>
         </div>
 

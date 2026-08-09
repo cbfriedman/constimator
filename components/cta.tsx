@@ -21,7 +21,7 @@ export function Cta() {
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </a>
             <a
-              href="mailto:coby@cfcontracting.com?subject=Constimator demo"
+              href="mailto:support@constimator.com?subject=Constimator demo"
               className="inline-flex items-center justify-center rounded-md border border-white/20 bg-white/5 px-6 py-3 text-sm font-semibold text-secondary-foreground transition-colors hover:bg-white/10"
             >
               Book a demo

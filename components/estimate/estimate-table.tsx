@@ -132,6 +132,14 @@ export function EstimateTable({
             </TableRow>
           </TableHeader>
           <TableBody>
+            {rows.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={14} className="py-10 text-center text-sm text-muted-foreground">
+                  No estimate lines yet. Add one manually, or upload your bid documents to have
+                  Constimator extract quantities for you.
+                </TableCell>
+              </TableRow>
+            ) : null}
             {rows.map((row, index) => {
               const source = overrides[row.id] ?? row.source
               const isExpandable = row.description === EXPANDABLE_DESCRIPTION

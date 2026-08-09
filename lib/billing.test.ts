@@ -16,6 +16,7 @@ function makeOrg(overrides: Partial<OrgRow> = {}): OrgRow {
     stripeSubscriptionId: null,
     subscriptionStatus: "none",
     currentPeriodEnd: null,
+    aiSpendCapAlertSentAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,

@@ -55,7 +55,7 @@ Vercel Analytics and PostHog for product usage analytics).
 There's no self-service "delete my account" button in the product yet.
 Until there is, contact us directly and we'll delete your data by hand:
 
-- **Email:** [add support contact before publishing]
+- **Email:** support@constimator.com
 - **What to include:** your org name and the email address on the account,
   and whether you want the whole account closed or specific
   projects/documents removed.

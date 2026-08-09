@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm"
 import { z } from "zod"
 
 import { getEstimateData } from "@/app/estimate/actions"
-import { bids, estimateLines, projects, reconciliationItems } from "@/db/schema"
+import { bids, estimateLines, estimates, projects, reconciliationItems } from "@/db/schema"
 import { captureEvent } from "@/lib/analytics"
 import {
   getBidsForProject,
@@ -135,6 +135,13 @@ export async function addMissingItemToEstimateAction(rawBidId: string) {
   const bid = await scopedDb.bids.findFirst(eq(bids.id, bidId))
   const project = await getCurrentProject(scopedDb)
   if (!bid || !project) return
+  // scopedDb.bids.findFirst already confines this to the caller's own org
+  // — this additionally confines it to the project it's actually being
+  // reconciled against, so a bid id from an older project in the same org
+  // can't get spliced into the current project's estimate. Found during
+  // a pre-launch audit, same bug class already fixed elsewhere in this
+  // file (addBidLineAction) and in app/upload/actions.ts.
+  if (bid.projectId !== project.id) return
 
   const estimate = await getOrCreateCurrentEstimate(scopedDb, project.id)
   const existingLines = await scopedDb.estimateLines.findMany(
@@ -172,8 +179,18 @@ export async function acceptOfficialQuantityAction(
   const estimateLineId = parseInput(uuidSchema, rawEstimateLineId)
   const bidId = parseInput(uuidSchema, rawBidId)
   const scopedDb = await getScopedDb()
-  const bid = await scopedDb.bids.findFirst(eq(bids.id, bidId))
-  if (!bid) return
+  const [bid, line] = await Promise.all([
+    scopedDb.bids.findFirst(eq(bids.id, bidId)),
+    scopedDb.estimateLines.findFirst(eq(estimateLines.id, estimateLineId)),
+  ])
+  if (!bid || !line) return
+
+  // Same cross-project splice check as addMissingItemToEstimateAction
+  // above — confirms the bid and the estimate line actually belong to the
+  // same project (via the line's estimate) before letting one's quantity
+  // overwrite the other's, not just that both belong to the caller's org.
+  const estimate = await scopedDb.estimates.findFirst(eq(estimates.id, line.estimateId))
+  if (!estimate || estimate.projectId !== bid.projectId) return
 
   await scopedDb.estimateLines.update(eq(estimateLines.id, estimateLineId), {
     quantity: bid.officialQuantity,

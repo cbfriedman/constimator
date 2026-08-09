@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { AlertTriangle, Plus, TableProperties } from "lucide-react"
+import { AlertTriangle, Plus } from "lucide-react"
 import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
@@ -29,6 +29,7 @@ import {
 import {
   addEstimateLineAction,
   deleteEstimateLineAction,
+  setEstimateMarkupAction,
   updateEstimateLineAction,
 } from "@/app/estimate/actions"
 import type { EstimateLineView } from "@/lib/estimate-view"
@@ -54,6 +55,7 @@ export function EstimateShell({
   rows: initialRows,
   subtotal,
   markup,
+  markupPct,
   bidTotal,
   vsEngineersEstimatePct,
 }: {
@@ -62,6 +64,7 @@ export function EstimateShell({
   rows: EstimateLineView[]
   subtotal: string
   markup: string
+  markupPct: number
   bidTotal: string
   vsEngineersEstimatePct: number | null
 }) {
@@ -71,17 +74,31 @@ export function EstimateShell({
   const [prevInitialRows, setPrevInitialRows] = useState(initialRows)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<EstimateLineFormValue | undefined>(undefined)
+  const [filter, setFilter] = useState("all")
 
   if (initialRows !== prevInitialRows) {
     setPrevInitialRows(initialRows)
     setRows(initialRows)
   }
 
+  const filteredRows =
+    filter === "all" ? rows : rows.filter((row) => row.source === filter)
+
   const totals = [
     { label: "Subtotal", value: subtotal },
-    { label: "Markup (10%)", value: markup },
+    { label: `Markup (${Math.round(markupPct)}%)`, value: markup },
     { label: "Bid Total", value: bidTotal, emphasized: true },
   ]
+
+  function handleMarkupChange(value: string | null) {
+    if (!value || value === "custom") return
+    const pct = Number(value)
+    if (!Number.isFinite(pct)) return
+    setRows((prev) => prev.map((row) => ({ ...row, mu: value })))
+    setEstimateMarkupAction(projectId, pct)
+      .then(() => router.refresh())
+      .catch(() => toast.error("Couldn't update markup — try again."))
+  }
 
   function openAdd() {
     setEditing(undefined)
@@ -215,11 +232,7 @@ export function EstimateShell({
             <Plus data-icon="inline-start" />
             Add Line Item
           </Button>
-          <Button variant="outline" size="sm">
-            <TableProperties data-icon="inline-start" />
-            Import from Bid Schedule
-          </Button>
-          <Select defaultValue="10">
+          <Select defaultValue="10" onValueChange={handleMarkupChange}>
             <SelectTrigger size="sm" className="w-52">
               <SelectValue>{(value) => markupLabels[value as string]}</SelectValue>
             </SelectTrigger>
@@ -230,7 +243,10 @@ export function EstimateShell({
               <SelectItem value="custom">Markup: Custom per item</SelectItem>
             </SelectContent>
           </Select>
-          <Select defaultValue="all">
+          <Select
+            defaultValue="all"
+            onValueChange={(value) => setFilter(value ?? "all")}
+          >
             <SelectTrigger size="sm" className="w-48">
               <SelectValue>{(value) => filterLabels[value as string]}</SelectValue>
             </SelectTrigger>
@@ -254,7 +270,7 @@ export function EstimateShell({
 
       <div className="flex flex-col gap-3 p-6">
         <EstimateTable
-          rows={rows}
+          rows={filteredRows}
           onEdit={openEdit}
           onDuplicate={handleDuplicate}
           onDelete={handleDelete}

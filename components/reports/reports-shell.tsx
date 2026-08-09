@@ -80,7 +80,6 @@ export function ReportsShell({
   const [options, setOptions] = React.useState<ReportOptions>({
     sourceReferences: true,
     provenanceLegend: true,
-    reviewerComments: false,
   })
   const [downloads, setDownloads] = React.useState<DownloadEntry[]>([])
   const downloadId = React.useRef(0)

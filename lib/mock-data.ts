@@ -54,6 +54,11 @@ export type ProjectsListItem = {
   reports?: string
   buttonLabel: string
   href: string
+  // Whether href points somewhere that looks up this exact project (true)
+  // vs. a page that only ever shows the org's "current" (most recently
+  // created) project regardless of which id is in the URL — see
+  // lib/projects.ts's PROJECT_SCOPED_PATHS.
+  isProjectScoped: boolean
 }
 
 export const recentActivity = [

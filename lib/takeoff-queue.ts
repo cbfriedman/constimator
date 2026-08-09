@@ -3,6 +3,7 @@ import "server-only"
 import { checkSpendCap, checkTakeoffRateLimit, formatUsd } from "@/lib/ai-limits"
 import { getBillingStatus } from "@/lib/billing"
 import type { ScopedDb } from "@/lib/current-project"
+import { sendSpendCapAlertIfNeeded } from "@/lib/email/spend-cap-alert"
 import { logger } from "@/lib/logger"
 
 // Shared by app/upload/actions.ts (confirmDocumentUpload, the initial
@@ -48,6 +49,10 @@ export async function queueTakeoffJob(
         status: "failed",
         error: `Your organization has reached its monthly AI usage limit (${formatUsd(spendCap.capUsd)} used this month). AI document processing is paused until next month — you can still upload documents and build your estimate manually.`,
       })
+      // docs/ALERTING.md's known adjacent gap: this has the same practical
+      // effect on a bid deadline as an outage, so the admin should hear
+      // about it without needing to notice the in-app error themselves.
+      await sendSpendCapAlertIfNeeded(scopedDb, spendCap.spentUsd, spendCap.capUsd)
       return
     }
 

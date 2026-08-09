@@ -25,7 +25,6 @@ import {
 export type ReportOptions = {
   sourceReferences: boolean
   provenanceLegend: boolean
-  reviewerComments: boolean
 }
 
 export type ReportContext = {
@@ -53,19 +52,6 @@ function PaperHeader({
     </div>
   )
 }
-
-const reviewerComments = [
-  {
-    author: "Dan Whitfield, PE",
-    item: "Item 8 — 18\" RCP Class III",
-    text: "Resolved to 640 LF per official bid form. Inlet connections are paid separately under Item 9.",
-  },
-  {
-    author: "Dan Whitfield, PE",
-    item: "Item 12 — Pavement Marking Thermo",
-    text: "Low AI confidence confirmed; quantity 1,850 SF verified against C-601 manually.",
-  },
-]
 
 export function ReconciliationReport({
   context,
@@ -111,7 +97,6 @@ export function ReconciliationReport({
             <TableHead>Description</TableHead>
             <TableHead className="w-14">Unit</TableHead>
             <TableHead className="text-right">Official</TableHead>
-            <TableHead className="text-right">AI</TableHead>
             <TableHead className="text-right">Estimate</TableHead>
             {options.sourceReferences ? (
               <TableHead>Status</TableHead>
@@ -128,9 +113,6 @@ export function ReconciliationReport({
               <TableCell className="text-muted-foreground">{row.unit}</TableCell>
               <TableCell className="text-right tabular-nums">
                 {row.officialQty}
-              </TableCell>
-              <TableCell className="text-right tabular-nums text-muted-foreground">
-                {row.aiQty}
               </TableCell>
               <TableCell className="text-right tabular-nums">
                 {row.estimateQty}
@@ -151,30 +133,6 @@ export function ReconciliationReport({
           ))}
         </TableBody>
       </Table>
-
-      {options.reviewerComments ? (
-        <div className="mt-6 flex flex-col gap-3">
-          <h3 className="text-sm font-semibold text-foreground">
-            Reviewer Comments
-          </h3>
-          {reviewerComments.map((comment) => (
-            <div
-              key={comment.item}
-              className="rounded-md border border-border bg-muted/30 p-3"
-            >
-              <p className="text-xs font-medium text-foreground">
-                {comment.item}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {comment.text}
-              </p>
-              <p className="mt-1 text-xs italic text-muted-foreground">
-                — {comment.author}
-              </p>
-            </div>
-          ))}
-        </div>
-      ) : null}
 
       {options.provenanceLegend ? (
         <div className="mt-6">
@@ -246,7 +204,7 @@ export function EstimateSummaryReport({
           <span className="tabular-nums">{subtotal}</span>
         </div>
         <div className="flex w-64 justify-between">
-          <span className="text-muted-foreground">Markup (10%)</span>
+          <span className="text-muted-foreground">Markup</span>
           <span className="tabular-nums">{markup}</span>
         </div>
         <div className="flex w-64 justify-between border-t border-border pt-1 font-semibold">

@@ -103,3 +103,18 @@ export function toEstimateLineView(row: EstimateLineRow): EstimateLineView {
 export function sumLineTotals(rows: EstimateLineRow[]): number {
   return rows.reduce((sum, row) => sum + Number(row.total), 0)
 }
+
+// row.total is the pre-markup extended price (quantity × unit price —
+// see the comment on computeTotal in app/estimate/actions.ts); markup is
+// applied per line using that line's own markupPct (set from the org's
+// configured default when a line is created, editable per line after
+// that — see lib/cost-engine/generate-estimate.ts's getOrgMarkupPct).
+// Found during a pre-launch audit: callers were computing "Bid Total"
+// with a hardcoded flat 10% instead of this, so it was wrong for any org
+// whose real markup wasn't exactly 10%.
+export function sumLineMarkup(rows: EstimateLineRow[]): number {
+  return rows.reduce(
+    (sum, row) => sum + Number(row.total) * (Number(row.markupPct) / 100),
+    0,
+  )
+}

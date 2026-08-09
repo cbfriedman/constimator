@@ -2,7 +2,7 @@ import { getEstimateData } from "@/app/estimate/actions"
 import { getReconciliationData } from "@/app/reconciliation/actions"
 import { ReportsShell } from "@/components/reports/reports-shell"
 import { getScopedDb } from "@/lib/db/scoped"
-import { sumLineTotals, toEstimateLineView } from "@/lib/estimate-view"
+import { sumLineMarkup, sumLineTotals, toEstimateLineView } from "@/lib/estimate-view"
 import { toReconciliationRow } from "@/lib/reconciliation-view"
 
 function formatWholeCurrency(n: number): string {
@@ -35,7 +35,7 @@ export default async function ReportsPage() {
     .sort((a, b) => Number(a.itemNumber) - Number(b.itemNumber))
 
   const subtotal = sumLineTotals(estimateLineRows)
-  const markup = subtotal * 0.1
+  const markup = sumLineMarkup(estimateLineRows)
   const bidTotal = subtotal + markup
   const reviewedCount = estimateLineRows.filter((r) => r.source === "reviewed").length
   const overriddenCount = estimateLineRows.filter(

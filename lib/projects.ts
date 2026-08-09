@@ -100,8 +100,19 @@ export function sortByBidDate(rows: ProjectRow[]): ProjectRow[] {
   })
 }
 
+// /upload and /processing both accept a real ?project= id and look up
+// that exact project — safe to link to directly regardless of which
+// project is "current." /intelligence, /estimate, and /reconciliation
+// don't (see the file-header comment) — callers gate those to the
+// current project only (see components/dashboard/dashboard-shell.tsx and
+// components/projects/project-card-action.tsx) rather than linking
+// somewhere that would silently show a different project's data.
+const PROJECT_SCOPED_PATHS = new Set(["/upload", "/processing"])
+
 function hrefFor(meta: { href: string }, projectId: string): string {
-  return meta.href === "/upload" ? `/upload?project=${projectId}` : meta.href
+  return PROJECT_SCOPED_PATHS.has(meta.href)
+    ? `${meta.href}?project=${projectId}`
+    : meta.href
 }
 
 export function toDashboardProject(row: ProjectRow): DashboardProject {
@@ -133,5 +144,6 @@ export function toProjectListItem(row: ProjectRow): ProjectsListItem {
     bidDate: formatBidDate(row.bidDate),
     buttonLabel: meta.buttonLabel,
     href: hrefFor(meta, row.id),
+    isProjectScoped: PROJECT_SCOPED_PATHS.has(meta.href),
   }
 }

@@ -1,0 +1,1 @@
+ALTER TABLE "org" ADD COLUMN "ai_spend_cap_alert_sent_at" timestamp with time zone;

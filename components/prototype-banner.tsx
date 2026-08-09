@@ -5,7 +5,7 @@ export function PrototypeBanner() {
     <div className="flex items-center justify-center gap-2 border-b border-primary/15 bg-primary/5 px-4 py-2 text-center text-xs text-foreground sm:text-sm">
       <Info className="size-3.5 shrink-0 text-primary" />
       <span>
-        Prototype Demo · Sample data only · No real AI processing
+        Early access · Real accounts and data · Still being refined
       </span>
     </div>
   )

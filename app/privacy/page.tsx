@@ -142,7 +142,7 @@ export default function PrivacyPage() {
         the app. To request a copy of your data, correct something you
         can&apos;t fix yourself, or delete your account or specific
         projects/documents, email us at{" "}
-        <strong>[support/legal contact email — confirm before publishing]</strong>{" "}
+        <strong>support@constimator.com</strong>{" "}
         with your organization name and account email. We&apos;ll confirm your
         request and complete it within 30 days. Depending on where you
         live, you may have additional rights under local law (for example,
@@ -194,7 +194,7 @@ export default function PrivacyPage() {
       <h2>12. Contact Us</h2>
       <p>
         Questions about this Policy or how we handle your data? Contact us
-        at <strong>[support/legal contact email — confirm before publishing]</strong>.
+        at <strong>support@constimator.com</strong>.
       </p>
     </LegalPageLayout>
   )

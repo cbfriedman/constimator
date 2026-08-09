@@ -241,7 +241,7 @@ export default function TermsPage() {
       <h2>15. Contact</h2>
       <p>
         Questions about these Terms? Contact us at{" "}
-        <strong>[support/legal contact email — confirm before publishing]</strong>.
+        <strong>support@constimator.com</strong>.
       </p>
     </LegalPageLayout>
   )

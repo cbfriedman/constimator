@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { ArrowRight, Building2, Save, Sparkles } from "lucide-react"
+import { ArrowRight, Building2, Sparkles } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -84,7 +84,7 @@ export function CostSetupShell({
     refs.current.get(id)?.scrollIntoView({ behavior: "smooth", block: "start" })
   }
 
-  function handleCompleteDemo() {
+  function handleCompleteCostSetup() {
     setCostSetupComplete(true)
     setActiveId("labor-rates")
     refs.current
@@ -112,14 +112,7 @@ export function CostSetupShell({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => toast.success("Defaults saved")}
-          >
-            <Save data-icon="inline-start" />
-            Save Defaults
-          </Button>
-          <Button onClick={handleCompleteDemo} disabled={costSetupComplete}>
+          <Button onClick={handleCompleteCostSetup} disabled={costSetupComplete}>
             <Sparkles data-icon="inline-start" />
             Complete Cost Setup
           </Button>

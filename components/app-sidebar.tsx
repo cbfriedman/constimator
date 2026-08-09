@@ -34,7 +34,6 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { useProjectState } from "@/components/project-state-provider"
-import { demoProject } from "@/lib/mock-data"
 
 const mainNav = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -75,7 +74,13 @@ function isActivePath(pathname: string, href: string) {
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const { attentionCount, costSetupComplete, currentProjectId } = useProjectState()
+  const {
+    attentionCount,
+    costSetupComplete,
+    currentProjectId,
+    currentProjectName,
+    currentProjectNumber,
+  } = useProjectState()
 
   return (
     <Sidebar>
@@ -149,16 +154,19 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel className="uppercase" title={demoProject.name}>
-            Sample Project
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <p className="px-2 text-xs leading-relaxed text-muted-foreground">
-              {demoProject.name} · #{demoProject.number}
-            </p>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {currentProjectName ? (
+          <SidebarGroup>
+            <SidebarGroupLabel className="uppercase" title={currentProjectName}>
+              Current Project
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <p className="px-2 text-xs leading-relaxed text-muted-foreground">
+                {currentProjectName}
+                {currentProjectNumber ? ` · #${currentProjectNumber}` : ""}
+              </p>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ) : null}
       </SidebarContent>
       <SidebarFooter className="border-t border-sidebar-border">
         <SidebarMenu>

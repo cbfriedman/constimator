@@ -19,6 +19,8 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
+import { ProjectCardAction } from "@/components/projects/project-card-action"
+import { pickCurrentProject } from "@/lib/current-project"
 import { getScopedDb } from "@/lib/db/scoped"
 import { sortByBidDate, toProjectListItem } from "@/lib/projects"
 import { cn } from "@/lib/utils"
@@ -35,6 +37,7 @@ export default async function ProjectsPage() {
   const scopedDb = await getScopedDb()
   const rows = await scopedDb.projects.findMany()
   const projectsList = sortByBidDate(rows).map(toProjectListItem)
+  const currentProjectId = pickCurrentProject(rows)?.id ?? null
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-6">
@@ -109,13 +112,12 @@ export default async function ProjectsPage() {
                 ) : null}
               </CardContent>
               <CardFooter>
-                <Button
-                  className="w-full"
-                  variant="outline"
-                  render={<Link href={project.href} />}
-                >
-                  {project.buttonLabel}
-                </Button>
+                <ProjectCardAction
+                  href={project.href}
+                  buttonLabel={project.buttonLabel}
+                  isProjectScoped={project.isProjectScoped}
+                  isCurrent={project.id === currentProjectId}
+                />
               </CardFooter>
             </Card>
           ))}

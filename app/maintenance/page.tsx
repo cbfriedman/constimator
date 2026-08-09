@@ -20,10 +20,10 @@ export default function MaintenancePage() {
           <p className="text-sm text-muted-foreground">
             Questions? Reach out at{" "}
             <a
-              href="mailto:coby@cfcontracting.com"
+              href="mailto:support@constimator.com"
               className="underline underline-offset-4"
             >
-              coby@cfcontracting.com
+              support@constimator.com
             </a>
           </p>
         </CardContent>

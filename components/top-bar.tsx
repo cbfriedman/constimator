@@ -2,8 +2,7 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Bell, ChevronDown, LogOut, Plus, RotateCcw, Search } from "lucide-react"
-import { toast } from "sonner"
+import { Bell, ChevronDown, LogOut, Plus, Search } from "lucide-react"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -18,11 +17,10 @@ import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { useProjectState } from "@/components/project-state-provider"
-import { demoUser } from "@/lib/mock-data"
 import { createClient } from "@/lib/supabase/client"
 
 export function TopBar() {
-  const { reset } = useProjectState()
+  const { user, orgName } = useProjectState()
   const router = useRouter()
 
   async function handleSignOut() {
@@ -68,33 +66,24 @@ export function TopBar() {
           >
             <Avatar className="size-8">
               <AvatarFallback className="text-xs">
-                {demoUser.initials}
+                {user.initials}
               </AvatarFallback>
             </Avatar>
             <div className="hidden flex-col text-left sm:flex">
               <span className="text-sm font-medium leading-tight">
-                {demoUser.name}
+                {user.name}
               </span>
               <span className="text-xs leading-tight text-muted-foreground">
-                {demoUser.company}
+                {orgName}
               </span>
             </div>
             <ChevronDown className="size-4 text-muted-foreground" />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <div className="px-2 py-1.5 text-sm font-medium">
-              {demoUser.name}
+            <div className="px-2 py-1.5">
+              <p className="text-sm font-medium">{user.name}</p>
+              <p className="text-xs text-muted-foreground">{user.email}</p>
             </div>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => {
-                reset()
-                toast.success("Demo reset — all state back to the start.")
-              }}
-            >
-              <RotateCcw />
-              Reset Demo
-            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleSignOut}>
               <LogOut />

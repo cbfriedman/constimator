@@ -71,6 +71,13 @@
       "when": 1785945762197,
       "tag": "0009_sour_bloodscream",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1786286848629,
+      "tag": "0010_loud_sinister_six",
+      "breakpoints": true
     }
   ]
 }

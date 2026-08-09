@@ -23,7 +23,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { demoProject } from "@/lib/mock-data"
 import { createProject } from "./actions"
 
 const projectTypes = [
@@ -38,17 +37,19 @@ const projectTypes = [
 
 export default function NewProjectPage() {
   const router = useRouter()
-  const [name, setName] = useState(demoProject.name)
+  // Found during a pre-launch audit: these used to default to the Shasta
+  // demo project's real values (pre-filled, not just placeholder text) —
+  // a real user who didn't notice and clicking straight through would
+  // create a duplicate fake "Shasta County Roadway Improvements #24-118"
+  // project. Starts genuinely empty now; the placeholder= attributes below
+  // still show that same example so the format is obvious.
+  const [name, setName] = useState("")
   const [nameError, setNameError] = useState(false)
-  const [owner, setOwner] = useState(demoProject.owner)
-  const [number, setNumber] = useState(demoProject.number)
-  // demoProject only has formatted display strings for its bid date — this
-  // is the same date ("Aug 22, 2026") as a real <input type="date"> value.
-  const [bidDate, setBidDate] = useState("2026-08-22")
-  const [engineersEstimate, setEngineersEstimate] = useState(
-    demoProject.engineersEstimate,
-  )
-  const [location, setLocation] = useState(demoProject.location)
+  const [owner, setOwner] = useState("")
+  const [number, setNumber] = useState("")
+  const [bidDate, setBidDate] = useState("")
+  const [engineersEstimate, setEngineersEstimate] = useState("")
+  const [location, setLocation] = useState("")
   const [projectType, setProjectType] = useState("Roadway")
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -83,7 +84,7 @@ export default function NewProjectPage() {
       <header className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight">New Project</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Prefill shows the Shasta demo project. You can change any field.
+          Basic bid info to get started — you can fill in the rest later.
         </p>
       </header>
 
@@ -94,6 +95,7 @@ export default function NewProjectPage() {
               <FieldLabel htmlFor="project-name">Project Name</FieldLabel>
               <Input
                 id="project-name"
+                placeholder="e.g. Shasta County Roadway Improvements"
                 value={name}
                 onChange={(e) => {
                   setName(e.target.value)
@@ -112,6 +114,7 @@ export default function NewProjectPage() {
               <FieldLabel htmlFor="agency">Agency / Owner</FieldLabel>
               <Input
                 id="agency"
+                placeholder="e.g. Shasta County Public Works"
                 value={owner}
                 onChange={(e) => setOwner(e.target.value)}
               />
@@ -121,6 +124,7 @@ export default function NewProjectPage() {
               <FieldLabel htmlFor="project-number">Project Number</FieldLabel>
               <Input
                 id="project-number"
+                placeholder="e.g. 24-118"
                 value={number}
                 onChange={(e) => setNumber(e.target.value)}
               />
@@ -142,6 +146,7 @@ export default function NewProjectPage() {
               </FieldLabel>
               <Input
                 id="engineers-estimate"
+                placeholder="e.g. $1,850,000"
                 value={engineersEstimate}
                 onChange={(e) => setEngineersEstimate(e.target.value)}
               />
@@ -151,6 +156,7 @@ export default function NewProjectPage() {
               <FieldLabel htmlFor="location">Location</FieldLabel>
               <Input
                 id="location"
+                placeholder="e.g. Shasta County, CA"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
               />
@@ -182,7 +188,7 @@ export default function NewProjectPage() {
               <Textarea
                 id="notes"
                 rows={3}
-                defaultValue="Prevailing wage. One addendum issued to date."
+                placeholder="e.g. Prevailing wage. One addendum issued to date."
               />
               <FieldDescription>
                 Optional. Not saved yet — there&apos;s no notes field on the

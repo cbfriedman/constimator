@@ -15,8 +15,15 @@ import { formatDisplayDate, todayIsoDate } from "@/lib/format-date"
 type ProjectStateValue = {
   /** The org's current project id (see lib/current-project.ts), or null. */
   currentProjectId: string | null
+  /** Real name/number for the same current project, or null. */
+  currentProjectName: string | null
+  currentProjectNumber: string | null
   /** Real days-until-bid for the current project, or null with no bid date. */
   currentProjectDaysOut: number | null
+  /** The real signed-in user — TopBar's account menu. */
+  user: { name: string; email: string; initials: string }
+  /** The real signed-in user's org name — TopBar's account menu. */
+  orgName: string
   /** Real count of reconciliation diff rows needing attention. */
   attentionCount: number
   /**
@@ -146,7 +153,11 @@ export function ProjectStateProvider({
   const value = React.useMemo<ProjectStateValue>(
     () => ({
       currentProjectId: initialProjectState?.currentProjectId ?? null,
+      currentProjectName: initialProjectState?.currentProjectName ?? null,
+      currentProjectNumber: initialProjectState?.currentProjectNumber ?? null,
       currentProjectDaysOut: initialProjectState?.currentProjectDaysOut ?? null,
+      user: initialProjectState?.user ?? { name: "", email: "", initials: "?" },
+      orgName: initialProjectState?.orgName ?? "",
       attentionCount: initialProjectState?.reconciliationAttentionCount ?? 0,
       costSetupComplete,
       setCostSetupComplete,

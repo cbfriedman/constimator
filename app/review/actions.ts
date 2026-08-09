@@ -3,7 +3,7 @@
 import { eq } from "drizzle-orm"
 import { z } from "zod"
 
-import { reviewRequests } from "@/db/schema"
+import { projects, reviewRequests } from "@/db/schema"
 import { getCurrentProject } from "@/lib/current-project"
 import { getScopedDb } from "@/lib/db/scoped"
 import { parseInput } from "@/lib/validation"
@@ -40,6 +40,18 @@ export async function requestReviewAction(rawInput: {
 }) {
   const input = parseInput(requestReviewSchema, rawInput)
   const scopedDb = await getScopedDb()
+
+  // Found during a pre-launch audit: this used to insert with a raw
+  // client-supplied projectId and no ownership check at all — worse than
+  // the same bug class already fixed elsewhere (addBidLineAction,
+  // confirmDocumentUpload), since review_request.org_id would still be
+  // stamped as the caller's own org while project_id pointed at literally
+  // any project id, including another org's. Same fix: confirm the
+  // project is actually the caller's own before referencing it.
+  const project = await scopedDb.projects.findFirst(eq(projects.id, input.projectId))
+  if (!project) {
+    throw new Error("Project not found.")
+  }
 
   const [request] = await scopedDb.reviewRequests.insert({
     projectId: input.projectId,

@@ -4,28 +4,40 @@ import { cache } from "react"
 import { and, eq } from "drizzle-orm"
 import { z } from "zod"
 
-import { estimateLines, estimates } from "@/db/schema"
+import { estimateLines, estimates, projects } from "@/db/schema"
 import { generateEstimateLines } from "@/lib/cost-engine/generate-estimate"
 import { getScopedDb } from "@/lib/db/scoped"
 import { getCurrentProject, getOrCreateCurrentEstimate } from "@/lib/current-project"
 import { estimateRows as defaultEstimateRows } from "@/lib/estimate-data"
 import { UI_TO_DB_SOURCE } from "@/lib/estimate-view"
 import { todayIsoDate } from "@/lib/format-date"
+import { demoProject } from "@/lib/mock-data"
 import type { ExtractedTakeoffItem } from "@/lib/cost-engine/types"
 import { numericString, optionalNumericString, parseInput, uuidSchema } from "@/lib/validation"
+
+type ProjectRow = typeof projects.$inferSelect
 
 function stripCurrency(value: string): string {
   return value.replace(/[$,]/g, "")
 }
 
+// Only ever seeds the one canonical sample project (Shasta County, #24-118
+// — the walkthrough referenced throughout the marketing site and
+// dashboard). This used to run for *any* project's first empty-estimate
+// view, which meant a real customer's brand-new project silently filled
+// up with 15 fabricated demo line items stamped with their own org id —
+// found during a pre-launch audit. A real project now just starts empty,
+// same as every other real record in this app.
 async function seedDefaultsIfEmpty(
   scopedDb: Awaited<ReturnType<typeof getScopedDb>>,
   estimateId: string,
+  project: ProjectRow,
 ) {
   const existing = await scopedDb.estimateLines.findMany(
     eq(estimateLines.estimateId, estimateId),
   )
   if (existing.length > 0) return existing
+  if (project.number !== demoProject.number) return existing
 
   await Promise.all(
     defaultEstimateRows.map((row, index) =>
@@ -63,7 +75,7 @@ export const getEstimateData = cache(async () => {
   if (!project) return { rows: [], project: null }
 
   const estimate = await getOrCreateCurrentEstimate(scopedDb, project.id)
-  const rows = await seedDefaultsIfEmpty(scopedDb, estimate.id)
+  const rows = await seedDefaultsIfEmpty(scopedDb, estimate.id, project)
   return { rows, project }
 })
 
@@ -140,6 +152,27 @@ export async function deleteEstimateLineAction(rawId: string) {
   const id = parseInput(uuidSchema, rawId)
   const scopedDb = await getScopedDb()
   await scopedDb.estimateLines.delete(eq(estimateLines.id, id))
+}
+
+// Bulk-applies one markup % to every line in the project's current
+// estimate — the "Markup: N% (all items)" selector on /estimate. A line's
+// own total (quantity × unit price) doesn't change; only markupPct does,
+// which is what lib/estimate-view.ts's sumLineMarkup then rolls up into
+// the Bid Total.
+export async function setEstimateMarkupAction(rawProjectId: string, markupPct: number) {
+  const projectId = parseInput(uuidSchema, rawProjectId)
+  const scopedDb = await getScopedDb()
+  const estimate = await getOrCreateCurrentEstimate(scopedDb, projectId)
+  const lines = await scopedDb.estimateLines.findMany(
+    eq(estimateLines.estimateId, estimate.id),
+  )
+  await Promise.all(
+    lines.map((line) =>
+      scopedDb.estimateLines.update(eq(estimateLines.id, line.id), {
+        markupPct: String(markupPct),
+      }),
+    ),
+  )
 }
 
 // extractedItems ultimately comes from takeoff_job.result — a jsonb column

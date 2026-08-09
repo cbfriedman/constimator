@@ -15,7 +15,7 @@ export function Pricing() {
             preferred rates.
           </p>
           <a
-            href="mailto:coby@cfcontracting.com?subject=Constimator Founding Access"
+            href="mailto:support@constimator.com?subject=Constimator Founding Access"
             className="mt-8 inline-flex items-center justify-center gap-2 rounded-md bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition-transform hover:-translate-y-0.5"
           >
             Request founding access

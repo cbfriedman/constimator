@@ -190,6 +190,17 @@ export const orgs = pgTable(
     // (app/api/webhooks/stripe), not computed locally; Stripe is the
     // source of truth for anything billing-period-shaped.
     currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
+    // The known adjacent gap docs/ALERTING.md flagged: hitting the AI
+    // spend cap has the same practical effect on a bid deadline as an
+    // outage, but nothing notified the org. Null until the cap is first
+    // hit in a given month; lib/email/spend-cap-alert.ts compares this
+    // against the start of the current month to decide whether an alert
+    // is still due, and sets it right after sending — so a contractor
+    // hammering the upload button post-cap gets emailed once, not once
+    // per attempt.
+    aiSpendCapAlertSentAt: timestamp("ai_spend_cap_alert_sent_at", {
+      withTimezone: true,
+    }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

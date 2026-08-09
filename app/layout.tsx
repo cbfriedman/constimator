@@ -19,7 +19,7 @@ const fontMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Constimator — Bid-Form Reconciliation for Public Works",
   description:
-    "Constimator reconciles your estimate against the official bid form for public works contractors — catching missing items, quantity busts, and unit mismatches before bid day. Prototype demo, sample data only.",
+    "Constimator reconciles your estimate against the official bid form for public works contractors — catching missing items, quantity busts, and unit mismatches before bid day. Now in early access.",
 }
 
 export default async function RootLayout({

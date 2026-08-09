@@ -21,7 +21,6 @@ export type DownloadEntry = {
 const optionItems: { key: keyof ReportOptions; label: string }[] = [
   { key: "sourceReferences", label: "Include source references" },
   { key: "provenanceLegend", label: "Include quantity provenance legend" },
-  { key: "reviewerComments", label: "Include reviewer comments" },
 ]
 
 export function ExportBar({

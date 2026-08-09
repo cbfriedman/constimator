@@ -3,7 +3,7 @@
 import { eq } from "drizzle-orm"
 
 import { getEstimateData } from "@/app/estimate/actions"
-import { estimates } from "@/db/schema"
+import { estimates, users } from "@/db/schema"
 import {
   getScopedDb,
   NoOrgMembershipError,
@@ -25,10 +25,20 @@ export type ProjectStateSnapshot = {
   // org has no projects yet. Read by the sidebar so "Upload Documents"
   // links to a real project instead of dead-ending on "No project selected."
   currentProjectId: string | null
+  // Real name/number for the same current project — the sidebar's project
+  // panel used to always show the fixed sample project (Shasta County)
+  // regardless of what the org's real current project actually was.
+  currentProjectName: string | null
+  currentProjectNumber: string | null
   // Real days-until-bid for the current project — the single source every
   // "N days to bid" chip (BidCountdownBadge) and the dashboard's deadline
   // card both read, so they can't drift out of sync with each other again.
   currentProjectDaysOut: number | null
+  // The real signed-in user + org — TopBar's account menu used to show a
+  // hardcoded fake identity regardless of who was actually signed in,
+  // found during a pre-launch audit.
+  user: { name: string; email: string; initials: string }
+  orgName: string
   costSetupComplete: boolean
   // null when the org has no projects yet — there's nothing to attach a
   // rate snapshot to. ProjectStateProvider falls back to defaults for these
@@ -57,6 +67,13 @@ export type ProjectStateSnapshot = {
   }
 }
 
+function initialsFor(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  const first = parts[0]?.[0] ?? ""
+  const last = parts.length > 1 ? parts[parts.length - 1][0] : ""
+  return (first + last).toUpperCase() || "?"
+}
+
 // Called from the root layout, so it runs for every route — including the
 // signed-out marketing homepage and /sign-in, neither of which should ever
 // depend on the database being reachable. UnauthenticatedError/
@@ -66,8 +83,14 @@ export type ProjectStateSnapshot = {
 export async function getProjectStateSnapshot(): Promise<ProjectStateSnapshot | null> {
   try {
     const scopedDb = await getScopedDb()
-    const org = await scopedDb.org.get()
+    const [org, currentUser] = await Promise.all([
+      scopedDb.org.get(),
+      scopedDb.users.findFirst(eq(users.id, scopedDb.userId)),
+    ])
     if (!org) return null
+
+    const userName = currentUser?.fullName?.trim() || currentUser?.email.split("@")[0] || "You"
+    const userEmail = currentUser?.email ?? ""
 
     const project = await getCurrentProject(scopedDb)
     const estimate = project
@@ -96,7 +119,11 @@ export async function getProjectStateSnapshot(): Promise<ProjectStateSnapshot | 
 
     return {
       currentProjectId: project?.id ?? null,
+      currentProjectName: project?.name ?? null,
+      currentProjectNumber: project?.number ?? null,
       currentProjectDaysOut: project ? computeDaysOut(project.bidDate) : null,
+      user: { name: userName, email: userEmail, initials: initialsFor(userName) },
+      orgName: org.name,
       costSetupComplete: org.costSetupComplete,
       estimate: estimate
         ? {
