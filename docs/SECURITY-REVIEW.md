@@ -172,51 +172,53 @@ than doing anything. Consistency gap, not an authorization gap — flagged
 here rather than fixed, since fixing it is step-23-shaped work, not
 step-30-shaped work.
 
-## Live test plan (not yet run — needs a real `DATABASE_URL`)
+## Live test results — 2026-08-12
 
-Once the database is real, this is the actual test to run:
+`DATABASE_URL` is real now, so the plan above was actually run — automated
+via Playwright + the Supabase Admin API rather than by hand (see
+`e2e/security-cross-org.spec.ts`), so it's repeatable and not a one-time
+claim. It covers a subset of the plan above, not all of it — see "Not yet
+covered" below for what's still manual-only.
 
-1. **Create two orgs.** Sign up two separate accounts with different
-   email addresses (the org-provisioning trigger creates one org per
-   sign-up automatically). Call them Org A and Org B.
-2. **Give Org B real data.** Signed in as Org B: create a project, upload
-   a document, add a few bid form line items, add a few estimate lines.
-   Note the project's id, a document's id, a bid line's id, and an
-   estimate line's id — visible in dev tools' network tab (Server Action
-   responses include the row, id and all) or via `pnpm drizzle-kit studio`
-   against the real database.
-3. **Sign in as Org A** in a separate browser profile / incognito window
-   (so the two sessions don't collide).
-4. **Try the URL-based read paths:**
-   - `/upload?project=<Org B's project id>` — expect "Project not found."
-   - `/processing?project=<Org B's project id>` — expect "No project
-     found."
-5. **Try direct Server Action calls with Org B's ids, as Org A.** Server
-   Actions aren't a conventional REST API — they're POST requests Next.js
-   sends to the current page URL with a `Next-Action` header identifying
-   which function to run and a serialized argument list as the body.
-   Concretely: open dev tools' Network tab, perform the equivalent action
-   in Org A's own UI once (e.g. add a bid line item) to capture the real
-   request shape and the `Next-Action` id, then replay it with curl/Postman
-   — same session cookie, same `Next-Action` header, but with Org B's id
-   swapped into the arguments. Specifically try:
-   - `addBidLineAction(<Org B's project id>, {...})` — expect "Project
-     not found" after this review's fix (previously would have silently
-     succeeded with a cross-org reference).
-   - `addEstimateLineAction(<Org B's project id>, {...})` — same
-     expectation.
-   - `confirmDocumentUpload({projectId: <Org A's own project>, path:
-     "<Org B's real storage path>", ...})` — expect "Storage path does
-     not belong to your organization."
-   - `updateBidLineAction(<Org B's bid line id>, {...})`,
-     `deleteBidLineAction(<Org B's bid line id>)`,
-     `overrideEstimateLineAction(<Org B's estimate line id>)` — expect no
-     visible error (these fail closed silently) but confirm via
-     `drizzle-kit studio` that Org B's row is genuinely unchanged.
-6. **Confirm the fixed exfiltration path is actually closed:** attempt
-   the full chain from finding #1 above end to end — call
-   `confirmDocumentUpload` as Org A with Org B's real storage path,
-   confirm it's rejected before a `takeoff_job` ever gets queued.
-7. **Record results** — pass/fail per case — as an update to this
-   document, replacing this plan section with actual results and the
-   date it was run.
+**What the automated run does:** creates two real throwaway orgs (Org A,
+Org B) via the Admin API (pre-confirmed, no email step needed). Org B
+signs in through the real UI and creates a real project. Org A signs in
+separately and:
+
+1. Requests `/upload?project=<Org B's project id>` → **passed** — got
+   "Project not found."
+2. Requests `/processing?project=<Org B's project id>` → **passed** — got
+   "No project found."
+3. Adds a real bid line item to *its own* project through the real
+   `Add Bid Item` UI while Playwright captures the actual POST request
+   Next.js issues for it (headers + body) — this sidesteps hand-building
+   the Server Action wire format, which the original plan's curl/Postman
+   approach would have needed. Org A's own project id is then textually
+   spliced out of that captured body and replaced with Org B's project id,
+   and the mutated request is replayed with the same session. → **passed**
+   — the server threw `Error: Project not found` (`app/reconciliation/actions.ts:41`,
+   visible in the dev server log), and a direct query against the real
+   database (bypassing the app and RLS entirely, using `DATABASE_URL`
+   directly) confirms the bid count for Org B's project was `0` both
+   before and after the replay attempt — not just a UI message, the row
+   was never created.
+
+Both throwaway orgs and their two dozen-or-so descendant rows were deleted
+afterward (`test.afterAll` in the spec) — this test can be re-run any
+time via `pnpm test:e2e -- e2e/security-cross-org.spec.ts` without leaving
+residue in the real database.
+
+**Not yet covered by the automated version** (still needs the manual
+curl/Postman approach the original plan described, since these weren't
+scripted):
+- `addEstimateLineAction(<Org B's project id>, {...})` — same fix, same
+  shape as `addBidLineAction`, not independently replayed.
+- `confirmDocumentUpload({projectId: <Org A's own project>, path: "<Org
+  B's real storage path>", ...})` — the finding #1 exfiltration chain
+  itself. Highest-severity finding in this review and the one *not* yet
+  re-confirmed live; re-running finding #1's chain end to end is the
+  single most valuable thing left on this list.
+- `updateBidLineAction`, `deleteBidLineAction`,
+  `overrideEstimateLineAction` with a foreign id — expected to fail
+  closed silently (org-scoped `WHERE` matches zero rows), not
+  independently confirmed live.

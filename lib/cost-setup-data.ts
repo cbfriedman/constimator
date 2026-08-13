@@ -147,7 +147,6 @@ export const productionRows: ProductionRow[] = [
   { activity: "HMA Paving", rate: "485 TON/day" },
   { activity: "RCP Install", rate: "120 LF/day" },
   { activity: "Labor production database", rate: "Coming soon", comingSoon: true },
-  { activity: "Labor production database", rate: "Coming soon", comingSoon: true },
 ]
 
 export const crewCards = [

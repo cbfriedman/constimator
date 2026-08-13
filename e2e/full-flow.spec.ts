@@ -21,7 +21,7 @@ test("sign in, create a project, upload a plan, wait for takeoff, view the estim
   await test.step("sign in", async () => {
     await page.goto("/sign-in")
     await page.getByLabel("Email").fill(email)
-    await page.getByLabel("Password").fill(password)
+    await page.getByLabel("Password", { exact: true }).fill(password)
     await page.getByRole("button", { name: "Sign in", exact: true }).click()
     await page.waitForURL("**/dashboard")
   })

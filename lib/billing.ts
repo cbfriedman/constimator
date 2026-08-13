@@ -7,7 +7,7 @@ type OrgRow = typeof orgs.$inferSelect
 // Free trial length for a brand-new org with no Stripe subscription yet —
 // computed from org.createdAt rather than stored as its own column, since
 // it's a pure function of a value we already have.
-export const TRIAL_DAYS = 14
+export const TRIAL_DAYS = 30
 
 // Stripe statuses that mean "the org gets to use paid features right now."
 // trialing here means Stripe's own subscription trial (started a
