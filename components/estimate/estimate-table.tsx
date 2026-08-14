@@ -112,21 +112,38 @@ export function EstimateTable({
   return (
     <TooltipProvider>
       <div className="overflow-x-auto rounded-lg border bg-card">
-        <Table>
+        {/* border-separate + spacing-0: `sticky left` on the Description
+            column needs this — Chromium doesn't reliably apply `position:
+            sticky` on table cells when the table has `border-collapse:
+            collapse` (Tailwind's default via preflight). */}
+        <Table className="border-separate border-spacing-0">
           <TableHeader>
+            {/* Description stays pinned on the left as the rest scrolls —
+                on a row this wide, "which line" should never disappear
+                off-screen. Total sits right after Unit Price rather than
+                being pinned on the right: a `sticky right` last column
+                turns out to be unreliable in Chromium for plain tables
+                (confirmed via e2e/_verify-sticky-columns.spec.ts — it sat
+                at the same off-screen position whether scrolled or not,
+                even with border-separate). Putting Total up front instead
+                means it's visible by default with zero scrolling, which is
+                the actual goal — only the Labor/Material/Equip/Sub/MU%
+                breakdown needs a scroll to inspect. */}
             <TableRow className="bg-muted/50">
               <TableHead className="w-8" />
               <TableHead className="w-8 text-right">#</TableHead>
-              <TableHead className="min-w-56">Description</TableHead>
+              <TableHead className="sticky left-0 z-10 min-w-56 bg-muted/50">
+                Description
+              </TableHead>
               <TableHead className="text-right">Qty</TableHead>
               <TableHead>Unit</TableHead>
               <TableHead className="text-right">Unit Price</TableHead>
+              <TableHead className="text-right">Total</TableHead>
               <TableHead className="text-right">Labor</TableHead>
               <TableHead className="text-right">Material</TableHead>
               <TableHead className="text-right">Equip</TableHead>
               <TableHead className="text-right">Sub</TableHead>
               <TableHead className="text-right">MU%</TableHead>
-              <TableHead className="text-right">Total</TableHead>
               <TableHead>Source</TableHead>
               <TableHead className="w-8" />
             </TableRow>
@@ -148,7 +165,7 @@ export function EstimateTable({
                 <React.Fragment key={row.id}>
                   <TableRow
                     className={cn(
-                      "align-top",
+                      "group align-top",
                       isExpandable && "cursor-pointer",
                       isOpen && "bg-primary/5",
                     )}
@@ -166,7 +183,12 @@ export function EstimateTable({
                     <TableCell className="text-right text-muted-foreground tabular-nums">
                       {index + 1}
                     </TableCell>
-                    <TableCell>
+                    <TableCell
+                      className={cn(
+                        "sticky left-0 z-10 bg-card group-hover:bg-muted/50",
+                        isOpen && "bg-primary/5 group-hover:bg-primary/5",
+                      )}
+                    >
                       <div className="flex flex-col">
                         <span className="flex items-center gap-1.5 font-medium text-foreground">
                           {row.description}
@@ -201,6 +223,9 @@ export function EstimateTable({
                     <TableCell className="text-right tabular-nums">
                       {row.unitPrice}
                     </TableCell>
+                    <TableCell className="text-right font-medium tabular-nums">
+                      {row.total}
+                    </TableCell>
                     <TableCell className="text-right tabular-nums text-muted-foreground">
                       {row.labor}
                     </TableCell>
@@ -215,9 +240,6 @@ export function EstimateTable({
                     </TableCell>
                     <TableCell className="text-right tabular-nums text-muted-foreground">
                       {row.mu}
-                    </TableCell>
-                    <TableCell className="text-right font-medium tabular-nums">
-                      {row.total}
                     </TableCell>
                     <TableCell>
                       <SourceBadge kind={source} />
