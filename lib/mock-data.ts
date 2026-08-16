@@ -68,7 +68,7 @@ export const recentActivity = [
   },
   { text: "Estimate updated — Shasta County", date: "Jul 10" },
   {
-    text: "Documents read — 15 bid items, 6 schedules extracted (Shasta County)",
+    text: "Documents read — 15 bid items extracted (Shasta County)",
     date: "Jul 9",
   },
 ]

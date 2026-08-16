@@ -1,11 +1,15 @@
 import { ArrowRight, CheckCircle2 } from "lucide-react"
 
+// Illustrative only — kept in sync with the real Shasta County sample data
+// (lib/rfi-suggestions-data.ts / the reconciliation seed) so this teaser
+// doesn't drift from what the product actually shows. No "AI" column: the
+// real reconciliation only compares Official vs. Estimate — there's no live
+// AI extraction yet (see the prototype banner), so this shouldn't imply one.
 const reconRows = [
   {
     item: "HMA Type A",
     unit: "TON",
     official: "4,850",
-    ai: "4,850",
     estimate: "4,850",
     status: "Match",
     color: "border-transparent bg-success/10 text-success",
@@ -13,17 +17,15 @@ const reconRows = [
   {
     item: "18\" RCP Class III",
     unit: "LF",
-    official: "640",
-    ai: "655",
-    estimate: "655",
+    official: "655",
+    estimate: "640",
     status: "Qty diff",
     color: "border-transparent bg-warning/15 text-warning",
   },
   {
     item: "Cold Plane AC (2\")",
-    unit: "SY",
-    official: "12,300",
-    ai: "12,300",
+    unit: "SF/SY",
+    official: "110,700",
     estimate: "12,300",
     status: "Unit conv.",
     color: "border-transparent bg-caution/15 text-caution",
@@ -32,7 +34,6 @@ const reconRows = [
     item: "Minor Concrete",
     unit: "LF",
     official: "2,150",
-    ai: "2,150",
     estimate: "—",
     status: "Missing",
     color: "border-transparent bg-destructive/10 text-destructive",
@@ -109,7 +110,6 @@ export function Hero() {
                   <tr className="border-b border-border bg-muted/50 text-muted-foreground">
                     <th className="px-3 py-2.5 font-medium">Item</th>
                     <th className="px-2 py-2.5 text-right font-medium">Official</th>
-                    <th className="px-2 py-2.5 text-right font-medium">AI</th>
                     <th className="px-2 py-2.5 text-right font-medium">Est.</th>
                     <th className="px-2 py-2.5 font-medium">Status</th>
                   </tr>
@@ -122,7 +122,6 @@ export function Hero() {
                         <span className="ml-1 text-muted-foreground">{row.unit}</span>
                       </td>
                       <td className="px-2 py-3 text-right tabular-nums text-muted-foreground">{row.official}</td>
-                      <td className="px-2 py-3 text-right tabular-nums text-muted-foreground">{row.ai}</td>
                       <td className="px-2 py-3 text-right tabular-nums text-muted-foreground">{row.estimate}</td>
                       <td className="px-2 py-3">
                         <span

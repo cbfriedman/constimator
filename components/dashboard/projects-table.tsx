@@ -66,18 +66,20 @@ export function ProjectsTable({
                 className="cursor-pointer"
               >
                 <TableCell className="whitespace-normal">
-                  <div className="flex flex-col">
-                    <span className="flex items-center gap-2 font-medium leading-tight">
-                      {project.name}
+                  <div className="flex flex-col gap-0.5">
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className="font-medium leading-tight">
+                        {project.name}
+                      </span>
                       {project.id === currentProjectId ? (
                         <Badge
                           variant="outline"
-                          className="h-auto border-primary/30 bg-primary/10 px-1.5 py-0 text-[10px] font-medium text-primary"
+                          className="h-auto shrink-0 border-primary/30 bg-primary/10 px-1.5 py-0 text-[10px] font-medium text-primary"
                         >
                           Current workspace
                         </Badge>
                       ) : null}
-                    </span>
+                    </div>
                     <span className="text-xs text-muted-foreground">
                       #{project.number}
                     </span>
