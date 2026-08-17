@@ -15,6 +15,24 @@ export type ExtractedTakeoffItem = {
   notes?: string
 }
 
+/**
+ * One line item transcribed off an official bid form (step 40), produced by
+ * worker/src/extract-bid-form.ts and mirrored there — same hand-sync rule as
+ * ExtractedTakeoffItem above. Not a cost-engine input: bid items are the
+ * official side of a reconciliation, so they belong in `bid` rows, never in
+ * generateEstimateLines.
+ */
+export type ExtractedBidItem = {
+  itemNumber: string
+  description: string
+  unit: string
+  quantity: number
+  specSection?: string
+  confidence?: number
+  sourcePage?: number
+  notes?: string
+}
+
 export type GeneratedEstimateLine = {
   description: string
   quantity: string

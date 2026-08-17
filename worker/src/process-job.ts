@@ -2,6 +2,7 @@ import { sql } from "./db.js"
 import { downloadDocument } from "./download-document.js"
 import { rasterizePdf } from "./rasterize.js"
 import { extractQuantities } from "./extract.js"
+import { extractBidForm } from "./extract-bid-form.js"
 import { checkSpendCap, checkTakeoffRateLimit, formatUsd, recordAiUsage } from "./ai-limits.js"
 import { captureTakeoffCompleted } from "./analytics.js"
 import { logger } from "./logger.js"
@@ -38,7 +39,7 @@ export async function processJob(job: ClaimedJob) {
 
   try {
     const [document] = await sql`
-      select storage_bucket, storage_path, file_name
+      select storage_bucket, storage_path, file_name, type
       from document
       where id = ${job.document_id} and org_id = ${job.org_id}
     `
@@ -90,11 +91,44 @@ export async function processJob(job: ClaimedJob) {
     `
 
     const pdfBytes = await downloadDocument(document.storage_bucket, document.storage_path)
-    const pages = await rasterizePdf(pdfBytes)
-    const { items, usage } = await extractQuantities(pages)
-    const result: TakeoffResult = { items }
 
-    await recordAiUsage(job.org_id, "takeoff_extraction", usage.inputTokens, usage.outputTokens)
+    // Step 40: which extractor runs is decided by the document's own type,
+    // set at upload time. A bid form is transcribed (the quantities are
+    // printed on it); everything else goes through the plan-sheet takeoff.
+    // The two write different fields of `result` — see types.ts — so a bid
+    // form's items can't be mistaken for extracted estimate quantities
+    // downstream.
+    const isBidForm = document.type === "bid_form"
+    let result: TakeoffResult
+    let usage: { inputTokens: number; outputTokens: number }
+    let itemCount: number
+
+    if (isBidForm) {
+      const extracted = await extractBidForm(pdfBytes)
+      result = { kind: "bid_form", bidItems: extracted.items }
+      usage = extracted.usage
+      itemCount = extracted.items.length
+      if (extracted.documentNotes) {
+        logger.info("Bid form extraction notes", {
+          jobId: job.id,
+          documentId: job.document_id,
+          documentNotes: extracted.documentNotes,
+        })
+      }
+    } else {
+      const pages = await rasterizePdf(pdfBytes)
+      const extracted = await extractQuantities(pages)
+      result = { kind: "plan_takeoff", items: extracted.items }
+      usage = extracted.usage
+      itemCount = extracted.items.length
+    }
+
+    await recordAiUsage(
+      job.org_id,
+      isBidForm ? "bid_form_extraction" : "takeoff_extraction",
+      usage.inputTokens,
+      usage.outputTokens,
+    )
 
     await sql`
       update takeoff_job
@@ -109,7 +143,8 @@ export async function processJob(job: ClaimedJob) {
       jobId: job.id,
       orgId: job.org_id,
       documentId: job.document_id,
-      itemCount: items.length,
+      kind: result.kind,
+      itemCount,
       inputTokens: usage.inputTokens,
       outputTokens: usage.outputTokens,
     })
@@ -117,7 +152,7 @@ export async function processJob(job: ClaimedJob) {
     await captureTakeoffCompleted(job.org_id, {
       jobId: job.id,
       documentId: job.document_id,
-      itemCount: items.length,
+      itemCount,
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)

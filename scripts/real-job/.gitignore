@@ -1,0 +1,7 @@
+# Real bid documents and the answer keys that go with them are a customer's
+# (or a public agency's) project data, not sample fixtures — keep them out of
+# the repo even when they're technically public records.
+pdfs/
+expected/
+reports/
+*.pdf

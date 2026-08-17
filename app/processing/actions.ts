@@ -53,8 +53,13 @@ async function syncEstimateFromCompleteJobs(
   projectId: string,
   jobs: (typeof takeoffJobs.$inferSelect)[],
 ) {
+  // Only plan-takeoff results feed the estimate. A bid-form job's result
+  // populates `bidItems` instead (step 40) and is deliberately skipped here
+  // — those line items are the official bid form, the thing the estimate
+  // gets reconciled *against*, so folding them into the estimate would make
+  // the reconciliation compare the AI's reading of the form to itself.
   const items = jobs
-    .filter((job) => job.status === "complete" && job.result)
+    .filter((job) => job.status === "complete" && job.result?.kind !== "bid_form")
     .flatMap((job) => job.result?.items ?? [])
 
   if (items.length === 0) return

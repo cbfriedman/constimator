@@ -16,7 +16,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core"
 
-import type { ExtractedTakeoffItem } from "@/lib/cost-engine/types"
+import type { ExtractedBidItem, ExtractedTakeoffItem } from "@/lib/cost-engine/types"
 
 // Every table's RLS policy checks its org_id (or, for `org` itself, its id)
 // against this. See the current_org_id() function in db/migrations for why
@@ -434,10 +434,19 @@ export const takeoffJobs = pgTable(
       .notNull()
       .references(() => documents.id, { onDelete: "cascade" }),
     status: takeoffJobStatusEnum("status").notNull().default("queued"),
-    // Populated by worker/src/extract.ts (step 16) on completion. Read by
-    // app/processing/actions.ts, which feeds it into
-    // generateEstimateFromTakeoff (app/estimate/actions.ts).
-    result: jsonb("result").$type<{ items: ExtractedTakeoffItem[] }>(),
+    // Populated by the worker on completion. Which fields are set depends on
+    // the source document's type (step 40): a plan set goes through
+    // worker/src/extract.ts and lands in `items`, a bid form goes through
+    // worker/src/extract-bid-form.ts and lands in `bidItems`. Only `items`
+    // feeds generateEstimateFromTakeoff (app/estimate/actions.ts) — bid
+    // items are the official side of a reconciliation, not the
+    // contractor's own estimate. `kind` is optional because rows written
+    // before step 40 predate it; absent means plan takeoff.
+    result: jsonb("result").$type<{
+      kind?: "plan_takeoff" | "bid_form"
+      items?: ExtractedTakeoffItem[]
+      bidItems?: ExtractedBidItem[]
+    }>(),
     error: text("error"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
