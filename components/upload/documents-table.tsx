@@ -26,9 +26,20 @@ export type DocType =
   | "Specifications"
   | "Addendum"
   | "Official Bid Form"
+  | "Sub Quote"
   | "Supporting Document"
 
-export const docTypeOptions: DocType[] = [
+// A sub quote can't be created or picked here: it needs the sub's name and
+// trade alongside the file (see db/schema.ts's sub_quote), which this general
+// project-documents uploader has no fields for, so one uploaded through here
+// would be a document with no sub_quote row behind it. Its own screen owns
+// that. "Sub Quote" stays in DocType so an existing one still renders with a
+// proper label in this table — it just can't be chosen, and this type is what
+// carries that distinction into the change handler rather than leaving it as
+// a convention someone has to remember.
+export type SelectableDocType = Exclude<DocType, "Sub Quote">
+
+export const docTypeOptions: SelectableDocType[] = [
   "Plans",
   "Specifications",
   "Addendum",
@@ -53,7 +64,7 @@ export function DocumentsTable({
   onRemove,
 }: {
   docs: UploadDoc[]
-  onTypeChange: (id: string, type: DocType) => void
+  onTypeChange: (id: string, type: SelectableDocType) => void
   onRemove: (id: string) => void
 }) {
   return (
@@ -77,27 +88,38 @@ export function DocumentsTable({
                 {doc.file}
               </TableCell>
               <TableCell>
-                <Select
-                  value={doc.type}
-                  onValueChange={(value) => onTypeChange(doc.id, value as DocType)}
-                >
-                  <SelectTrigger
-                    className={cn(
-                      "w-full",
-                      isBidForm &&
-                        "border-primary/40 bg-primary/10 font-semibold text-primary",
-                    )}
+                {doc.type === "Sub Quote" ? (
+                  // Shown as plain text, not a picker. A sub quote's document
+                  // has a sub_quote row hanging off it carrying the sub's
+                  // name, trade, and extracted conditions; retyping it here
+                  // would strand all of that. Managed from the sub quotes
+                  // screen instead.
+                  <span className="text-sm font-medium">{doc.type}</span>
+                ) : (
+                  <Select
+                    value={doc.type}
+                    onValueChange={(value) =>
+                      onTypeChange(doc.id, value as SelectableDocType)
+                    }
                   >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {docTypeOptions.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                    <SelectTrigger
+                      className={cn(
+                        "w-full",
+                        isBidForm &&
+                          "border-primary/40 bg-primary/10 font-semibold text-primary",
+                      )}
+                    >
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {docTypeOptions.map((option) => (
+                        <SelectItem key={option} value={option}>
+                          {option}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </TableCell>
               <TableCell className="text-muted-foreground">{doc.pages}</TableCell>
               <TableCell className="text-muted-foreground">{doc.size}</TableCell>

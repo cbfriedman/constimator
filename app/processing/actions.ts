@@ -53,13 +53,19 @@ async function syncEstimateFromCompleteJobs(
   projectId: string,
   jobs: (typeof takeoffJobs.$inferSelect)[],
 ) {
-  // Only plan-takeoff results feed the estimate. A bid-form job's result
-  // populates `bidItems` instead (step 40) and is deliberately skipped here
-  // — those line items are the official bid form, the thing the estimate
-  // gets reconciled *against*, so folding them into the estimate would make
-  // the reconciliation compare the AI's reading of the form to itself.
+  // Only plan-takeoff results feed the estimate, as an allowlist rather than
+  // "anything that isn't a bid form" — a bid form's items are the official
+  // schedule the estimate is reconciled *against* (step 40), and a sub
+  // quote's are a third party's pricing (step 41), so neither may become
+  // this contractor's own estimate lines. Written as an allowlist so that
+  // adding a fourth extractor can't quietly opt itself in. An absent `kind`
+  // means a plan takeoff — those rows predate the field (see db/schema.ts).
   const items = jobs
-    .filter((job) => job.status === "complete" && job.result?.kind !== "bid_form")
+    .filter(
+      (job) =>
+        job.status === "complete" &&
+        (job.result?.kind === undefined || job.result.kind === "plan_takeoff"),
+    )
     .flatMap((job) => job.result?.items ?? [])
 
   if (items.length === 0) return

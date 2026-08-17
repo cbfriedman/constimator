@@ -16,7 +16,11 @@ import {
   uuid,
 } from "drizzle-orm/pg-core"
 
-import type { ExtractedBidItem, ExtractedTakeoffItem } from "@/lib/cost-engine/types"
+import type {
+  ExtractedBidItem,
+  ExtractedQuoteCondition,
+  ExtractedTakeoffItem,
+} from "@/lib/cost-engine/types"
 
 // Every table's RLS policy checks its org_id (or, for `org` itself, its id)
 // against this. See the current_org_id() function in db/migrations for why
@@ -68,6 +72,11 @@ export const documentTypeEnum = pgEnum("document_type", [
   "specifications",
   "bid_form",
   "addendum",
+  // Step 41 — a quote a subcontractor sent the prime for one trade on this
+  // project. Unlike the four above (documents the *agency* published), this
+  // is a document the prime received, and it routes to its own extractor —
+  // see worker/src/extract-quote-conditions.ts.
+  "sub_quote",
   "other",
 ])
 
@@ -83,6 +92,48 @@ export const takeoffJobStatusEnum = pgEnum("takeoff_job_status", [
   "running",
   "complete",
   "failed",
+])
+
+// Step 41 — a sub quote's own lifecycle, which is deliberately NOT the same
+// as its document's `document_status`. A document is "processed" the moment
+// the worker finishes reading it; a quote is only "confirmed" once a human
+// has actually accepted what the AI read off it. Keeping them separate is
+// what makes the review gate real rather than cosmetic — see
+// quote_condition.is_confirmed.
+export const subQuoteStatusEnum = pgEnum("sub_quote_status", [
+  "uploaded",
+  "extracting",
+  "needs_review",
+  "confirmed",
+  "failed",
+])
+
+// Step 41 — the conditions a sub attaches to their price. Deliberately a
+// closed enum rather than free text: the whole point of the comparison grid
+// is that the same condition lines up across every sub's quote, which can't
+// happen if the AI is free to invent a new label per document. "other" is
+// the escape hatch for a real condition that fits nothing here, and its
+// presence in the data is the signal that this list needs another value.
+export const quoteConditionCategoryEnum = pgEnum("quote_condition_category", [
+  "exclusion",
+  "inclusion",
+  "mobilization",
+  "pricing_basis",
+  "minimum_charge",
+  "quantity_assumption",
+  "price_validity",
+  "bond",
+  "tax",
+  "prevailing_wage",
+  "traffic_control",
+  "work_hours",
+  "material_supply",
+  "disposal",
+  "site_access",
+  "weather",
+  "insurance",
+  "retainage",
+  "other",
 ])
 
 export const costItemCategoryEnum = pgEnum("cost_item_category", [
@@ -357,6 +408,7 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   org: one(orgs, { fields: [projects.orgId], references: [orgs.id] }),
   documents: many(documents),
   bids: many(bids),
+  subQuotes: many(subQuotes),
   estimates: many(estimates),
   reconciliationItems: many(reconciliationItems),
 }))
@@ -443,9 +495,16 @@ export const takeoffJobs = pgTable(
     // contractor's own estimate. `kind` is optional because rows written
     // before step 40 predate it; absent means plan takeoff.
     result: jsonb("result").$type<{
-      kind?: "plan_takeoff" | "bid_form"
+      kind?: "plan_takeoff" | "bid_form" | "sub_quote"
       items?: ExtractedTakeoffItem[]
       bidItems?: ExtractedBidItem[]
+      // Step 41 — set only for kind "sub_quote". Stays raw here until a
+      // human confirms it in the review UI, which is what materializes it
+      // into quote_condition rows; nothing downstream reads a condition
+      // out of this jsonb.
+      conditions?: ExtractedQuoteCondition[]
+      quoteTotalAmount?: number
+      documentNotes?: string
     }>(),
     error: text("error"),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -638,6 +697,225 @@ export const bidsRelations = relations(bids, ({ one, many }) => ({
     references: [documents.id],
   }),
   reconciliationItems: many(reconciliationItems),
+}))
+
+// ---------------------------------------------------------------------------
+// sub_quote — step 41. One quote a subcontractor sent the prime for one
+// trade on this project. The uploaded file itself is a `document` row (type
+// "sub_quote") like every other upload, so it reuses the whole existing
+// pipeline — storage-path org check, spend cap, rate limit, retry. This
+// table is the quote-specific metadata that has nowhere to live on
+// `document`: who sent it, for what trade, and how far through review it is.
+//
+// subName/trade are entered by the uploader rather than read off the
+// document. The AI can usually find both, but a wrong sub name silently
+// attributed to the wrong company is a worse failure than a required field.
+// ---------------------------------------------------------------------------
+
+export const subQuotes = pgTable(
+  "sub_quote",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => orgs.id, { onDelete: "cascade" }),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    documentId: uuid("document_id")
+      .notNull()
+      .references(() => documents.id, { onDelete: "cascade" }),
+    subName: text("sub_name").notNull(),
+    trade: text("trade").notNull(),
+    // The quote's bottom-line number. Nullable because plenty of real
+    // quotes price per item with no total printed anywhere, and because a
+    // handwritten total is exactly the figure we refuse to accept without
+    // someone confirming it (see totalAmountConfirmed).
+    totalAmount: numeric("total_amount", { precision: 14, scale: 2 }),
+    totalAmountConfirmed: boolean("total_amount_confirmed")
+      .notNull()
+      .default(false),
+    status: subQuoteStatusEnum("status").notNull().default("uploaded"),
+    uploadedBy: uuid("uploaded_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("sub_quote_org_id_idx").on(table.orgId),
+    index("sub_quote_project_id_idx").on(table.projectId),
+    // The comparison grid is built one trade at a time — this covers the
+    // "every quote for this project's paving package" read directly.
+    index("sub_quote_project_id_trade_idx").on(table.projectId, table.trade),
+    index("sub_quote_document_id_idx").on(table.documentId),
+    orgIsolationPolicy("sub_quote", table.orgId),
+  ],
+).enableRLS()
+
+export const subQuotesRelations = relations(subQuotes, ({ one, many }) => ({
+  org: one(orgs, { fields: [subQuotes.orgId], references: [orgs.id] }),
+  project: one(projects, {
+    fields: [subQuotes.projectId],
+    references: [projects.id],
+  }),
+  document: one(documents, {
+    fields: [subQuotes.documentId],
+    references: [documents.id],
+  }),
+  uploadedByUser: one(users, {
+    fields: [subQuotes.uploadedBy],
+    references: [users.id],
+  }),
+  conditions: many(quoteConditions),
+  lineItems: many(quoteLineItems),
+}))
+
+// ---------------------------------------------------------------------------
+// quote_condition — step 41. One condition the AI read off one sub quote.
+//
+// rawText is the load-bearing column, not a debugging nicety: it's the
+// verbatim sentence the condition came from, and it's what the review UI
+// highlights so an estimator can confirm a condition in three seconds
+// instead of hunting through a PDF. Without it the review step is slow
+// enough that people skip it, which is the failure mode the whole review
+// gate exists to prevent. Nothing here is trusted until isConfirmed.
+//
+// Deliberately no "absent" rows: a condition the quote doesn't mention
+// produces no row at all. Not-stated and excluded are different facts — a
+// sub who never mentions traffic control has not excluded it — and the
+// comparison grid has to be able to tell them apart, which it can't if the
+// extractor is allowed to write rows for things it didn't find.
+// ---------------------------------------------------------------------------
+
+export const quoteConditions = pgTable(
+  "quote_condition",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => orgs.id, { onDelete: "cascade" }),
+    subQuoteId: uuid("sub_quote_id")
+      .notNull()
+      .references(() => subQuotes.id, { onDelete: "cascade" }),
+    category: quoteConditionCategoryEnum("category").notNull(),
+    // Verbatim from the quote — never normalized, never re-worded.
+    rawText: text("raw_text").notNull(),
+    // The AI's reading of what rawText means in comparable terms (e.g. "2
+    // mobilizations included, $1,850 each"). Nullable: some conditions
+    // don't reduce to anything more useful than their own wording.
+    normalizedValue: text("normalized_value"),
+    sourcePage: integer("source_page"),
+    // [x0, y0, x1, y1] as fractions of the page, so the review UI can
+    // highlight the source text without knowing the render resolution.
+    boundingBox: jsonb("bounding_box").$type<[number, number, number, number]>(),
+    // 0-100, matching bid.extraction_confidence rather than a 0-1 scale.
+    confidence: numeric("confidence", { precision: 5, scale: 2 }),
+    // Why this row was surfaced to a human first. Null means it wasn't
+    // flagged — it still needs confirming, just not urgently.
+    flagReason: text("flag_reason"),
+    isConfirmed: boolean("is_confirmed").notNull().default(false),
+    confirmedBy: uuid("confirmed_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("quote_condition_org_id_idx").on(table.orgId),
+    index("quote_condition_sub_quote_id_idx").on(table.subQuoteId),
+    // The grid reads a whole trade's conditions and buckets them by
+    // category; this covers that without a per-row filter.
+    index("quote_condition_sub_quote_id_category_idx").on(
+      table.subQuoteId,
+      table.category,
+    ),
+    orgIsolationPolicy("quote_condition", table.orgId),
+  ],
+).enableRLS()
+
+export const quoteConditionsRelations = relations(quoteConditions, ({ one }) => ({
+  org: one(orgs, { fields: [quoteConditions.orgId], references: [orgs.id] }),
+  subQuote: one(subQuotes, {
+    fields: [quoteConditions.subQuoteId],
+    references: [subQuotes.id],
+  }),
+  confirmedByUser: one(users, {
+    fields: [quoteConditions.confirmedBy],
+    references: [users.id],
+  }),
+}))
+
+// ---------------------------------------------------------------------------
+// quote_line_item — step 41. A priced line off a sub quote.
+//
+// Written now, populated later: the conditions grid ships first, and true
+// line-by-line leveling is a later phase. `bidId` is the column that makes
+// that phase possible — mapping a sub's line onto the project's own bid
+// schedule is what lets several subs' quotes be compared row-for-row rather
+// than only condition-for-condition. It stays null until then, and null is
+// also the permanent answer for a line that has no counterpart on the form.
+//
+// isConfirmed carries the same meaning as on quote_condition, and matters
+// more here: these are the numbers that reach a bid tab. A handwritten
+// figure never counts as confirmed without someone clicking it.
+// ---------------------------------------------------------------------------
+
+export const quoteLineItems = pgTable(
+  "quote_line_item",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => orgs.id, { onDelete: "cascade" }),
+    subQuoteId: uuid("sub_quote_id")
+      .notNull()
+      .references(() => subQuotes.id, { onDelete: "cascade" }),
+    bidId: uuid("bid_id").references(() => bids.id, { onDelete: "set null" }),
+    description: text("description").notNull(),
+    quantity: numeric("quantity", { precision: 14, scale: 2 }),
+    unit: text("unit"),
+    unitPrice: numeric("unit_price", { precision: 14, scale: 2 }),
+    extendedPrice: numeric("extended_price", { precision: 14, scale: 2 }),
+    sourcePage: integer("source_page"),
+    // True when this line's numbers were read off handwriting. Drives the
+    // mandatory crop-and-confirm step — see docs for step 41. Kept as its
+    // own column rather than inferred from low confidence: a neatly written
+    // number can be read with high confidence and still must be confirmed.
+    isHandwritten: boolean("is_handwritten").notNull().default(false),
+    confidence: numeric("confidence", { precision: 5, scale: 2 }),
+    isConfirmed: boolean("is_confirmed").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("quote_line_item_org_id_idx").on(table.orgId),
+    index("quote_line_item_sub_quote_id_idx").on(table.subQuoteId),
+    index("quote_line_item_bid_id_idx").on(table.bidId),
+    orgIsolationPolicy("quote_line_item", table.orgId),
+  ],
+).enableRLS()
+
+export const quoteLineItemsRelations = relations(quoteLineItems, ({ one }) => ({
+  org: one(orgs, { fields: [quoteLineItems.orgId], references: [orgs.id] }),
+  subQuote: one(subQuotes, {
+    fields: [quoteLineItems.subQuoteId],
+    references: [subQuotes.id],
+  }),
+  bid: one(bids, { fields: [quoteLineItems.bidId], references: [bids.id] }),
 }))
 
 // ---------------------------------------------------------------------------

@@ -33,6 +33,31 @@ export type ExtractedBidItem = {
   notes?: string
 }
 
+/**
+ * One condition read off a subcontractor's quote (step 41), produced by
+ * worker/src/extract-quote-conditions.ts and mirrored there — same hand-sync
+ * rule as the two types above.
+ *
+ * `category` is the closed set in db/schema.ts's quoteConditionCategoryEnum;
+ * it's typed as a plain string here for the same reason the other two
+ * extracted types are loose about their enums — this is what came back
+ * across the wire from Claude, not something the DB has vouched for yet.
+ * The materialization step is what validates it against the enum.
+ *
+ * `rawText` is required and verbatim. An extracted condition without the
+ * sentence it came from can't be reviewed in the UI, so it can't be trusted,
+ * so there'd be no point storing it.
+ */
+export type ExtractedQuoteCondition = {
+  category: string
+  rawText: string
+  normalizedValue?: string
+  sourcePage?: number
+  boundingBox?: [number, number, number, number]
+  confidence?: number
+  flagReason?: string
+}
+
 export type GeneratedEstimateLine = {
   description: string
   quantity: string

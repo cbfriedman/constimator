@@ -29,14 +29,36 @@ export type ExtractedBidItem = {
   notes?: string
 }
 
+// One condition read off a subcontractor's quote (step 41). Mirrors
+// lib/cost-engine/types.ts's ExtractedQuoteCondition in the main app — same
+// hand-sync rule as the two types above.
+//
+// rawText is the verbatim sentence the condition came from, and it is
+// required: the review UI highlights it in the original document so a human
+// can confirm the condition at a glance, and a condition nobody can confirm
+// cheaply is one nobody confirms at all.
+export type ExtractedQuoteCondition = {
+  category: string
+  rawText: string
+  normalizedValue?: string
+  sourcePage?: number
+  boundingBox?: [number, number, number, number]
+  confidence?: number
+  flagReason?: string
+}
+
 // Shape written into takeoff_job.result on success. `kind` says which
-// extractor ran, and only one of items/bidItems is ever populated —
-// app/processing/actions.ts keys off that to decide whether a result should
+// extractor ran, and only one of items/bidItems/conditions is ever populated
+// — app/processing/actions.ts keys off that to decide whether a result should
 // feed the estimate (plan takeoff) or not (bid form, which is the *other*
 // side of the reconciliation and must never become the contractor's own
-// estimate lines).
+// estimate lines; and sub quotes, which are a third party's pricing and
+// belong to the leveling grid, not to this contractor's estimate either).
 export type TakeoffResult = {
-  kind?: "plan_takeoff" | "bid_form"
+  kind?: "plan_takeoff" | "bid_form" | "sub_quote"
   items?: ExtractedTakeoffItem[]
   bidItems?: ExtractedBidItem[]
+  conditions?: ExtractedQuoteCondition[]
+  quoteTotalAmount?: number
+  documentNotes?: string
 }

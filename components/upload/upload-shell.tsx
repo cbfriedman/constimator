@@ -12,6 +12,7 @@ import {
 import {
   DocumentsTable,
   type DocType,
+  type SelectableDocType,
   type UploadDoc,
 } from "@/components/upload/documents-table"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -24,6 +25,7 @@ import {
   requestDocumentUpload,
   updateDocumentType,
   type DbDocType,
+  type UploadableDocType,
 } from "@/app/upload/actions"
 
 const DB_TO_UI_TYPE: Record<DbDocType, DocType> = {
@@ -31,10 +33,14 @@ const DB_TO_UI_TYPE: Record<DbDocType, DocType> = {
   specifications: "Specifications",
   addendum: "Addendum",
   bid_form: "Official Bid Form",
+  sub_quote: "Sub Quote",
   other: "Supporting Document",
 }
 
-const UI_TO_DB_TYPE: Record<DocType, DbDocType> = {
+// Keyed on SelectableDocType, not DocType — "Sub Quote" is absent because
+// the picker can't produce it (see documents-table.tsx), and typing it this
+// way makes that a compile error rather than a dead entry.
+const UI_TO_DB_TYPE: Record<SelectableDocType, UploadableDocType> = {
   Plans: "plans",
   Specifications: "specifications",
   Addendum: "addendum",
@@ -188,7 +194,7 @@ export function UploadShell({
     Array.from(files).forEach(uploadFile)
   }
 
-  async function handleTypeChange(id: string, type: DocType) {
+  async function handleTypeChange(id: string, type: SelectableDocType) {
     const doc = docs.find((d) => d.id === id)
     setDocs((prev) => prev.map((d) => (d.id === id ? { ...d, type } : d)))
     if (doc?.status === "uploaded") {

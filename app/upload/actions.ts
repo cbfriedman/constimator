@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto"
 import { eq } from "drizzle-orm"
 import { z } from "zod"
 
-import { documents, projects } from "@/db/schema"
+import { documentTypeEnum, documents, projects } from "@/db/schema"
 import { captureEvent } from "@/lib/analytics"
 import { getScopedDb } from "@/lib/db/scoped"
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server"
@@ -20,8 +20,21 @@ const DOCUMENTS_BUCKET = "project-documents"
 const ALLOWED_MIME_TYPES = ["application/pdf"] as const
 const MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024
 
+// Every value document.type can hold, derived from the column's own enum so
+// the two can't drift. Use this to *read* a document's type.
+export type DbDocType = (typeof documentTypeEnum.enumValues)[number]
+
+// What this uploader is allowed to create or change a document into — a
+// deliberately narrower set than DbDocType, and an allowlist rather than a
+// denylist because both Server Actions below are separately callable (step
+// 30). "sub_quote" is absent on purpose: a sub quote needs the sub's name
+// and trade recorded alongside the file (see db/schema.ts's sub_quote), so
+// creating one through this generic project-documents path would leave a
+// document row with no sub_quote row behind it. Its own upload path owns
+// that. Excluding it here also stops an existing sub quote's document from
+// being retyped out from under its sub_quote row.
 const docTypeSchema = z.enum(["plans", "specifications", "bid_form", "addendum", "other"])
-export type DbDocType = z.infer<typeof docTypeSchema>
+export type UploadableDocType = z.infer<typeof docTypeSchema>
 
 const requestUploadSchema = z.object({
   projectId: uuidSchema,
@@ -86,7 +99,7 @@ export async function confirmDocumentUpload(rawInput: {
   fileName: string
   mimeType: string
   fileSizeBytes: number
-  type: DbDocType
+  type: UploadableDocType
 }) {
   const input = parseInput(confirmUploadSchema, rawInput)
   const scopedDb = await getScopedDb()
@@ -159,7 +172,7 @@ export async function confirmDocumentUpload(rawInput: {
   return document
 }
 
-export async function updateDocumentType(documentId: string, type: DbDocType) {
+export async function updateDocumentType(documentId: string, type: UploadableDocType) {
   const validDocumentId = parseInput(uuidSchema, documentId)
   const validType = parseInput(docTypeSchema, type)
   const scopedDb = await getScopedDb()
