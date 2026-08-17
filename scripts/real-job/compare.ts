@@ -434,13 +434,18 @@ async function main() {
       }
     }
 
+    if (!documentId) throw new Error("Pass --document <id> or --project <number>.")
+
     const [document] = await sql`
       select id, project_id, file_name, type, status
       from public.document
       where id = ${documentId} and org_id = ${org.id}
     `
     if (!document) throw new Error(`No document ${documentId} in org "${org.name}".`)
-    projectId = document.project_id
+    // The document is the source of truth for which project this is, even
+    // when --project named one: a document id from another project would
+    // otherwise be compared against the wrong project's bid rows.
+    projectId = document.project_id as string
 
     const [job] = await sql`
       select id, status, error, result

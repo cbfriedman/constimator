@@ -43,6 +43,18 @@ Uploads, queues, and waits for the job to finish, then prints the document id.
 defaults to `bid_form`; pass `--type plans` to exercise the plan-sheet takeoff
 path instead.
 
+### No document handy?
+
+`node scripts/real-job/make-sample.mjs` writes a synthetic Caltrans-style bid
+schedule to `pdfs/` plus its answer key to `expected/`. It exercises the
+things transcription actually trips on — a quoted inch mark, wrapped
+descriptions, thousands separators, a dashed lump-sum quantity, an additive
+alternate, and empty bidder-priced columns the extractor is told to ignore.
+
+It proves the pipeline runs; it proves nothing about accuracy on a real
+agency's form, since the answer key comes from the same source that drew the
+PDF. Use it to shake out plumbing, not to decide anything.
+
 ## 2. Write down the right answer
 
 A CSV of what's actually on the form. Headers are matched loosely
