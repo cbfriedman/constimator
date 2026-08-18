@@ -3,6 +3,7 @@ import { downloadDocument } from "./download-document.js"
 import { rasterizePdf } from "./rasterize.js"
 import { extractQuantities } from "./extract.js"
 import { extractBidForm } from "./extract-bid-form.js"
+import { extractQuoteConditions } from "./extract-quote-conditions.js"
 import { checkSpendCap, checkTakeoffRateLimit, formatUsd, recordAiUsage } from "./ai-limits.js"
 import { captureTakeoffCompleted } from "./analytics.js"
 import { logger } from "./logger.js"
@@ -27,6 +28,15 @@ async function failJob(job: ClaimedJob, message: string, error?: unknown): Promi
     update document set status = 'failed', updated_at = now()
     where id = ${job.document_id} and org_id = ${job.org_id}
   `
+  // Step 41. A no-op for every document that isn't a sub quote. sub_quote
+  // carries its own status because a document being "processed" and a quote
+  // being reviewed are different milestones (see db/schema.ts) — but a
+  // failure is a failure for both, and leaving the quote stuck on
+  // "extracting" would make a dead job look like a running one.
+  await sql`
+    update sub_quote set status = 'failed', updated_at = now()
+    where document_id = ${job.document_id} and org_id = ${job.org_id}
+  `
   logger.error(
     "Takeoff job failed",
     { jobId: job.id, orgId: job.org_id, documentId: job.document_id, reason: message },
@@ -39,7 +49,7 @@ export async function processJob(job: ClaimedJob) {
 
   try {
     const [document] = await sql`
-      select storage_bucket, storage_path, file_name, type
+      select storage_bucket, storage_path, file_name, type, mime_type
       from document
       where id = ${job.document_id} and org_id = ${job.org_id}
     `
@@ -89,25 +99,33 @@ export async function processJob(job: ClaimedJob) {
       update document set status = 'processing', updated_at = now()
       where id = ${job.document_id} and org_id = ${job.org_id}
     `
+    // No-op unless this document is a sub quote. Paired with the
+    // needs_review update after extraction and the failed update in
+    // failJob(), so a quote's status always reflects where it actually is.
+    await sql`
+      update sub_quote set status = 'extracting', updated_at = now()
+      where document_id = ${job.document_id} and org_id = ${job.org_id}
+    `
 
-    const pdfBytes = await downloadDocument(document.storage_bucket, document.storage_path)
+    const fileBytes = await downloadDocument(document.storage_bucket, document.storage_path)
 
-    // Step 40: which extractor runs is decided by the document's own type,
-    // set at upload time. A bid form is transcribed (the quantities are
-    // printed on it); everything else goes through the plan-sheet takeoff.
-    // The two write different fields of `result` — see types.ts — so a bid
-    // form's items can't be mistaken for extracted estimate quantities
-    // downstream.
-    const isBidForm = document.type === "bid_form"
+    // Step 40, extended in step 41: which extractor runs is decided by the
+    // document's own type, set at upload time. A bid form is transcribed (the
+    // quantities are printed on it), a sub quote is read for the conditions
+    // attached to its price, and everything else goes through the plan-sheet
+    // takeoff. Each writes a different field of `result` — see types.ts — so
+    // one kind's output can't be mistaken for another's downstream.
     let result: TakeoffResult
     let usage: { inputTokens: number; outputTokens: number }
     let itemCount: number
+    let usageKind: string
 
-    if (isBidForm) {
-      const extracted = await extractBidForm(pdfBytes)
+    if (document.type === "bid_form") {
+      const extracted = await extractBidForm(fileBytes)
       result = { kind: "bid_form", bidItems: extracted.items }
       usage = extracted.usage
       itemCount = extracted.items.length
+      usageKind = "bid_form_extraction"
       if (extracted.documentNotes) {
         logger.info("Bid form extraction notes", {
           jobId: job.id,
@@ -115,20 +133,42 @@ export async function processJob(job: ClaimedJob) {
           documentNotes: extracted.documentNotes,
         })
       }
+    } else if (document.type === "sub_quote") {
+      // The only extractor that takes a mime type: a sub quote is as likely
+      // to be a phone photo of a fax as a PDF, and the two need different
+      // content blocks. Falls back to PDF when mime_type is somehow null —
+      // the upload path always records one, and PDF is the safer guess for a
+      // document that got here without it.
+      const extracted = await extractQuoteConditions(
+        fileBytes,
+        document.mime_type ?? "application/pdf",
+      )
+      result = {
+        kind: "sub_quote",
+        conditions: extracted.conditions,
+        quoteTotalAmount: extracted.quoteTotalAmount,
+        documentNotes: extracted.documentNotes,
+      }
+      usage = extracted.usage
+      itemCount = extracted.conditions.length
+      usageKind = "quote_conditions_extraction"
+      if (extracted.documentNotes) {
+        logger.info("Sub quote extraction notes", {
+          jobId: job.id,
+          documentId: job.document_id,
+          documentNotes: extracted.documentNotes,
+        })
+      }
     } else {
-      const pages = await rasterizePdf(pdfBytes)
+      const pages = await rasterizePdf(fileBytes)
       const extracted = await extractQuantities(pages)
       result = { kind: "plan_takeoff", items: extracted.items }
       usage = extracted.usage
       itemCount = extracted.items.length
+      usageKind = "takeoff_extraction"
     }
 
-    await recordAiUsage(
-      job.org_id,
-      isBidForm ? "bid_form_extraction" : "takeoff_extraction",
-      usage.inputTokens,
-      usage.outputTokens,
-    )
+    await recordAiUsage(job.org_id, usageKind, usage.inputTokens, usage.outputTokens)
 
     await sql`
       update takeoff_job
@@ -138,6 +178,13 @@ export async function processJob(job: ClaimedJob) {
     await sql`
       update document set status = 'processed', updated_at = now()
       where id = ${job.document_id} and org_id = ${job.org_id}
+    `
+    // "needs_review", not "confirmed": extraction finishing is precisely the
+    // moment a human hasn't looked at it yet. Only the review screen moves a
+    // quote to confirmed. No-op for non-quote documents.
+    await sql`
+      update sub_quote set status = 'needs_review', updated_at = now()
+      where document_id = ${job.document_id} and org_id = ${job.org_id}
     `
     logger.info("Takeoff job complete", {
       jobId: job.id,

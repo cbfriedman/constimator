@@ -1,24 +1,29 @@
 "use server"
 
-import { randomUUID } from "node:crypto"
 
 import { eq } from "drizzle-orm"
 import { z } from "zod"
 
-import { documentTypeEnum, documents, projects } from "@/db/schema"
+import { documentTypeEnum, documents } from "@/db/schema"
 import { captureEvent } from "@/lib/analytics"
 import { getScopedDb } from "@/lib/db/scoped"
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server"
+import {
+  assertPathInOrg,
+  assertProjectInOrg,
+  createSignedDocumentUpload,
+  DOCUMENTS_BUCKET,
+  MAX_FILE_SIZE_BYTES,
+  PDF_MIME_TYPES,
+} from "@/lib/document-upload"
 import { queueTakeoffJob } from "@/lib/takeoff-queue"
 import { parseInput, uuidSchema } from "@/lib/validation"
 
-const DOCUMENTS_BUCKET = "project-documents"
-
-// Also enforced at the Supabase Storage bucket level (db/storage-setup.sql)
-// — checked here too so a rejected file gets a clean error message instead
-// of a raw Storage API failure, without spending a signed-URL round trip.
-const ALLOWED_MIME_TYPES = ["application/pdf"] as const
-const MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024
+// The bucket name, size cap, and both org checks live in
+// lib/document-upload.ts — shared with the sub-quote uploader (step 41) so
+// the two paths can't drift apart on the checks the step 30 security review
+// put there.
+const ALLOWED_MIME_TYPES = PDF_MIME_TYPES
 
 // Every value document.type can hold, derived from the column's own enum so
 // the two can't drift. Use this to *read* a document's type.
@@ -54,30 +59,9 @@ export async function requestDocumentUpload(rawInput: {
   mimeType: string
 }) {
   const input = parseInput(requestUploadSchema, rawInput)
-
   const scopedDb = await getScopedDb()
-  // Org isolation via getScopedDb() means this returns undefined for a
-  // project id from a different org, not another org's project.
-  const project = await scopedDb.projects.findFirst(
-    eq(projects.id, input.projectId),
-  )
-  if (!project) {
-    throw new Error("Project not found.")
-  }
 
-  const safeName = input.fileName.replace(/[^a-zA-Z0-9._-]/g, "_")
-  const path = `${scopedDb.orgId}/${input.projectId}/${randomUUID()}-${safeName}`
-
-  const supabase = await createSupabaseServerClient()
-  const { data, error } = await supabase.storage
-    .from(DOCUMENTS_BUCKET)
-    .createSignedUploadUrl(path)
-
-  if (error || !data) {
-    throw new Error(error?.message ?? "Could not prepare upload.")
-  }
-
-  return { signedUrl: data.signedUrl, path }
+  return createSignedDocumentUpload(scopedDb, input.projectId, input.fileName)
 }
 
 const confirmUploadSchema = z.object({
@@ -104,43 +88,12 @@ export async function confirmDocumentUpload(rawInput: {
   const input = parseInput(confirmUploadSchema, rawInput)
   const scopedDb = await getScopedDb()
 
-  // Found during the step 30 security review: requestDocumentUpload (just
-  // above) already checks this before handing back a signed upload URL,
-  // but confirmDocumentUpload is its own separately-callable Server
-  // Action — calling it directly with another org's project id, skipping
-  // requestDocumentUpload entirely, inserted a document row referencing
-  // that project via the foreign key. The row itself is still stamped
-  // with the caller's own org (documents.insert always does that), so
-  // nothing readable leaked — but it's a real cross-tenant reference an
-  // attacker could trigger, same class of bug as
-  // lib/current-project.ts's getOrCreateCurrentEstimate.
-  const project = await scopedDb.projects.findFirst(
-    eq(projects.id, input.projectId),
-  )
-  if (!project) {
-    throw new Error("Project not found.")
-  }
-
-  // Found during the step 30 security review, and the most serious issue
-  // it turned up: without this, an org could call confirmDocumentUpload
-  // directly with a `path` pointing at ANOTHER org's real storage object
-  // (Supabase Storage paths are predictable — "{org_id}/{project_id}/
-  // {uuid}-{filename}" — and reusing a previously-seen one is exactly the
-  // "reuse IDs" scenario this review was asked to test). The resulting
-  // document row would be stamped with the caller's own org (so nothing
-  // in *this* table leaks by itself), but worker/src/download-document.ts
-  // downloads whatever storage_path a queued job's document row says,
-  // using the service-role key — which bypasses Storage's own RLS
-  // entirely. That combination would let an attacker get the worker to
-  // download and AI-extract another org's real document and read the
-  // result back through their own account. Requiring the path to be
-  // under the caller's own org prefix closes this at the one point that
-  // actually creates the row, rather than trying to re-derive trust in
-  // the worker (which has no session to check against anyway).
-  const expectedPrefix = `${scopedDb.orgId}/`
-  if (!input.path.startsWith(expectedPrefix)) {
-    throw new Error("Storage path does not belong to your organization.")
-  }
+  // Both re-checked here even though requestDocumentUpload already checked
+  // them: this is its own separately-callable Server Action, reachable
+  // without ever going through the request step. See lib/document-upload.ts
+  // for what each one prevents.
+  await assertProjectInOrg(scopedDb, input.projectId)
+  assertPathInOrg(scopedDb, input.path)
 
   const [document] = await scopedDb.documents.insert({
     projectId: input.projectId,

@@ -30,7 +30,15 @@ function getPostHogClient(): PostHog | null {
 // see components/reports/reports-shell.tsx). A union rather than a bare
 // string so a typo in an event name is a type error, not a silently
 // missing event in PostHog.
-type AnalyticsEvent = "project_created" | "document_uploaded" | "reconciliation_computed"
+type AnalyticsEvent =
+  | "project_created"
+  | "document_uploaded"
+  | "reconciliation_computed"
+  // Step 41. Kept distinct from document_uploaded even though a sub quote is
+  // also a document — the question these answer is different ("how many subs
+  // is a prime actually comparing?" vs "how many project documents were
+  // uploaded?"), and merging them would make both unanswerable.
+  | "sub_quote_uploaded"
 
 /**
  * Fires a product analytics event tied to a real user, grouped by org

@@ -14,8 +14,11 @@ import {
   invites,
   orgs,
   projects,
+  quoteConditions,
+  quoteLineItems,
   reconciliationItems,
   reviewRequests,
+  subQuotes,
   takeoffJobs,
   users,
 } from "@/db/schema"
@@ -199,5 +202,8 @@ export const getScopedDb = cache(async function getScopedDb() {
     aiUsageEvents: orgScoped(aiUsageEvents, aiUsageEvents.orgId, orgId),
     invites: orgScoped(invites, invites.orgId, orgId),
     reviewRequests: orgScoped(reviewRequests, reviewRequests.orgId, orgId),
+    subQuotes: orgScoped(subQuotes, subQuotes.orgId, orgId),
+    quoteConditions: orgScoped(quoteConditions, quoteConditions.orgId, orgId),
+    quoteLineItems: orgScoped(quoteLineItems, quoteLineItems.orgId, orgId),
   }
 })

@@ -4,12 +4,26 @@
 -- from that migration. Not managed by Drizzle: storage.buckets/storage.objects
 -- are Supabase-owned tables outside our schema.ts.
 
--- PDF-only, 500 MB cap — enforced by Supabase Storage itself at the API
--- level, not just in application code (defense in depth: the client and the
--- upload-request Server Action both also check this before ever asking for
--- a signed URL, but a client can be bypassed; this can't).
+-- 500 MB cap and a MIME allowlist — enforced by Supabase Storage itself at
+-- the API level, not just in application code (defense in depth: the client
+-- and the upload-request Server Action both also check this before ever
+-- asking for a signed URL, but a client can be bypassed; this can't).
+--
+-- Step 41 widened this beyond PDF. Project documents (plans, specs, bid
+-- forms) are still PDF-only in application code — see PDF_MIME_TYPES in
+-- lib/document-upload.ts — but sub quotes arrive as phone photos of faxed
+-- pages at least as often as PDFs, so JPEG and PNG have to be accepted by
+-- the bucket. The bucket can only express one allowlist for all of its
+-- objects, so the narrower per-kind rules stay in the Server Actions; this
+-- is the outer bound, not the whole policy.
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('project-documents', 'project-documents', false, 524288000, array['application/pdf'])
+values (
+  'project-documents',
+  'project-documents',
+  false,
+  524288000,
+  array['application/pdf', 'image/jpeg', 'image/png']
+)
 on conflict (id) do update set
   file_size_limit = excluded.file_size_limit,
   allowed_mime_types = excluded.allowed_mime_types;
