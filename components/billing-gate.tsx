@@ -57,8 +57,8 @@ export function BillingGate({ children }: { children: React.ReactNode }) {
           <EmptyTitle>Subscribe to continue</EmptyTitle>
           <EmptyDescription>
             {trialEndedLabel
-              ? `Your free trial ended ${trialEndedLabel}. Subscribe to keep using Constimator's estimating workspace.`
-              : "Subscribe to keep using Constimator's estimating workspace."}
+              ? `Your free trial ended ${trialEndedLabel}. Subscribe to keep using Constimator's estimating workspace. Checkout accepts cards and Google Pay.`
+              : "Subscribe to keep using Constimator's estimating workspace. Checkout accepts cards and Google Pay."}
           </EmptyDescription>
         </EmptyHeader>
         <form action={createCheckoutSessionAction}>

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation"
 
 import { getAppOrigin } from "@/lib/app-url"
 import { getScopedDb } from "@/lib/db/scoped"
-import { getSeatPriceId, getStripe } from "@/lib/stripe"
+import { CHECKOUT_PAYMENT_METHOD_TYPES, getSeatPriceId, getStripe } from "@/lib/stripe"
 
 // Gets (or lazily creates) this org's Stripe Customer. Stored on the org
 // row so every future Checkout/portal session reuses the same customer
@@ -54,6 +54,7 @@ export async function createCheckoutSessionAction() {
     mode: "subscription",
     customer: customerId,
     client_reference_id: scopedDb.orgId,
+    payment_method_types: [...CHECKOUT_PAYMENT_METHOD_TYPES],
     line_items: [{ price: getSeatPriceId(), quantity: Math.max(1, users.length) }],
     subscription_data: { metadata: { orgId: scopedDb.orgId } },
     success_url: `${origin}/billing?checkout=success`,

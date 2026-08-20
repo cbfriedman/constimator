@@ -34,3 +34,10 @@ export function getSeatPriceId(): string {
   }
   return priceId
 }
+
+// Cards on hosted Subscribe Checkout. Google Pay (and Apple Pay) are
+// Stripe card wallets — they show on Checkout automatically when `card`
+// is enabled; there is no separate `google_pay` payment_method_type.
+// Venmo is not a Stripe method. Cash App Pay is not in this list so
+// Subscribe does not depend on that Dashboard toggle.
+export const CHECKOUT_PAYMENT_METHOD_TYPES = ["card"] as const

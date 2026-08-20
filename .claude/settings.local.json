@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(git clone --branch main https://github.com/cbfriedman/constimator.git \"e:\\\\Angrybird_________work\\\\project\\\\Coby\\\\Constimator\")",
+      "PowerShell(cmd /c dir /a \"e:\\\\Angrybird_________work\\\\project\\\\Coby\\\\Constimator\")"
+    ]
+  }
+}

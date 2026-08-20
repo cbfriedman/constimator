@@ -78,6 +78,11 @@ export default async function BillingPage() {
             </p>
           ) : null}
 
+          <p className="text-sm text-muted-foreground">
+            Checkout accepts cards and Google Pay. Recurring charges use
+            the method you authorize there.
+          </p>
+
           <div className="flex gap-3 border-t pt-4">
             {hasStripeAccount ? (
               <form action={createBillingPortalSessionAction}>
