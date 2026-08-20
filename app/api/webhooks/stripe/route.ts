@@ -48,8 +48,32 @@ async function findOrgIdForSubscription(
   return org?.id ?? null
 }
 
-async function syncSubscription(subscription: Stripe.Subscription): Promise<void> {
+async function syncSubscription(eventSubscription: Stripe.Subscription): Promise<void> {
   const db = getSystemDb()
+
+  // Stripe does not guarantee webhook delivery order, and this handler
+  // writes subscription status straight into the org row. A delayed
+  // customer.subscription.updated arriving after a newer one would happily
+  // regress a live subscription back to a stale status — a customer who
+  // just paid getting locked out, or a cancelled one keeping access.
+  //
+  // Rather than track per-event timestamps, re-read the subscription from
+  // Stripe and write *that*. Events then act purely as a signal that
+  // something changed; whichever order they arrive in, both converge on the
+  // same current truth. Stripe recommends this for exactly this reason.
+  let subscription = eventSubscription
+  try {
+    subscription = await getStripe().subscriptions.retrieve(eventSubscription.id)
+  } catch (err) {
+    // Falling back to the event payload is still better than dropping the
+    // event — it's the same data Stripe sent, just possibly stale.
+    logger.error(
+      "Could not re-read subscription from Stripe; falling back to the event payload",
+      { subscriptionId: eventSubscription.id },
+      err,
+    )
+  }
+
   const orgId = await findOrgIdForSubscription(db, subscription)
   if (!orgId) {
     logger.error("Stripe subscription webhook: no matching org", {

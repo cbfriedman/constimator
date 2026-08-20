@@ -94,8 +94,18 @@ function orgScoped<T extends PgTable>(
   const withScope = (extra?: SQL) => (extra ? and(scope, extra) : scope)
 
   return {
-    findMany: (extra?: SQL): Promise<Row[]> =>
-      db.select().from(anyTable).where(withScope(extra)) as Promise<Row[]>,
+    // opts is for reads that only ever want the newest N rows (the
+    // dashboard's activity feed, most obviously). Without it the only way
+    // to get "the 5 most recent" was to select every row the org has ever
+    // written and sort in JS — which is how /reconciliation and /reports
+    // took production down once already (docs/DATABASE-POOLING.md). The
+    // org scope is applied identically either way; opts only bounds the
+    // result set.
+    findMany: (extra?: SQL, opts?: { orderBy?: SQL; limit?: number }): Promise<Row[]> => {
+      const query = db.select().from(anyTable).where(withScope(extra))
+      const ordered = opts?.orderBy ? query.orderBy(opts.orderBy) : query
+      return (opts?.limit ? ordered.limit(opts.limit) : ordered) as Promise<Row[]>
+    },
 
     findFirst: async (extra?: SQL): Promise<Row | undefined> => {
       const rows = (await db
@@ -184,6 +194,14 @@ export const getScopedDb = cache(async function getScopedDb() {
           .where(eq(orgs.id, orgId))
           .returning()
         return row
+      },
+      // Deletes the caller's own org and, by cascade, every row that
+      // belongs to it. Takes no arguments on purpose: there is exactly one
+      // org a caller may ever delete, and it isn't one they can name.
+      // Only app/settings/actions.ts's deleteOrgAction calls this, behind
+      // an admin check and a typed confirmation.
+      delete: async () => {
+        await db.delete(orgs).where(eq(orgs.id, orgId))
       },
     },
     users: orgScoped(users, users.orgId, orgId),

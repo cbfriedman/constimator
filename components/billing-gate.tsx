@@ -1,9 +1,9 @@
 "use client"
 
+import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { CreditCard } from "lucide-react"
 
-import { createCheckoutSessionAction } from "@/app/billing/actions"
 import { Button } from "@/components/ui/button"
 import {
   Empty,
@@ -57,16 +57,19 @@ export function BillingGate({ children }: { children: React.ReactNode }) {
           <EmptyTitle>Subscribe to continue</EmptyTitle>
           <EmptyDescription>
             {trialEndedLabel
-              ? `Your free trial ended ${trialEndedLabel}. Subscribe to keep using Constimator's estimating workspace. Checkout accepts cards and Google Pay.`
-              : "Subscribe to keep using Constimator's estimating workspace. Checkout accepts cards and Google Pay."}
+              ? `Your free trial ended ${trialEndedLabel}. Constimator is billed per user — see your seat count and price on the billing page.`
+              : "Constimator is billed per user — see your seat count and price on the billing page."}
           </EmptyDescription>
         </EmptyHeader>
-        <form action={createCheckoutSessionAction}>
-          <Button type="submit">
-            <CreditCard data-icon="inline-start" />
-            Subscribe
-          </Button>
-        </form>
+        {/* Sends the user to /billing rather than straight into Stripe
+            Checkout. Going direct meant the first time anyone saw a price
+            was on Stripe's hosted page, after they'd already committed —
+            /billing now shows seat count, price per seat, and the total
+            first. */}
+        <Button render={<Link href="/billing" />}>
+          <CreditCard data-icon="inline-start" />
+          See pricing and subscribe
+        </Button>
       </Empty>
     </div>
   )

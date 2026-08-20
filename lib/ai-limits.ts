@@ -10,20 +10,47 @@ import { logger } from "@/lib/logger"
 
 type ScopedDb = Awaited<ReturnType<typeof getScopedDb>>
 
-// Placeholder pricing — verify against Anthropic's published rate for
-// whichever model worker/src/extract.ts actually calls (TAKEOFF_MODEL)
-// before relying on this for real billing decisions; it's an estimate used
-// to enforce the spend cap, not an invoice. Duplicated in
-// worker/src/ai-limits.ts, which is where it's actually applied (the
-// worker is the one making the paid call) — the worker can't import from
-// this app's lib/, see worker/README.md. Keep the two numbers in sync.
-export const INPUT_COST_PER_MILLION_TOKENS_USD = 3
-export const OUTPUT_COST_PER_MILLION_TOKENS_USD = 15
+// Published Anthropic list prices, USD per million tokens. Duplicated in
+// worker/src/ai-limits.ts, which is where it's actually applied (the worker
+// is the one making the paid call) — the worker can't import from this
+// app's lib/, see worker/README.md. Keep the two tables in sync.
+//
+// This was a single hardcoded $3/$15 pair applied to every call regardless
+// of model: right for Claude Sonnet 5, wrong for the Claude Opus 5 that
+// worker/src/extract-quote-conditions.ts uses, which bills $5/$25. Since
+// all three extractors record through the same code path, the spend cap
+// undercounted quote extraction by about 40%.
+type ModelPricing = { inputPerMillionUsd: number; outputPerMillionUsd: number }
 
-export function estimateCostUsd(inputTokens: number, outputTokens: number): number {
+const MODEL_PRICING: Record<string, ModelPricing> = {
+  "claude-fable-5": { inputPerMillionUsd: 10, outputPerMillionUsd: 50 },
+  "claude-opus-5": { inputPerMillionUsd: 5, outputPerMillionUsd: 25 },
+  "claude-opus-4-8": { inputPerMillionUsd: 5, outputPerMillionUsd: 25 },
+  "claude-opus-4-7": { inputPerMillionUsd: 5, outputPerMillionUsd: 25 },
+  "claude-opus-4-6": { inputPerMillionUsd: 5, outputPerMillionUsd: 25 },
+  "claude-sonnet-5": { inputPerMillionUsd: 3, outputPerMillionUsd: 15 },
+  "claude-sonnet-4-6": { inputPerMillionUsd: 3, outputPerMillionUsd: 15 },
+  "claude-haiku-4-5": { inputPerMillionUsd: 1, outputPerMillionUsd: 5 },
+}
+
+// An unrecognised model id is priced at the highest rate this table knows.
+// The cap exists to bound spend, and assuming an unknown model is cheap is
+// exactly how a cap stops protecting anything.
+const UNKNOWN_MODEL_PRICING: ModelPricing = { inputPerMillionUsd: 10, outputPerMillionUsd: 50 }
+
+export function pricingFor(model: string): ModelPricing {
+  return MODEL_PRICING[model] ?? UNKNOWN_MODEL_PRICING
+}
+
+export function estimateCostUsd(
+  model: string,
+  inputTokens: number,
+  outputTokens: number,
+): number {
+  const pricing = pricingFor(model)
   return (
-    (inputTokens / 1_000_000) * INPUT_COST_PER_MILLION_TOKENS_USD +
-    (outputTokens / 1_000_000) * OUTPUT_COST_PER_MILLION_TOKENS_USD
+    (inputTokens / 1_000_000) * pricing.inputPerMillionUsd +
+    (outputTokens / 1_000_000) * pricing.outputPerMillionUsd
   )
 }
 

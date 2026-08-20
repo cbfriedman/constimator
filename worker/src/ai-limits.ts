@@ -9,17 +9,49 @@ import { logger } from "./logger.js"
 // worker/README.md for why it's isolated). Keep both copies' pricing,
 // rate-limit window, and Redis key prefix in sync by hand.
 
-// Placeholder pricing — verify against Anthropic's published rate for
-// TAKEOFF_MODEL (see extract.ts) before relying on this for real billing
-// decisions; it's an estimate used to enforce the spend cap, not an
-// invoice.
-const INPUT_COST_PER_MILLION_TOKENS_USD = 3
-const OUTPUT_COST_PER_MILLION_TOKENS_USD = 15
+// Published Anthropic list prices, USD per million tokens. This used to be
+// a single hardcoded $3/$15 pair applied to every call regardless of model
+// — correct for Claude Sonnet 5 (extract.ts, extract-bid-form.ts) but not
+// for Claude Opus 5, which extract-quote-conditions.ts uses and which bills
+// $5/$25. Every extractor reports through recordAiUsage below, so an org
+// capped at $50 could run roughly $83 of real spend on quote-heavy work.
+//
+// Still an estimate rather than an invoice: it ignores prompt-cache
+// discounts (which only make real spend lower, never higher) and any
+// promotional rate. It exists to bound spend, so every ambiguity is
+// resolved in the direction of over-counting.
+type ModelPricing = { inputPerMillionUsd: number; outputPerMillionUsd: number }
 
-export function estimateCostUsd(inputTokens: number, outputTokens: number): number {
+const MODEL_PRICING: Record<string, ModelPricing> = {
+  "claude-fable-5": { inputPerMillionUsd: 10, outputPerMillionUsd: 50 },
+  "claude-opus-5": { inputPerMillionUsd: 5, outputPerMillionUsd: 25 },
+  "claude-opus-4-8": { inputPerMillionUsd: 5, outputPerMillionUsd: 25 },
+  "claude-opus-4-7": { inputPerMillionUsd: 5, outputPerMillionUsd: 25 },
+  "claude-opus-4-6": { inputPerMillionUsd: 5, outputPerMillionUsd: 25 },
+  "claude-sonnet-5": { inputPerMillionUsd: 3, outputPerMillionUsd: 15 },
+  "claude-sonnet-4-6": { inputPerMillionUsd: 3, outputPerMillionUsd: 15 },
+  "claude-haiku-4-5": { inputPerMillionUsd: 1, outputPerMillionUsd: 5 },
+}
+
+// An unrecognised model id means someone set TAKEOFF_MODEL/QUOTE_MODEL to
+// something this table doesn't know — most likely a newer model. Charging
+// it at the highest rate we know about keeps the cap protective, since the
+// alternative (assume it's cheap) is how a cap silently stops working.
+const UNKNOWN_MODEL_PRICING: ModelPricing = { inputPerMillionUsd: 10, outputPerMillionUsd: 50 }
+
+export function pricingFor(model: string): ModelPricing {
+  return MODEL_PRICING[model] ?? UNKNOWN_MODEL_PRICING
+}
+
+export function estimateCostUsd(
+  model: string,
+  inputTokens: number,
+  outputTokens: number,
+): number {
+  const pricing = pricingFor(model)
   return (
-    (inputTokens / 1_000_000) * INPUT_COST_PER_MILLION_TOKENS_USD +
-    (outputTokens / 1_000_000) * OUTPUT_COST_PER_MILLION_TOKENS_USD
+    (inputTokens / 1_000_000) * pricing.inputPerMillionUsd +
+    (outputTokens / 1_000_000) * pricing.outputPerMillionUsd
   )
 }
 
@@ -91,10 +123,14 @@ export async function checkSpendCap(orgId: string): Promise<SpendCapStatus> {
 export async function recordAiUsage(
   orgId: string,
   kind: string,
+  model: string,
   inputTokens: number,
   outputTokens: number,
 ): Promise<void> {
-  const estimatedCostUsd = estimateCostUsd(inputTokens, outputTokens)
+  const estimatedCostUsd = estimateCostUsd(model, inputTokens, outputTokens)
+  if (!MODEL_PRICING[model]) {
+    logger.warn("Unknown model priced at the highest known rate", { model, kind, orgId })
+  }
   await sql`
     insert into ai_usage_event (org_id, kind, input_tokens, output_tokens, estimated_cost_usd)
     values (${orgId}, ${kind}, ${inputTokens}, ${outputTokens}, ${estimatedCostUsd})

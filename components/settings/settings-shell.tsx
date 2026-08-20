@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Field, FieldGroup, FieldLabel, FieldDescription } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { DeleteOrgCard } from "@/components/settings/delete-org-card"
 import { ProjectHeader } from "@/components/project-header"
 
 const ROLE_LABELS: Record<string, string> = {
@@ -159,6 +160,10 @@ export function SettingsShell({
           </form>
         </CardContent>
       </Card>
+
+      {/* Admin-only: deleting the company removes every member's data, not
+          just the person clicking. Same requireAdmin check on the server. */}
+      {isAdmin ? <DeleteOrgCard orgName={org.name} /> : null}
     </div>
   )
 }

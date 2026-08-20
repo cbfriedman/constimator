@@ -24,6 +24,13 @@ magic numbers in one file:
 | Takeoff job queue staleness | No `takeoff_job` row sits in `queued`/`running` for more than 15 minutes | `lib/health-check.ts` |
 | Time to first alert on an outage | ≤ 5 minutes after the worker/queue actually goes unhealthy (Vercel Cron cadence — see caveat below) | `vercel.json` + `app/api/cron/uptime-check` |
 | Stripe webhook processing errors | Zero tolerated silently — every failure path already calls `logger.error` (→ Sentry) | `app/api/webhooks/stripe/route.ts` (step 31) |
+| Deployment configuration | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `DATABASE_URL` are set to real values, not `.env.example`'s placeholders | `lib/health-check.ts` |
+
+The configuration check exists because a deployment can build and serve
+pages with every credential still set to placeholder text — the app only
+fails later, at the first database call, in a way that reads like an
+outage rather than a misconfiguration. The health response reports variable
+*names* only, never values; it's polled by an external monitor.
 
 ## How alerting actually fires
 

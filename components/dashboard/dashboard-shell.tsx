@@ -19,7 +19,8 @@ import { ProjectsTable } from "@/components/dashboard/projects-table"
 import { BidDeadlines } from "@/components/dashboard/bid-deadlines"
 import { RecentActivity } from "@/components/dashboard/recent-activity"
 import { useProjectState } from "@/components/project-state-provider"
-import { recentActivity, type DashboardProject } from "@/lib/mock-data"
+import type { ActivityItem } from "@/lib/activity"
+import type { DashboardProject } from "@/lib/mock-data"
 
 // engineersEstimate/deadlineDate arrive pre-formatted (lib/projects.ts) —
 // parse back out just enough to total and sort them here.
@@ -55,9 +56,11 @@ function DashboardHeader() {
 function DashboardContent({
   projects,
   currentProjectId,
+  activity,
 }: {
   projects: DashboardProject[]
   currentProjectId: string | null
+  activity: ActivityItem[]
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -166,7 +169,7 @@ function DashboardContent({
             onProjectClick={handleProjectClick}
             onNewProject={() => router.push("/new-project")}
           />
-          <RecentActivity items={recentActivity} />
+          <RecentActivity items={activity} />
         </div>
         <div className="flex flex-col gap-6 lg:col-span-1">
           <BidDeadlines projects={projects} />
@@ -179,15 +182,18 @@ function DashboardContent({
 export function DashboardShell({
   projects,
   currentProjectId,
+  activity,
 }: {
   projects: DashboardProject[]
   currentProjectId: string | null
+  activity: ActivityItem[]
 }) {
   return (
     <Suspense fallback={null}>
       <DashboardContent
         projects={projects}
         currentProjectId={currentProjectId}
+        activity={activity}
       />
     </Suspense>
   )

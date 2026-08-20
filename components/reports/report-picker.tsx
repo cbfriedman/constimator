@@ -51,6 +51,16 @@ export function ReportPicker({
                     Recommended
                   </Badge>
                 ) : null}
+                {/* Only estimate-summary and reconciliation have real data
+                    and a real exporter behind them (lib/report-export.ts).
+                    The list used to present all eight identically, so the
+                    first sign a report wasn't finished was an error toast
+                    after clicking Export. */}
+                {!report.hasPreview ? (
+                  <Badge className="border-transparent bg-muted text-muted-foreground">
+                    Coming soon
+                  </Badge>
+                ) : null}
               </div>
               <span className="text-xs text-muted-foreground">
                 {report.description}

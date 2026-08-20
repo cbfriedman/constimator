@@ -62,5 +62,29 @@ export async function queueTakeoffJob(
     })
   } catch (err) {
     logger.error("Failed to queue takeoff job", { documentId }, err)
+
+    // Every deliberate rejection above writes a `failed` job row carrying a
+    // message the user can actually read on /processing. An unexpected
+    // throw used to write nothing at all, so the document sat with no job
+    // and no explanation — indistinguishable, from the contractor's side,
+    // from a queue that was merely slow. On a bid deadline that's the worst
+    // possible failure mode, so record it the same way as the rest.
+    try {
+      await scopedDb.takeoffJobs.insert({
+        documentId,
+        status: "failed",
+        error:
+          "Something went wrong starting AI processing for this document. Try again, or contact support if it keeps happening — you can still build your estimate manually in the meantime.",
+      })
+    } catch (insertErr) {
+      // The database itself is the most likely reason we got here, so this
+      // second write can fail too. Nothing left to do but make sure it's
+      // visible.
+      logger.error(
+        "Failed to record a failed takeoff job after a queue error",
+        { documentId },
+        insertErr,
+      )
+    }
   }
 }

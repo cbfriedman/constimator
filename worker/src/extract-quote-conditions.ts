@@ -129,7 +129,7 @@ export type QuoteConditionsExtractResult = {
   quoteTotalAmount?: number
   totalIsHandwritten?: boolean
   documentNotes?: string
-  usage: { inputTokens: number; outputTokens: number }
+  usage: { model: string; inputTokens: number; outputTokens: number }
 }
 
 const IMAGE_MEDIA_TYPES = ["image/jpeg", "image/png"] as const
@@ -246,6 +246,7 @@ export async function extractQuoteConditions(
     totalIsHandwritten: input.totalIsHandwritten,
     documentNotes: input.documentNotes,
     usage: {
+      model: MODEL,
       inputTokens: response.usage.input_tokens,
       outputTokens: response.usage.output_tokens,
     },

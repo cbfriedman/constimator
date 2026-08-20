@@ -52,22 +52,42 @@ Vercel Analytics and PostHog for product usage analytics).
 
 ## Requesting deletion
 
-There's no self-service "delete my account" button in the product yet.
-Until there is, contact us directly and we'll delete your data by hand:
+**Self-service (whole account).** An org admin can delete the organization
+and everything in it from **Settings → Delete this company**
+(`deleteOrgAction` in [app/settings/actions.ts](../app/settings/actions.ts)).
+It runs immediately, requires typing the company name to confirm, and
+deletes in this order:
+
+1. Every uploaded document in Supabase Storage under the org's `{orgId}/`
+   prefix.
+2. Every member's Supabase Auth user — `public.user.id` cascades from
+   `auth.users`, so this removes membership rows too.
+3. The `org` row, which cascades every remaining project, document,
+   estimate, bid, and reconciliation row (see `db/schema.ts`'s
+   `onDelete: "cascade"` foreign keys).
+
+Each step is idempotent, so a partial failure can be retried by running it
+again. Deleting the account does **not** cancel Stripe billing — that's
+done separately under Billing, and the UI says so.
+
+**By request (anything narrower).** For a copy of your data, a correction,
+or deletion of specific projects/documents rather than the whole account:
 
 - **Email:** support@constimator.com
 - **What to include:** your org name and the email address on the account,
-  and whether you want the whole account closed or specific
-  projects/documents removed.
+  and what specifically you want removed.
 - **What happens:** we confirm the request, delete the specified data
-  (or the full account) within 30 days, and confirm back to you when it's
-  done.
+  within 30 days, and confirm back to you when it's done.
 
 ## Open items before this is a real, published policy
 
-- Legal review of the language and timelines above.
-- A real support contact address.
-- Self-service deletion in-app, so this doesn't stay a manual process.
+- Legal review of the language and timelines above. **Still outstanding —
+  this is the remaining blocker on the published Privacy Policy and Terms.**
+- A real, monitored support contact address. `support@constimator.com`
+  appears in the Privacy Policy, the Terms, the spend-cap alert email, and
+  the pricing page; confirm it's monitored before launch.
+- ~~Self-service deletion in-app, so this doesn't stay a manual process.~~
+  Done — see above.
 - Confirming and stating the exact backup retention window once the
   Supabase project's backup configuration is verified (see the note on
   this in the step 29 summary — not yet confirmed as of this writing).

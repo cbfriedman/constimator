@@ -77,7 +77,7 @@ const TOOL = {
 export type BidFormExtractResult = {
   items: ExtractedBidItem[]
   documentNotes?: string
-  usage: { inputTokens: number; outputTokens: number }
+  usage: { model: string; inputTokens: number; outputTokens: number }
 }
 
 export async function extractBidForm(pdfBytes: Buffer): Promise<BidFormExtractResult> {
@@ -131,6 +131,7 @@ export async function extractBidForm(pdfBytes: Buffer): Promise<BidFormExtractRe
     items: input.items,
     documentNotes: input.documentNotes,
     usage: {
+      model: MODEL,
       inputTokens: response.usage.input_tokens,
       outputTokens: response.usage.output_tokens,
     },

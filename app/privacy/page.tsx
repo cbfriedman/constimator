@@ -139,9 +139,18 @@ export default function PrivacyPage() {
       <h2>6. Your Rights and Choices</h2>
       <p>
         You can access and correct most of your information directly in
-        the app. To request a copy of your data, correct something you
-        can&apos;t fix yourself, or delete your account or specific
-        projects/documents, email us at{" "}
+        the app. You can also delete your organization and everything in it
+        yourself, at any time, from <strong>Settings → Delete this company</strong>
+        — that permanently removes every project, uploaded document, estimate,
+        and reconciliation belonging to your organization, along with every
+        team member&apos;s account. It takes effect immediately rather than
+        going through us; only encrypted database backups retain anything
+        afterward, and those age out on the schedule described in Section 5.
+      </p>
+      <p>
+        To request a copy of your data, correct something you can&apos;t fix
+        yourself, or delete individual projects or documents rather than the
+        whole account, email us at{" "}
         <strong>support@constimator.com</strong>{" "}
         with your organization name and account email. We&apos;ll confirm your
         request and complete it within 30 days. Depending on where you

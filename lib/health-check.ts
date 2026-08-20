@@ -30,6 +30,37 @@ export type HealthStatus = {
     healthy: boolean
     stuckJobCount: number
   }
+  config: {
+    healthy: boolean
+    /** Names only — never values. This response is reachable by an external uptime monitor. */
+    placeholderVars: string[]
+  }
+}
+
+// Environment variables whose value is required for the product to work at
+// all, checked here because a deployment can start, build, and serve pages
+// with every one of them still set to the literal placeholder text from
+// .env.example. That is not hypothetical: the working copy this check was
+// added to had a .env.local byte-identical to .env.example, which meant
+// nothing could run and nothing said so.
+//
+// Names only in the output — this endpoint is meant to be polled by an
+// external monitor, so it must never echo a value back.
+const REQUIRED_CONFIG_VARS = [
+  "NEXT_PUBLIC_SUPABASE_URL",
+  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  "DATABASE_URL",
+] as const
+
+// Substrings that only ever appear in .env.example's illustrative values.
+const PLACEHOLDER_MARKERS = ["YOUR_PROJECT_REF", "YOUR_PASSWORD", "YOUR_REGION", "your_anon_key"]
+
+function findPlaceholderConfig(): string[] {
+  return REQUIRED_CONFIG_VARS.filter((name) => {
+    const value = process.env[name]
+    if (!value) return true
+    return PLACEHOLDER_MARKERS.some((marker) => value.includes(marker))
+  })
 }
 
 // Aggregate counts only — never per-org detail. There's no "current org"
@@ -57,8 +88,11 @@ export async function getHealthStatus(): Promise<HealthStatus> {
     )
   const queueHealthy = stuckJobs.length === 0
 
+  const placeholderVars = findPlaceholderConfig()
+  const configHealthy = placeholderVars.length === 0
+
   return {
-    status: workerHealthy && queueHealthy ? "ok" : "degraded",
+    status: workerHealthy && queueHealthy && configHealthy ? "ok" : "degraded",
     worker: {
       healthy: workerHealthy,
       lastPolledAt: heartbeat?.lastPolledAt.toISOString() ?? null,
@@ -67,6 +101,10 @@ export async function getHealthStatus(): Promise<HealthStatus> {
     queue: {
       healthy: queueHealthy,
       stuckJobCount: stuckJobs.length,
+    },
+    config: {
+      healthy: configHealthy,
+      placeholderVars,
     },
   }
 }

@@ -54,7 +54,7 @@ const TOOL = {
 
 export type ExtractResult = {
   items: ExtractedTakeoffItem[]
-  usage: { inputTokens: number; outputTokens: number }
+  usage: { model: string; inputTokens: number; outputTokens: number }
 }
 
 export async function extractQuantities(pages: RasterizedPage[]): Promise<ExtractResult> {
@@ -105,6 +105,7 @@ export async function extractQuantities(pages: RasterizedPage[]): Promise<Extrac
   return {
     items: input.items,
     usage: {
+      model: MODEL,
       inputTokens: response.usage.input_tokens,
       outputTokens: response.usage.output_tokens,
     },

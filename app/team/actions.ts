@@ -8,6 +8,7 @@ import { getAppOrigin } from "@/lib/app-url"
 import { getScopedDb } from "@/lib/db/scoped"
 import { getSystemDb } from "@/lib/db/system"
 import { logger } from "@/lib/logger"
+import { syncSubscriptionSeats } from "@/lib/seat-sync"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import { parseInput, uuidSchema } from "@/lib/validation"
 
@@ -22,6 +23,15 @@ function requireAdmin(scopedDb: Awaited<ReturnType<typeof getScopedDb>>) {
 
 export async function getTeamData() {
   const scopedDb = await getScopedDb()
+
+  // An invited teammate joins the org inside migration 0008's
+  // handle_new_user() signup trigger, so the app runs no code at the moment
+  // headcount actually changes. Reconciling here means the seat count is
+  // corrected the next time an admin looks at the team — which is also the
+  // screen where they'd notice if it were wrong. No-ops without an active
+  // subscription, and never throws. See lib/seat-sync.ts.
+  await syncSubscriptionSeats(scopedDb)
+
   const [members, pendingInvites] = await Promise.all([
     scopedDb.users.findMany(),
     scopedDb.invites.findMany(eq(invites.status, "pending")),

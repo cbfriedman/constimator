@@ -6,6 +6,7 @@ import { z } from "zod"
 import { projects, reviewRequests } from "@/db/schema"
 import { getCurrentProject } from "@/lib/current-project"
 import { getScopedDb } from "@/lib/db/scoped"
+import { sendReviewRequestNotification } from "@/lib/email/review-request"
 import { parseInput } from "@/lib/validation"
 
 const scopeSchema = z.enum(["full", "reconciliation", "discrepancy", "proposal"])
@@ -59,6 +60,20 @@ export async function requestReviewAction(rawInput: {
     scope: input.scope,
     notes: input.notes || null,
     status: "requested",
+  })
+
+  // Without this the row was the whole feature — nothing read it, so the
+  // "we'll follow up within 1–2 business days" the UI shows was a promise
+  // no one could keep. Awaited rather than fired-and-forgotten so a Vercel
+  // function can't be torn down mid-send; it never throws, so a mail
+  // failure still leaves the contractor with a saved request rather than
+  // an error (see lib/email/review-request.ts).
+  await sendReviewRequestNotification(scopedDb, {
+    id: request.id,
+    projectName: project.name,
+    projectNumber: project.number,
+    scope: input.scope,
+    notes: request.notes,
   })
 
   return request

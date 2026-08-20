@@ -116,7 +116,7 @@ export async function processJob(job: ClaimedJob) {
     // takeoff. Each writes a different field of `result` — see types.ts — so
     // one kind's output can't be mistaken for another's downstream.
     let result: TakeoffResult
-    let usage: { inputTokens: number; outputTokens: number }
+    let usage: { model: string; inputTokens: number; outputTokens: number }
     let itemCount: number
     let usageKind: string
 
@@ -168,7 +168,7 @@ export async function processJob(job: ClaimedJob) {
       usageKind = "takeoff_extraction"
     }
 
-    await recordAiUsage(job.org_id, usageKind, usage.inputTokens, usage.outputTokens)
+    await recordAiUsage(job.org_id, usageKind, usage.model, usage.inputTokens, usage.outputTokens)
 
     await sql`
       update takeoff_job

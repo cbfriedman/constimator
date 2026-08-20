@@ -61,17 +61,9 @@ export type ProjectsListItem = {
   isProjectScoped: boolean
 }
 
-export const recentActivity = [
-  {
-    text: "Reconciliation flagged 3 items on Shasta County — 1 missing bid item",
-    date: "Jul 10",
-  },
-  { text: "Estimate updated — Shasta County", date: "Jul 10" },
-  {
-    text: "Documents read — 15 bid items extracted (Shasta County)",
-    date: "Jul 9",
-  },
-]
+// recentActivity used to live here and was rendered on every org's
+// dashboard regardless of whose data it described. The panel now derives
+// its entries from the signed-in org's own rows — see lib/activity.ts.
 
 export const opsDemoPath = [
   "Start at Home Page",

@@ -43,6 +43,11 @@ export async function GET(request: Request) {
       const reasons: string[] = []
       if (!health.worker.healthy) reasons.push("worker heartbeat stale")
       if (!health.queue.healthy) reasons.push("takeoff_job queue stuck")
+      if (!health.config.healthy) {
+        reasons.push(
+          `unset or placeholder config: ${health.config.placeholderVars.join(", ")}`,
+        )
+      }
 
       // logger.warn (not .error) deliberately — .error would also fire its
       // own untagged Sentry.captureMessage (see lib/logger.ts), grouped by

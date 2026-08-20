@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ProjectHeader } from "@/components/project-header"
 import { getBillingStatus } from "@/lib/billing"
 import { getScopedDb } from "@/lib/db/scoped"
+import { syncSubscriptionSeats } from "@/lib/seat-sync"
+import { formatMoney, getSeatPriceDisplay } from "@/lib/stripe"
 
 const STATUS_LABELS: Record<string, string> = {
   none: "No subscription yet",
@@ -25,7 +27,17 @@ function formatDate(date: Date): string {
 
 export default async function BillingPage() {
   const scopedDb = await getScopedDb()
-  const org = await scopedDb.org.get()
+
+  // Reconcile the Stripe quantity against the org's real headcount before
+  // rendering, so the seat count shown below is the one being billed. Never
+  // throws — see lib/seat-sync.ts.
+  await syncSubscriptionSeats(scopedDb)
+
+  const [org, members, seatPrice] = await Promise.all([
+    scopedDb.org.get(),
+    scopedDb.users.findMany(),
+    getSeatPriceDisplay(),
+  ])
 
   if (!org) {
     return (
@@ -37,6 +49,7 @@ export default async function BillingPage() {
 
   const billing = getBillingStatus(org)
   const hasStripeAccount = Boolean(org.stripeCustomerId)
+  const seats = Math.max(1, members.length)
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-8">
@@ -61,6 +74,33 @@ export default async function BillingPage() {
             </div>
           ) : null}
 
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Seats</span>
+            <span className="font-medium text-foreground tabular-nums">
+              {seats} {seats === 1 ? "user" : "users"}
+            </span>
+          </div>
+
+          {seatPrice ? (
+            <>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Price per seat</span>
+                <span className="font-medium text-foreground tabular-nums">
+                  {seatPrice.perSeat} / {seatPrice.interval}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">
+                  {billing.isEntitled && hasStripeAccount ? "Current total" : "Total if you subscribe"}
+                </span>
+                <span className="font-medium text-foreground tabular-nums">
+                  {formatMoney(seatPrice.unitAmount * seats, seatPrice.currency)} /{" "}
+                  {seatPrice.interval}
+                </span>
+              </div>
+            </>
+          ) : null}
+
           {billing.currentPeriodEnd ? (
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">
@@ -79,8 +119,9 @@ export default async function BillingPage() {
           ) : null}
 
           <p className="text-sm text-muted-foreground">
-            Checkout accepts cards and Google Pay. Recurring charges use
-            the method you authorize there.
+            Billed per user. Adding or removing a teammate adjusts your seat count
+            and is prorated on your next invoice. Checkout accepts cards and Google
+            Pay; recurring charges use the method you authorize there.
           </p>
 
           <div className="flex gap-3 border-t pt-4">
