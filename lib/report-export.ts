@@ -10,6 +10,8 @@ import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import * as XLSX from "xlsx"
 
+import { EXPORT_FOOTER_NOTE, VERIFICATION_DISCLAIMER } from "@/lib/export-disclaimer"
+
 import type { EstimateLineView } from "@/lib/estimate-view"
 import type { ReconciliationRowView } from "@/lib/reconciliation-view"
 
@@ -31,6 +33,25 @@ function pdfHeader(doc: jsPDF, title: string, context: ReportContext) {
   doc.setTextColor(0)
 }
 
+// Stamped onto every page of every PDF this module produces. An exported
+// file outlives the screen it came from — it gets forwarded, printed, and
+// read by people who never saw the app — so the obligation to verify has to
+// travel with the file rather than stay behind in the UI.
+function pdfDisclaimerFooter(doc: jsPDF) {
+  const pageCount = doc.getNumberOfPages()
+  const pageWidth = doc.internal.pageSize.getWidth()
+  const pageHeight = doc.internal.pageSize.getHeight()
+
+  for (let page = 1; page <= pageCount; page += 1) {
+    doc.setPage(page)
+    doc.setFontSize(7)
+    doc.setTextColor(90)
+    doc.text(doc.splitTextToSize(VERIFICATION_DISCLAIMER, pageWidth - 28), 14, pageHeight - 12)
+    doc.text(`   Page  of `, 14, pageHeight - 5)
+    doc.setTextColor(0)
+  }
+}
+
 function triggerDownload(blob: Blob, fileName: string): number {
   const url = URL.createObjectURL(blob)
   const link = document.createElement("a")
@@ -42,6 +63,17 @@ function triggerDownload(blob: Blob, fileName: string): number {
 }
 
 function downloadWorkbook(workbook: XLSX.WorkBook, fileName: string): number {
+  // Appended here rather than by each caller so it isn't something a future
+  // export can forget: every workbook that leaves this module carries the
+  // disclaimer, by construction. origin: -1 appends below the last used row.
+  for (const name of workbook.SheetNames) {
+    XLSX.utils.sheet_add_aoa(
+      workbook.Sheets[name],
+      [[], [VERIFICATION_DISCLAIMER], [EXPORT_FOOTER_NOTE]],
+      { origin: -1 },
+    )
+  }
+
   const buffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" }) as ArrayBuffer
   const blob = new Blob([buffer], {
     type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -75,6 +107,7 @@ export function exportEstimateSummaryPdf(
   doc.setFontSize(12)
   doc.text(`Bid Total: ${bidTotal}`, 14, finalY + 22)
 
+  pdfDisclaimerFooter(doc)
   return triggerDownload(doc.output("blob"), fileName)
 }
 
@@ -132,6 +165,7 @@ export function exportReconciliationPdf(
   doc.setFontSize(12)
   doc.text(`Bid Total: ${bidTotal}`, 14, finalY + 10)
 
+  pdfDisclaimerFooter(doc)
   return triggerDownload(doc.output("blob"), fileName)
 }
 

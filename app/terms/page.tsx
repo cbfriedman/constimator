@@ -1,4 +1,8 @@
 import { LegalPageLayout } from "@/components/legal/legal-page-layout"
+// Rendered rather than retyped: the exports and this clause have to say the
+// same thing, and a copy pasted here would drift the first time the wording
+// changed. See lib/export-disclaimer.ts.
+import { VERIFICATION_DISCLAIMER } from "@/lib/export-disclaimer"
 
 export default function TermsPage() {
   return (
@@ -141,6 +145,26 @@ export default function TermsPage() {
         missed discrepancies, or any decision you make in reliance on
         output from the Service. See Section 9 (Disclaimers) and Section 10
         (Limitation of Liability).
+      </p>
+
+      <h2>6a. Exported Files</h2>
+      <p>
+        Every file the Service generates — estimate summaries, reconciliation
+        reports, and subcontractor quote comparisons, in PDF or Excel form —
+        carries the following notice, and that notice forms part of these
+        Terms:
+      </p>
+      <blockquote>
+        <strong>{VERIFICATION_DISCLAIMER}</strong>
+      </blockquote>
+      <p>
+        Where an export contains data that has not been confirmed by a person
+        in the Service, the file states that on its face together with a count
+        of the unconfirmed items. That warning is a convenience, not a
+        guarantee: its absence does not mean the underlying data is correct,
+        and your obligation to verify under Section 6 applies to every export
+        regardless of what warnings it does or does not carry. You remain
+        responsible for any file you forward, print, or submit.
       </p>
 
       <h2>7. Intellectual Property</h2>

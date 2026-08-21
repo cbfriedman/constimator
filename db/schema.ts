@@ -818,6 +818,14 @@ export const quoteConditions = pgTable(
     // Why this row was surfaced to a human first. Null means it wasn't
     // flagged — it still needs confirming, just not urgently.
     flagReason: text("flag_reason"),
+    // What it costs the prime to cover this exclusion themselves, entered by
+    // hand on the comparison grid (step 42). Only meaningful on a condition
+    // the sub excluded: it is what turns a set of unlike quotes into
+    // comparable numbers, since the cheapest base price stops being cheapest
+    // once the work it left out is priced back in. Null means "not yet
+    // costed", which is deliberately different from zero ("costed at nothing")
+    // — the grid says so rather than treating an unpriced exclusion as free.
+    primeCostUsd: numeric("prime_cost_usd", { precision: 14, scale: 2 }),
     isConfirmed: boolean("is_confirmed").notNull().default(false),
     confirmedBy: uuid("confirmed_by").references(() => users.id, {
       onDelete: "set null",

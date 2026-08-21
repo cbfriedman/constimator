@@ -51,6 +51,8 @@ export function LegalPageLayout({
             [&_ul]:flex [&_ul]:list-disc [&_ul]:flex-col [&_ul]:gap-1 [&_ul]:pl-5 [&_ul]:text-muted-foreground
             [&_li]:leading-relaxed
             [&_strong]:font-medium [&_strong]:text-foreground
+            [&_blockquote]:border-l-2 [&_blockquote]:border-primary [&_blockquote]:bg-muted
+            [&_blockquote]:py-3 [&_blockquote]:pr-4 [&_blockquote]:pl-4 [&_blockquote]:leading-relaxed
             [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-2"
         >
           {children}

@@ -1,0 +1,1 @@
+ALTER TABLE "quote_condition" ADD COLUMN "prime_cost_usd" numeric(14, 2);

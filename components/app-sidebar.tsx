@@ -10,6 +10,8 @@ import {
   Files,
   Table2,
   Calculator,
+  Columns3,
+  FileCheck2,
   GitCompareArrows,
   UserCheck,
   BarChart3,
@@ -42,6 +44,8 @@ const mainNav = [
   { title: "Project Intelligence", href: "/intelligence", icon: Brain },
   { title: "Schedules & Tables", href: "/schedules", icon: Table2 },
   { title: "Cost Setup", href: "/cost-setup", icon: SlidersHorizontal },
+  { title: "Sub Quotes", href: "/sub-quotes", icon: FileCheck2 },
+  { title: "Compare Quotes", href: "/sub-quotes/compare", icon: Columns3 },
   { title: "Estimate Workspace", href: "/estimate", icon: Calculator },
   {
     title: "Bid Reconciliation",

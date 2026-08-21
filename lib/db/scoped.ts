@@ -124,6 +124,18 @@ function orgScoped<T extends PgTable>(
         .values({ ...values, orgId } as NewRow)
         .returning() as Promise<Row[]>,
 
+    // One statement for a whole batch. The alternative — awaiting insert()
+    // in a loop — costs a round trip per row, and the batches here are
+    // "every condition the extractor found on a sub quote", which is
+    // routinely 20+. Same org stamping as insert(), applied per row.
+    insertMany: async (rows: Omit<NewRow, "orgId">[]): Promise<Row[]> => {
+      if (rows.length === 0) return []
+      return db
+        .insert(anyTable)
+        .values(rows.map((values) => ({ ...values, orgId })) as NewRow[])
+        .returning() as Promise<Row[]>
+    },
+
     update: (extra: SQL, values: Partial<NewRow>): Promise<Row[]> =>
       db
         .update(anyTable)
