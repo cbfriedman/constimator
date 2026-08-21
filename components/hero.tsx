@@ -96,7 +96,12 @@ export function Hero() {
 
           <div className="relative">
             <div className="absolute -inset-4 -z-10 rounded-3xl bg-primary/10 blur-2xl" aria-hidden="true" />
-            <div className="overflow-hidden rounded-xl border border-border bg-card shadow-2xl shadow-foreground/10">
+            {/* No shadow-foreground/10 here: its non-color-mix fallback is
+                `--tw-shadow-color: var(--foreground)` — a fully opaque
+                near-black halo instead of a 10% tint. shadow-2xl's own
+                default colour is a hardcoded #00000040, which is what was
+                wanted anyway and can't degrade. */}
+            <div className="overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
               <div className="flex items-center gap-1.5 border-b border-border bg-muted px-4 py-3">
                 <span className="h-3 w-3 rounded-full bg-border" aria-hidden="true" />
                 <span className="h-3 w-3 rounded-full bg-border" aria-hidden="true" />

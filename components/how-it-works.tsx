@@ -30,12 +30,26 @@ export function HowItWorks() {
           </h2>
         </div>
 
+        {/* Solid theme tokens only — no alpha-composited colours here.
+            Tailwind emits `background-color: var(--foreground)` as the
+            non-color-mix fallback for `bg-foreground/5`, so on a browser
+            without color-mix support these cards rendered as solid
+            near-black slabs with near-black text on top: the step titles and
+            descriptions were invisible. bg-card/text-card-foreground carry no
+            alpha and resolve correctly everywhere, in both themes. */}
         <div className="mt-14 grid gap-8 md:grid-cols-3">
           {steps.map((step) => (
-            <div key={step.number} className="relative rounded-xl border border-foreground/10 bg-foreground/5 p-8">
-              <span className="font-display text-4xl font-bold text-primary">{step.number}</span>
-              <h3 className="mt-4 font-display text-xl font-semibold">{step.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-secondary-foreground/70">{step.description}</p>
+            <div
+              key={step.number}
+              className="relative flex flex-col rounded-xl border border-border bg-card p-8 text-card-foreground shadow-sm"
+            >
+              <span className="font-display text-4xl font-bold leading-none text-primary">
+                {step.number}
+              </span>
+              <h3 className="mt-5 font-display text-xl font-semibold text-balance">{step.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                {step.description}
+              </p>
             </div>
           ))}
         </div>
