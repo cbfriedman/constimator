@@ -1,7 +1,6 @@
 "use client"
 
-import { Suspense } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 import { FileBarChart, Flag, FolderKanban, Plus, Timer } from "lucide-react"
 import { toast } from "sonner"
 
@@ -26,7 +25,7 @@ import type { DashboardProject } from "@/lib/mock-data"
 // parse back out just enough to total and sort them here.
 function totalBidsLabel(projects: DashboardProject[]): string {
   const total = projects.reduce((sum, p) => {
-    const n = Number(p.engineersEstimate.replace(/[^0-9.]/g, ""))
+    const n = Number(String(p.engineersEstimate ?? "").replace(/[^0-9.]/g, ""))
     return sum + (Number.isNaN(n) ? 0 : n)
   }, 0)
   if (total === 0) return "No engineer's estimates yet"
@@ -63,9 +62,8 @@ function DashboardContent({
   activity: ActivityItem[]
 }) {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const { attentionCount } = useProjectState()
-  const isEmpty = searchParams.get("empty") === "1" || projects.length === 0
+  const isEmpty = projects.length === 0
 
   // cost-setup/estimate/reconciliation/reports/schedules aren't project-
   // scoped yet (see lib/current-project.ts) — they always operate on the
@@ -189,12 +187,10 @@ export function DashboardShell({
   activity: ActivityItem[]
 }) {
   return (
-    <Suspense fallback={null}>
-      <DashboardContent
-        projects={projects}
-        currentProjectId={currentProjectId}
-        activity={activity}
-      />
-    </Suspense>
+    <DashboardContent
+      projects={projects}
+      currentProjectId={currentProjectId}
+      activity={activity}
+    />
   )
 }

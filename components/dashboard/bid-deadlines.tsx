@@ -13,6 +13,9 @@ export function BidDeadlines({ projects }: { projects: DashboardProject[] }) {
           const isNearest = index === 0
           const isUrgent = project.daysOut < 7
           const isSoon = project.daysOut < 14
+          const [deadlineMonth, deadlineDay] = (project.deadlineDate || "— —").split(
+            " ",
+          )
 
           return (
             <div
@@ -39,7 +42,7 @@ export function BidDeadlines({ projects }: { projects: DashboardProject[] }) {
                     isSoon && !isUrgent && "text-warning",
                   )}
                 >
-                  {project.deadlineDate.split(" ")[0]}
+                  {deadlineMonth}
                 </span>
                 <span
                   className={cn(
@@ -48,7 +51,7 @@ export function BidDeadlines({ projects }: { projects: DashboardProject[] }) {
                     isSoon && !isUrgent && "text-warning",
                   )}
                 >
-                  {project.deadlineDate.split(" ")[1]}
+                  {deadlineDay}
                 </span>
               </div>
               <div className="flex flex-col">

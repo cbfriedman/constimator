@@ -17,11 +17,14 @@ type BidRow = typeof bids.$inferSelect
 // equivalent) the way /upload does. Exported so callers that already have
 // the row list in hand (e.g. the dashboard, deciding which table row is
 // safe to click into) can apply the exact same rule without a second query.
+function createdAtMs(value: Date | string): number {
+  const ms = (value instanceof Date ? value : new Date(value)).getTime()
+  return Number.isNaN(ms) ? 0 : ms
+}
+
 export function pickCurrentProject(rows: ProjectRow[]): ProjectRow | null {
   if (rows.length === 0) return null
-  return [...rows].sort(
-    (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
-  )[0]
+  return [...rows].sort((a, b) => createdAtMs(b.createdAt) - createdAtMs(a.createdAt))[0]
 }
 
 // Stand-in for real per-project routing — see pickCurrentProject above.
