@@ -4,6 +4,7 @@ import { desc, inArray } from "drizzle-orm"
 
 import { documents, estimates, projects, reconciliationItems } from "@/db/schema"
 import type { ScopedDb } from "@/lib/current-project"
+import { logger } from "@/lib/logger"
 
 // The dashboard's Recent Activity panel used to render a hardcoded array
 // from lib/mock-data.ts — the same three lines about a Shasta County job,
@@ -29,11 +30,39 @@ const FEED_LIMIT = 6
 /** Rows whose updatedAt is within this of their createdAt haven't really been "updated" — that's just the insert's own timestamp. */
 const UPDATE_EPSILON_MS = 2000
 
-function wasUpdatedAfterCreation(row: { createdAt: Date; updatedAt: Date }): boolean {
-  return row.updatedAt.getTime() - row.createdAt.getTime() > UPDATE_EPSILON_MS
+function timestampMs(value: Date | string | number | null | undefined): number {
+  if (value == null) return Number.NaN
+  if (typeof value === "number") return value
+  const date = value instanceof Date ? value : new Date(value)
+  return date.getTime()
+}
+
+function toIso(value: Date | string | number | null | undefined): string {
+  const ms = timestampMs(value)
+  return Number.isNaN(ms) ? new Date(0).toISOString() : new Date(ms).toISOString()
+}
+
+function wasUpdatedAfterCreation(row: {
+  createdAt: Date | string
+  updatedAt: Date | string
+}): boolean {
+  return timestampMs(row.updatedAt) - timestampMs(row.createdAt) > UPDATE_EPSILON_MS
 }
 
 export async function getRecentActivity(scopedDb: ScopedDb): Promise<ActivityItem[]> {
+  // The dashboard page has no error boundary of its own — anything thrown
+  // here replaces the whole /dashboard content with app/error.tsx while the
+  // sidebar (loaded in the root layout, which already swallowed DB errors)
+  // keeps rendering. Fail closed to an empty feed instead.
+  try {
+    return await loadRecentActivity(scopedDb)
+  } catch (error) {
+    logger.error("getRecentActivity failed", undefined, error)
+    return []
+  }
+}
+
+async function loadRecentActivity(scopedDb: ScopedDb): Promise<ActivityItem[]> {
   const projectRows = await scopedDb.projects.findMany(undefined, {
     orderBy: desc(projects.createdAt),
     limit: FEED_LIMIT,
@@ -47,25 +76,33 @@ export async function getRecentActivity(scopedDb: ScopedDb): Promise<ActivityIte
   const projectName = new Map(projectRows.map((row) => [row.id, row.name]))
   const projectIds = projectRows.map((row) => row.id)
 
-  const [documentRows, estimateRows, reconciliationRows] = await Promise.all([
-    scopedDb.documents.findMany(inArray(documents.projectId, projectIds), {
+  // Sequential on purpose: lib/db/client.ts caps the postgres.js pool at
+  // max: 1, and the root layout is already querying on the same client
+  // during this render. Promise.all here contended for that single
+  // connection and could fail the whole dashboard.
+  const documentRows = await scopedDb.documents.findMany(
+    inArray(documents.projectId, projectIds),
+    {
       orderBy: desc(documents.updatedAt),
       limit: FEED_LIMIT,
-    }),
-    scopedDb.estimates.findMany(inArray(estimates.projectId, projectIds), {
+    },
+  )
+  const estimateRows = await scopedDb.estimates.findMany(
+    inArray(estimates.projectId, projectIds),
+    {
       orderBy: desc(estimates.updatedAt),
       limit: FEED_LIMIT,
-    }),
-    scopedDb.reconciliationItems.findMany(
-      inArray(reconciliationItems.projectId, projectIds),
-      { orderBy: desc(reconciliationItems.createdAt), limit: 200 },
-    ),
-  ])
+    },
+  )
+  const reconciliationRows = await scopedDb.reconciliationItems.findMany(
+    inArray(reconciliationItems.projectId, projectIds),
+    { orderBy: desc(reconciliationItems.createdAt), limit: 200 },
+  )
 
   const items: ActivityItem[] = []
 
   for (const project of projectRows) {
-    items.push({ text: `Project created — ${project.name}`, at: project.createdAt.toISOString() })
+    items.push({ text: `Project created — ${project.name}`, at: toIso(project.createdAt) })
   }
 
   for (const document of documentRows) {
@@ -73,17 +110,17 @@ export async function getRecentActivity(scopedDb: ScopedDb): Promise<ActivityIte
     if (document.status === "processed") {
       items.push({
         text: `Documents read — ${document.fileName} (${where})`,
-        at: document.updatedAt.toISOString(),
+        at: toIso(document.updatedAt),
       })
     } else if (document.status === "failed") {
       items.push({
         text: `Document processing failed — ${document.fileName} (${where})`,
-        at: document.updatedAt.toISOString(),
+        at: toIso(document.updatedAt),
       })
     } else {
       items.push({
         text: `Uploaded ${document.fileName} — ${where}`,
-        at: document.createdAt.toISOString(),
+        at: toIso(document.createdAt),
       })
     }
   }
@@ -92,21 +129,22 @@ export async function getRecentActivity(scopedDb: ScopedDb): Promise<ActivityIte
     if (!wasUpdatedAfterCreation(estimate)) continue
     items.push({
       text: `Estimate updated — ${projectName.get(estimate.projectId) ?? "a project"}`,
-      at: estimate.updatedAt.toISOString(),
+      at: toIso(estimate.updatedAt),
     })
   }
 
   // One reconciliation run writes many rows at once, so collapse them into a
   // single entry per project keyed on the newest row in that run — otherwise
   // one run of a 40-item bid form would be the entire feed.
-  const runs = new Map<string, { at: Date; flagged: number }>()
+  const runs = new Map<string, { atMs: number; flagged: number }>()
   for (const row of reconciliationRows) {
+    const atMs = timestampMs(row.createdAt)
     const run = runs.get(row.projectId)
     if (run) {
       if (row.attention) run.flagged += 1
-      if (row.createdAt > run.at) run.at = row.createdAt
+      if (atMs > run.atMs) run.atMs = atMs
     } else {
-      runs.set(row.projectId, { at: row.createdAt, flagged: row.attention ? 1 : 0 })
+      runs.set(row.projectId, { atMs, flagged: row.attention ? 1 : 0 })
     }
   }
   for (const [projectId, run] of runs) {
@@ -116,7 +154,7 @@ export async function getRecentActivity(scopedDb: ScopedDb): Promise<ActivityIte
         run.flagged > 0
           ? `Reconciliation flagged ${run.flagged} ${run.flagged === 1 ? "item" : "items"} on ${where}`
           : `Reconciliation ran clean on ${where}`,
-      at: run.at.toISOString(),
+      at: toIso(run.atMs),
     })
   }
 

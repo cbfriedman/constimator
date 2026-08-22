@@ -116,7 +116,7 @@ function hrefFor(meta: { href: string }, projectId: string): string {
 }
 
 export function toDashboardProject(row: ProjectRow): DashboardProject {
-  const meta = STATUS_META[row.status]
+  const meta = STATUS_META[row.status] ?? STATUS_META.draft
   return {
     id: row.id,
     name: row.name,
