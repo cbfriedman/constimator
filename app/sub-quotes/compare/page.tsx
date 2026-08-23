@@ -30,7 +30,7 @@ export default async function CompareSubQuotesPage({
     return (
       <NoProjectState
         title="No sub quotes yet"
-        description="Upload subcontractor quotes under Upload Documents, then compare them side by side here."
+        description="Upload subcontractor quotes under Upload Sub Quotes, then compare them side by side here."
       />
     )
   }
@@ -42,10 +42,9 @@ export default async function CompareSubQuotesPage({
     ? (requestedTrade as string)
     : trades[0].trade
 
-  const [grid, org] = await Promise.all([
-    getTradeComparison(project.id, trade),
-    scopedDb.org.get(),
-  ])
+  // Sequential — the postgres.js pool is capped at max: 1 (lib/db/client.ts).
+  const grid = await getTradeComparison(project.id, trade)
+  const org = await scopedDb.org.get()
 
   return (
     <ComparisonGridView

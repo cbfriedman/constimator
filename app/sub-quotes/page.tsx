@@ -30,7 +30,7 @@ export default async function SubQuotesPage({
     return (
       <NoProjectState
         title="No sub quotes yet"
-        description="Upload a subcontractor quote under Upload Documents and it will appear here once it has been read."
+        description="Upload a subcontractor quote under Upload Sub Quotes and it will appear here once it has been read."
       />
     )
   }

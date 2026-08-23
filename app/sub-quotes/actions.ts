@@ -183,6 +183,19 @@ export async function removeSubQuote(rawSubQuoteId: string): Promise<void> {
 // writes conditions for a sub quote that has none yet.
 // ---------------------------------------------------------------------------
 
+/**
+ * A timestamp column can come back as a Date or as a string depending on the
+ * driver path, and `.getTime()` on the string form throws — the same coercion
+ * lib/activity.ts needed. Sorting is the only thing that reads these, and a
+ * sort that throws takes the whole page with it.
+ */
+function timestampMs(value: Date | string | number | null | undefined): number {
+  if (value == null) return Number.NaN
+  if (typeof value === "number") return value
+  const date = value instanceof Date ? value : new Date(value)
+  return date.getTime()
+}
+
 async function syncConditionsFromExtraction(
   scopedDb: Awaited<ReturnType<typeof getScopedDb>>,
   subQuote: typeof subQuotes.$inferSelect,
@@ -200,7 +213,7 @@ async function syncConditionsFromExtraction(
   )
   const latestComplete = jobs
     .filter((job) => job.status === "complete" && job.result?.kind === "sub_quote")
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0]
+    .sort((a, b) => timestampMs(b.createdAt) - timestampMs(a.createdAt))[0]
 
   if (!latestComplete) return
 
@@ -273,12 +286,17 @@ export async function getSubQuoteReview(rawSubQuoteId: string): Promise<SubQuote
 
   await syncConditionsFromExtraction(scopedDb, subQuote)
 
-  const [fresh, rows, document, bidRows] = await Promise.all([
-    scopedDb.subQuotes.findFirst(eq(subQuotes.id, subQuoteId)),
-    scopedDb.quoteConditions.findMany(eq(quoteConditions.subQuoteId, subQuoteId)),
-    scopedDb.documents.findFirst(eq(documents.id, subQuote.documentId)),
-    scopedDb.bids.findMany(eq(bids.projectId, subQuote.projectId)),
-  ])
+  // Sequential, not Promise.all: lib/db/client.ts caps the postgres.js pool
+  // at max: 1 (set during a real production outage), and the root layout is
+  // already querying on the same client during this render. Running these
+  // concurrently contends for that single connection — the same defect the
+  // dashboard's activity feed had to be fixed for.
+  const fresh = await scopedDb.subQuotes.findFirst(eq(subQuotes.id, subQuoteId))
+  const rows = await scopedDb.quoteConditions.findMany(
+    eq(quoteConditions.subQuoteId, subQuoteId),
+  )
+  const document = await scopedDb.documents.findFirst(eq(documents.id, subQuote.documentId))
+  const bidRows = await scopedDb.bids.findMany(eq(bids.projectId, subQuote.projectId))
 
   const reviewable: ReviewableCondition[] = rows.map((row) => ({
     id: row.id,
@@ -334,7 +352,7 @@ async function resolvePendingReason(
   const jobs = await scopedDb.takeoffJobs.findMany(
     eq(takeoffJobs.documentId, subQuote.documentId),
   )
-  const latest = jobs.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0]
+  const latest = jobs.sort((a, b) => timestampMs(b.createdAt) - timestampMs(a.createdAt))[0]
 
   if (!latest) return "extracting"
   if (latest.status === "queued" || latest.status === "running") return "extracting"
@@ -578,7 +596,11 @@ export async function getTradeComparison(
   // Pull each quote's extraction into quote_condition first, so a quote that
   // has been read but never opened on the review screen still appears in the
   // grid rather than showing as a column of silence.
-  await Promise.all(quotes.map((quote) => syncConditionsFromExtraction(scopedDb, quote)))
+  // One at a time, for the max: 1 pool reason above — and each of these runs
+  // several queries of its own, so fanning them out is the worst case for it.
+  for (const quote of quotes) {
+    await syncConditionsFromExtraction(scopedDb, quote)
+  }
 
   const conditions = await scopedDb.quoteConditions.findMany(
     inArray(
