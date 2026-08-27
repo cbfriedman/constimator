@@ -1,5 +1,14 @@
 import Link from "next/link"
-import { HardHat } from "lucide-react"
+import { CheckCircle2, HardHat } from "lucide-react"
+
+// These three used to sit under the hero CTAs. They're reassurance, not a
+// reason to keep reading, so they were crowding the one thing the hero has to
+// do. They still need to be somewhere findable — this is that somewhere.
+const trustPoints = [
+  "Works with any plan set",
+  "Keep using your current estimating tool",
+  "Your numbers stay yours",
+]
 
 const groups = [
   {
@@ -17,7 +26,10 @@ const groups = [
   },
   {
     heading: "Resources",
-    links: [{ label: "Public works FAQ", href: "/help" }],
+    links: [
+      { label: "FAQ", href: "/#faq" },
+      { label: "Who it's for", href: "/#who-its-for" },
+    ],
   },
 ]
 
@@ -25,6 +37,15 @@ export function SiteFooter() {
   return (
     <footer className="border-t border-border bg-background">
       <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8">
+        <ul className="mb-12 flex flex-wrap items-center justify-center gap-x-8 gap-y-3 border-b border-border pb-10 text-sm text-muted-foreground">
+          {trustPoints.map((point) => (
+            <li key={point} className="inline-flex items-center gap-1.5">
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+              {point}
+            </li>
+          ))}
+        </ul>
+
         <div className="grid gap-10 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
           <div>
             <Link href="/" className="flex items-center gap-2" aria-label="Constimator home">

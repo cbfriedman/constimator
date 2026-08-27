@@ -4,10 +4,11 @@ import { useState } from "react"
 import { HardHat, Menu, X } from "lucide-react"
 
 const navLinks = [
-  { label: "What it does", href: "#what-it-does" },
-  { label: "How it works", href: "#how-it-works" },
   { label: "Reconciliation", href: "#reconciliation" },
+  { label: "How it works", href: "#how-it-works" },
+  { label: "What it does", href: "#what-it-does" },
   { label: "Pricing", href: "#pricing" },
+  { label: "FAQ", href: "#faq" },
 ]
 
 export function SiteHeader() {
