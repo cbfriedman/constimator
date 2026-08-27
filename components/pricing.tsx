@@ -12,14 +12,14 @@ import { ArrowRight, Check } from "lucide-react"
 //                              (Settings → Monthly AI usage limit, $20 default).
 //                              Stated as the budget it actually is instead.
 //
-// PRICING MODEL — the one thing still needing a decision from you:
-// self-serve checkout in app/billing/actions.ts is SEAT-priced (quantity =
-// live user count, reconciled by lib/seat-sync.ts), per the Billing decision in
-// docs/DECISIONS.md. The founding rate below is flat per company. Those are
-// different models. It isn't blocking today because founding access is a mailto
-// and you create those subscriptions by hand — and seat-sync no longer touches
-// non-seat-priced subscriptions, so a hand-made flat one stays flat. But if you
-// ever want $124 to be self-serve, the checkout has to move to a flat price.
+// PRICING MODEL: per seat, matching what the app actually bills. Checkout in
+// app/billing/actions.ts sets quantity to the org's live user count, reconciled
+// on load by lib/seat-sync.ts, per the Billing decision in docs/DECISIONS.md.
+//
+// This page briefly quoted a flat per-company rate, which meant /billing quoted
+// a 5-person contractor five times what the homepage did. Both numbers below are
+// per user, and the note under the CTA says so, so the price a prospect reads
+// here is the price the "Total if you subscribe" row shows them later.
 const REGULAR_PRICE = "$249"
 const FOUNDING_PRICE = "$124"
 const SPOTS = 20
@@ -58,16 +58,14 @@ export function Pricing() {
                 <span className="font-display text-6xl font-bold tabular-nums">
                   {FOUNDING_PRICE}
                 </span>
-                <span className="text-lg font-medium text-muted-foreground">/month</span>
+                <span className="text-lg font-medium text-muted-foreground">
+                  per user / month
+                </span>
               </div>
 
               <p className="mt-3 text-center text-sm text-muted-foreground">
-                For your whole company, not per seat.
-              </p>
-
-              <p className="mt-1 text-center text-sm text-muted-foreground">
-                <span className="line-through">{REGULAR_PRICE}/month</span> regular price — 50% off,
-                locked for life
+                <span className="line-through">{REGULAR_PRICE} per user</span> regular price — 50%
+                off, locked for life
               </p>
 
               <ul className="mt-8 flex flex-col gap-3.5">
@@ -93,7 +91,14 @@ export function Pricing() {
             </div>
           </div>
 
+          {/* Says the same thing app/billing/page.tsx says, in the same words,
+              so the seat mechanics aren't a surprise discovered at checkout. */}
           <p className="mt-6 text-center text-sm text-muted-foreground">
+            Billed per user. Add or remove an estimator any time — your seat count adjusts and
+            prorates on the next invoice.
+          </p>
+
+          <p className="mt-3 text-center text-sm text-muted-foreground">
             Every account starts with 30 days free and no credit card — run a real bid through it
             before you pay anything.
           </p>

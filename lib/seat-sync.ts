@@ -53,17 +53,17 @@ export async function syncSubscriptionSeats(scopedDb: ScopedDb): Promise<SeatSyn
 
     // Exact price match only — no `?? items.data[0]` fallback.
     //
-    // That fallback meant this function would re-quantity ANY subscription,
-    // including one that isn't seat-priced at all. The founding-member rate the
-    // homepage sells is a flat per-company price, hand-created in the Stripe
-    // Dashboard at quantity 1 (founding access is a mailto, not self-serve
-    // checkout). Under the old fallback, a founding member who invited four
-    // teammates would have had their flat $124/mo subscription silently
-    // re-quantitied to 5 on the next /billing or /team load — a 5x bill, with
-    // prorations, on a rate advertised as "locked for life".
+    // Everything sold through app/billing/actions.ts carries the seat price, so
+    // for a normal self-serve subscription this is the same item the fallback
+    // would have found. The difference is what happens for a subscription that
+    // *doesn't* carry it: a founding-member rate created by hand in the Stripe
+    // Dashboard, a grandfathered price, any one-off deal. The fallback silently
+    // re-quantitied those to the org's headcount on the next /billing or /team
+    // load, turning a negotiated price into a multiple of itself with
+    // prorations — and doing it on a page load, with nobody having asked.
     //
-    // A subscription that doesn't carry the seat price isn't seat-billed, so
-    // there is nothing here to reconcile. Leave it alone.
+    // A subscription that isn't on the seat price isn't seat-billed, so there
+    // is nothing here to reconcile. Leave it alone.
     const seatPriceId = getSeatPriceId()
     const item = subscription.items.data.find((line) => line.price.id === seatPriceId)
     if (!item) return { synced: false, reason: "not-syncable" }
