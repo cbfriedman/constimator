@@ -21,7 +21,12 @@ const faqs = [
   {
     question: "What documents does it need?",
     answer:
-      "The plans, the specs, the addenda, and the official bid form. Constimator handles the full set and ties what it reads back to the page it came from, so you can check any number against its source.",
+      "The official bid form is the one that matters — that's what Constimator reconciles against, and you enter its line items directly. You can upload the plans, specs, and addenda too, so the whole set lives with the project and Constimator can pull the bid requirements out of them.",
+  },
+  {
+    question: "Does it do the takeoff for me?",
+    answer:
+      "Not yet, and don't plan a bid around it. Constimator's document reading will pull a project summary and the bid requirements out of a plan set, but it's the newest part of the product and still being validated against real drawings. The part you can bet a bid on today is reconciliation: your estimate, checked line by line against the official bid form.",
   },
   {
     question: "Does it work with any plan set?",

@@ -13,10 +13,18 @@ export function Hero() {
           <span className="text-primary">The missing item was on page 47.</span>
         </h1>
 
+        {/* This used to lead with "Constimator reads your plans, specs, addenda,
+            and the official bid form". docs/PILOT_CHECKLIST.md puts AI plan
+            reading explicitly out of scope for the pilot — the worker runs, but
+            it hasn't been validated against real drawings — while the page was
+            selling it as the headline capability. Reconciliation is both the
+            real differentiator and the part that's actually pilot-tested, so it
+            leads. Document reading is still on the page, labelled honestly, in
+            <Features /> and the FAQ. */}
         <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground text-pretty">
-          Constimator reads your plans, specs, addenda, and the official bid form — then
-          reconciles your estimate line by line, catching missing items, quantity busts, and
-          unit mismatches that cost contractors jobs.
+          Constimator reconciles your estimate against the official bid form, line by line —
+          catching the missing items, quantity busts, and unit mismatches that cost contractors
+          jobs.
         </p>
 
         <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">

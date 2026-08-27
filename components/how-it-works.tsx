@@ -1,15 +1,19 @@
+// Step 01 is deliberately the manual path, because that is the path
+// docs/PILOT_CHECKLIST.md step 5 actually walks contractors through: bid form
+// line items are entered by hand, there is no upload-and-auto-fill yet. Promise
+// the thing they will really do.
 const steps = [
   {
     number: "01",
-    title: "Upload your bid documents",
+    title: "Enter the official bid form",
     description:
-      "Drop in the plans, specs, addenda, and the official bid form. Constimator handles the full set.",
+      "Item by item — description, unit, official quantity, spec section. Upload the plans, specs, and addenda alongside it so the whole set lives with the project.",
   },
   {
     number: "02",
     title: "Build your estimate your way",
     description:
-      "Keep estimating the way you already do — enter your quantities and pricing. Constimator reads the documents alongside you; you stay in control of your numbers.",
+      "Keep estimating the way you already do — your quantities, your unit prices, your labor and equipment rates. Constimator never overwrites your numbers.",
   },
   {
     number: "03",
