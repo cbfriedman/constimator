@@ -58,6 +58,38 @@ export type ExtractedQuoteCondition = {
   flagReason?: string
 }
 
+/**
+ * One row read off an agency's plan holders list. Mirrors
+ * worker/src/types.ts's ExtractedPlanHolder — same hand-sync rule as the
+ * types above.
+ *
+ * `rawText` is required and verbatim, for the same reason it is on
+ * ExtractedQuoteCondition: the review screen shows the source roster line
+ * beside the parsed fields, and a row nobody can check cheaply is a row
+ * nobody checks. Plan holder rosters run company, contact, address, phone
+ * and licence together in one cell more often than not, so the parse is the
+ * part most likely to be wrong.
+ *
+ * `companyName` is the only required parsed field — every other field is
+ * genuinely absent on real lists often enough that requiring one would push
+ * the extractor into inventing it.
+ */
+export type ExtractedPlanHolder = {
+  rawText: string
+  companyName: string
+  contactName?: string
+  email?: string
+  phone?: string
+  address?: string
+  city?: string
+  state?: string
+  postalCode?: string
+  licenseNumber?: string
+  confidence?: number
+  sourcePage?: number
+  notes?: string
+}
+
 export type GeneratedEstimateLine = {
   description: string
   quantity: string

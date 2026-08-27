@@ -10,6 +10,7 @@ import {
   Files,
   Table2,
   Calculator,
+  ClipboardList,
   Columns3,
   FileCheck2,
   FileUp,
@@ -48,6 +49,8 @@ const mainNav = [
   { title: "Upload Sub Quotes", href: "/sub-quotes/upload", icon: FileUp },
   { title: "Review Sub Quotes", href: "/sub-quotes", icon: FileCheck2 },
   { title: "Compare Quotes", href: "/sub-quotes/compare", icon: Columns3 },
+  { title: "Upload Plan Holders", href: "/plan-holders/upload", icon: FileUp },
+  { title: "Review Plan Holders", href: "/plan-holders", icon: ClipboardList },
   { title: "Estimate Workspace", href: "/estimate", icon: Calculator },
   {
     title: "Bid Reconciliation",

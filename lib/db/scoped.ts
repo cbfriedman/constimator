@@ -13,6 +13,8 @@ import {
   estimates,
   invites,
   orgs,
+  planHolderContacts,
+  planHolderLists,
   projects,
   quoteConditions,
   quoteLineItems,
@@ -235,5 +237,11 @@ export const getScopedDb = cache(async function getScopedDb() {
     subQuotes: orgScoped(subQuotes, subQuotes.orgId, orgId),
     quoteConditions: orgScoped(quoteConditions, quoteConditions.orgId, orgId),
     quoteLineItems: orgScoped(quoteLineItems, quoteLineItems.orgId, orgId),
+    planHolderLists: orgScoped(planHolderLists, planHolderLists.orgId, orgId),
+    planHolderContacts: orgScoped(
+      planHolderContacts,
+      planHolderContacts.orgId,
+      orgId,
+    ),
   }
 })

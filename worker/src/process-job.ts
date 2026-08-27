@@ -4,6 +4,7 @@ import { rasterizePdf } from "./rasterize.js"
 import { extractQuantities } from "./extract.js"
 import { extractBidForm } from "./extract-bid-form.js"
 import { extractQuoteConditions } from "./extract-quote-conditions.js"
+import { extractPlanHolders } from "./extract-plan-holders.js"
 import { checkSpendCap, checkTakeoffRateLimit, formatUsd, recordAiUsage } from "./ai-limits.js"
 import { captureTakeoffCompleted } from "./analytics.js"
 import { logger } from "./logger.js"
@@ -35,6 +36,13 @@ async function failJob(job: ClaimedJob, message: string, error?: unknown): Promi
   // "extracting" would make a dead job look like a running one.
   await sql`
     update sub_quote set status = 'failed', updated_at = now()
+    where document_id = ${job.document_id} and org_id = ${job.org_id}
+  `
+  // Same reasoning as the sub_quote update above, for plan holder lists: a
+  // no-op for every other document type, and it stops a dead job from
+  // leaving a list stuck on "extracting" forever.
+  await sql`
+    update plan_holder_list set status = 'failed', updated_at = now()
     where document_id = ${job.document_id} and org_id = ${job.org_id}
   `
   logger.error(
@@ -106,15 +114,21 @@ export async function processJob(job: ClaimedJob) {
       update sub_quote set status = 'extracting', updated_at = now()
       where document_id = ${job.document_id} and org_id = ${job.org_id}
     `
+    await sql`
+      update plan_holder_list set status = 'extracting', updated_at = now()
+      where document_id = ${job.document_id} and org_id = ${job.org_id}
+    `
 
     const fileBytes = await downloadDocument(document.storage_bucket, document.storage_path)
 
-    // Step 40, extended in step 41: which extractor runs is decided by the
-    // document's own type, set at upload time. A bid form is transcribed (the
-    // quantities are printed on it), a sub quote is read for the conditions
-    // attached to its price, and everything else goes through the plan-sheet
-    // takeoff. Each writes a different field of `result` — see types.ts — so
-    // one kind's output can't be mistaken for another's downstream.
+    // Step 40, extended in step 41 and again for plan holders: which
+    // extractor runs is decided by the document's own type, set at upload
+    // time. A bid form is transcribed (the quantities are printed on it), a
+    // sub quote is read for the conditions attached to its price, a plan
+    // holders list is parsed for who else pulled the documents, and
+    // everything else goes through the plan-sheet takeoff. Each writes a
+    // different field of `result` — see types.ts — so one kind's output can't
+    // be mistaken for another's downstream.
     let result: TakeoffResult
     let usage: { model: string; inputTokens: number; outputTokens: number }
     let itemCount: number
@@ -159,6 +173,24 @@ export async function processJob(job: ClaimedJob) {
           documentNotes: extracted.documentNotes,
         })
       }
+    } else if (document.type === "plan_holders") {
+      const extracted = await extractPlanHolders(fileBytes)
+      result = {
+        kind: "plan_holders",
+        planHolders: extracted.holders,
+        planHoldersIssuedOn: extracted.issuedOn,
+        documentNotes: extracted.documentNotes,
+      }
+      usage = extracted.usage
+      itemCount = extracted.holders.length
+      usageKind = "plan_holders_extraction"
+      if (extracted.documentNotes) {
+        logger.info("Plan holders extraction notes", {
+          jobId: job.id,
+          documentId: job.document_id,
+          documentNotes: extracted.documentNotes,
+        })
+      }
     } else {
       const pages = await rasterizePdf(fileBytes)
       const extracted = await extractQuantities(pages)
@@ -184,6 +216,13 @@ export async function processJob(job: ClaimedJob) {
     // quote to confirmed. No-op for non-quote documents.
     await sql`
       update sub_quote set status = 'needs_review', updated_at = now()
+      where document_id = ${job.document_id} and org_id = ${job.org_id}
+    `
+    // Same gate for a plan holder list. The contacts themselves are
+    // materialised on first read of the review screen (see
+    // app/plan-holders/actions.ts), matching how quote conditions work.
+    await sql`
+      update plan_holder_list set status = 'needs_review', updated_at = now()
       where document_id = ${job.document_id} and org_id = ${job.org_id}
     `
     logger.info("Takeoff job complete", {

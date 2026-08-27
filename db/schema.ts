@@ -18,6 +18,7 @@ import {
 
 import type {
   ExtractedBidItem,
+  ExtractedPlanHolder,
   ExtractedQuoteCondition,
   ExtractedTakeoffItem,
 } from "@/lib/cost-engine/types"
@@ -77,6 +78,11 @@ export const documentTypeEnum = pgEnum("document_type", [
   // is a document the prime received, and it routes to its own extractor —
   // see worker/src/extract-quote-conditions.ts.
   "sub_quote",
+  // A plan holders list — the roster an agency publishes of everyone who
+  // pulled the bid documents. Like bid_form it's an agency document, but it
+  // says nothing about the work: it's who else is bidding. Routes to its own
+  // extractor, see worker/src/extract-plan-holders.ts.
+  "plan_holders",
   "other",
 ])
 
@@ -106,6 +112,46 @@ export const subQuoteStatusEnum = pgEnum("sub_quote_status", [
   "needs_review",
   "confirmed",
   "failed",
+])
+
+// A plan holder list's own lifecycle. Same five states as
+// subQuoteStatusEnum and for the same reason: the document is "processed"
+// when the worker finishes, but the list is only "confirmed" once a human
+// has accepted what was read off it. Nothing downstream reads an
+// unconfirmed list.
+export const planHolderListStatusEnum = pgEnum("plan_holder_list_status", [
+  "uploaded",
+  "extracting",
+  "needs_review",
+  "confirmed",
+  "failed",
+])
+
+// How far a plan holder row has got toward being tied to a known contractor
+// in the registry.
+//
+// Every row is "unmatched" today, and that is not a bug: there IS no
+// contractor registry in this schema yet. docs/REGISTRY-SOURCES.md is a
+// source spike — scripts/registry/ holds throwaway probes and, in its own
+// words, "nothing in the app reads either source yet". Resolution by fuzzy
+// name plus licence number needs a contractors table loaded from the CSLB
+// master file (244,471 licences, free daily download) that hasn't been built.
+//
+// This enum and plan_holder_contact.contractor_id are the seam for that
+// work, written now so it lands later as a backfill over existing rows
+// rather than a migration plus a re-extraction of every list already
+// ingested. Until then the review screen shows the verbatim name and
+// licence number, which is what an estimator actually reads anyway.
+//
+//   unmatched — not yet run against a registry (the only value in use today)
+//   matched   — resolved to one contractor, contractor_id set
+//   ambiguous — several plausible contractors; needs a human, id stays null
+//   rejected  — a human looked and said none of the candidates is right
+export const planHolderMatchStatusEnum = pgEnum("plan_holder_match_status", [
+  "unmatched",
+  "matched",
+  "ambiguous",
+  "rejected",
 ])
 
 // Step 41 — the conditions a sub attaches to their price. Deliberately a
@@ -495,7 +541,7 @@ export const takeoffJobs = pgTable(
     // contractor's own estimate. `kind` is optional because rows written
     // before step 40 predate it; absent means plan takeoff.
     result: jsonb("result").$type<{
-      kind?: "plan_takeoff" | "bid_form" | "sub_quote"
+      kind?: "plan_takeoff" | "bid_form" | "sub_quote" | "plan_holders"
       items?: ExtractedTakeoffItem[]
       bidItems?: ExtractedBidItem[]
       // Step 41 — set only for kind "sub_quote". Stays raw here until a
@@ -503,6 +549,13 @@ export const takeoffJobs = pgTable(
       // into quote_condition rows; nothing downstream reads a condition
       // out of this jsonb.
       conditions?: ExtractedQuoteCondition[]
+      // Set only for kind "plan_holders", and raw here on the same terms as
+      // conditions above: materialized into plan_holder_contact rows on
+      // first read of the review screen, and never read out of this jsonb
+      // by anything downstream.
+      planHolders?: ExtractedPlanHolder[]
+      /** Printed on the roster when it prints one, ISO yyyy-mm-dd. */
+      planHoldersIssuedOn?: string
       quoteTotalAmount?: number
       documentNotes?: string
     }>(),
@@ -925,6 +978,182 @@ export const quoteLineItemsRelations = relations(quoteLineItems, ({ one }) => ({
   }),
   bid: one(bids, { fields: [quoteLineItems.bidId], references: [bids.id] }),
 }))
+
+// ---------------------------------------------------------------------------
+// plan_holder_list — one plan holders roster an agency published for one
+// project. The uploaded file is a `document` row (type "plan_holders") like
+// every other upload, so it reuses the whole pipeline: storage-path org
+// check, spend cap, rate limit, retry. This table is the list-specific
+// metadata that has nowhere to live on `document`.
+//
+// One list per document, and a project can hold several — agencies reissue
+// the roster as more bidders pull documents, and the last one before bid day
+// is the one that matters. sourceLabel is how a human tells them apart
+// ("Addendum 2 plan holders, 3/14"), entered by the uploader rather than
+// read off the document: a roster's own dating is wildly inconsistent and a
+// list silently attributed to the wrong issue is worse than a required field.
+// ---------------------------------------------------------------------------
+
+export const planHolderLists = pgTable(
+  "plan_holder_list",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => orgs.id, { onDelete: "cascade" }),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    documentId: uuid("document_id")
+      .notNull()
+      .references(() => documents.id, { onDelete: "cascade" }),
+    sourceLabel: text("source_label").notNull(),
+    // The date the agency printed on the roster, when it printed one. Read
+    // off the document, so nullable — plenty of lists carry no date at all.
+    issuedOn: timestamp("issued_on", { withTimezone: true }),
+    status: planHolderListStatusEnum("status").notNull().default("uploaded"),
+    // Whatever the extractor wants a reviewer to know about the document as
+    // a whole — including "this isn't a plan holders list".
+    documentNotes: text("document_notes"),
+    uploadedBy: uuid("uploaded_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("plan_holder_list_org_id_idx").on(table.orgId),
+    index("plan_holder_list_project_id_idx").on(table.projectId),
+    index("plan_holder_list_document_id_idx").on(table.documentId),
+    orgIsolationPolicy("plan_holder_list", table.orgId),
+  ],
+).enableRLS()
+
+export const planHolderListsRelations = relations(
+  planHolderLists,
+  ({ one, many }) => ({
+    org: one(orgs, { fields: [planHolderLists.orgId], references: [orgs.id] }),
+    project: one(projects, {
+      fields: [planHolderLists.projectId],
+      references: [projects.id],
+    }),
+    document: one(documents, {
+      fields: [planHolderLists.documentId],
+      references: [documents.id],
+    }),
+    uploadedByUser: one(users, {
+      fields: [planHolderLists.uploadedBy],
+      references: [users.id],
+    }),
+    contacts: many(planHolderContacts),
+  }),
+)
+
+// ---------------------------------------------------------------------------
+// plan_holder_contact — one row off one plan holders list.
+//
+// rawText is load-bearing for the same reason it is on quote_condition: it's
+// the verbatim roster line the row came from, and it's what the review screen
+// shows beside the parsed fields so an estimator can confirm at a glance.
+// Plan holder rosters are the worst-formatted documents an agency publishes
+// — company, contact, address, phone and licence run together in one cell as
+// often as not — so the parse is the part most likely to be wrong, and the
+// source line is what makes checking it cheap.
+//
+// contractorId is nullable and has no foreign key, deliberately: there is no
+// contractors table to reference yet. See planHolderMatchStatusEnum for why,
+// and for what has to exist before matchStatus can be anything but
+// "unmatched". Adding the reference later is a migration on this column
+// alone — the rows, and the extraction that produced them, stay put.
+// ---------------------------------------------------------------------------
+
+export const planHolderContacts = pgTable(
+  "plan_holder_contact",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => orgs.id, { onDelete: "cascade" }),
+    planHolderListId: uuid("plan_holder_list_id")
+      .notNull()
+      .references(() => planHolderLists.id, { onDelete: "cascade" }),
+    // Verbatim from the roster — never normalized, never re-worded.
+    rawText: text("raw_text").notNull(),
+    companyName: text("company_name").notNull(),
+    contactName: text("contact_name"),
+    email: text("email"),
+    phone: text("phone"),
+    address: text("address"),
+    city: text("city"),
+    state: text("state"),
+    postalCode: text("postal_code"),
+    // As printed on the roster, not normalized: CSLB numbers appear as
+    // "1044821", "Lic. 1044821", "C-12 1044821" and worse, and which part is
+    // the number is exactly the judgement the matcher will need to make.
+    licenseNumber: text("license_number"),
+    // 0-100, matching quote_condition.confidence and bid.extraction_confidence
+    // rather than a 0-1 scale.
+    confidence: numeric("confidence", { precision: 5, scale: 2 }),
+    notes: text("notes"),
+    sourcePage: integer("source_page"),
+    // --- registry seam. Inert until a contractors table exists. ---
+    matchStatus: planHolderMatchStatusEnum("match_status")
+      .notNull()
+      .default("unmatched"),
+    contractorId: uuid("contractor_id"),
+    // 0-100 confidence in the registry match specifically — a different
+    // question from `confidence` above, which is about the transcription.
+    matchConfidence: numeric("match_confidence", { precision: 5, scale: 2 }),
+    // --- end registry seam ---
+    isConfirmed: boolean("is_confirmed").notNull().default(false),
+    confirmedBy: uuid("confirmed_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    confirmedAt: timestamp("confirmed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("plan_holder_contact_org_id_idx").on(table.orgId),
+    index("plan_holder_contact_list_id_idx").on(table.planHolderListId),
+    // The review screen reads one list and sorts unconfirmed rows first;
+    // this covers that without a per-row filter.
+    index("plan_holder_contact_list_id_confirmed_idx").on(
+      table.planHolderListId,
+      table.isConfirmed,
+    ),
+    // For the backfill that will resolve these against the registry: find
+    // every row still waiting on a match, across lists.
+    index("plan_holder_contact_match_status_idx").on(table.matchStatus),
+    orgIsolationPolicy("plan_holder_contact", table.orgId),
+  ],
+).enableRLS()
+
+export const planHolderContactsRelations = relations(
+  planHolderContacts,
+  ({ one }) => ({
+    org: one(orgs, {
+      fields: [planHolderContacts.orgId],
+      references: [orgs.id],
+    }),
+    planHolderList: one(planHolderLists, {
+      fields: [planHolderContacts.planHolderListId],
+      references: [planHolderLists.id],
+    }),
+    confirmedByUser: one(users, {
+      fields: [planHolderContacts.confirmedBy],
+      references: [users.id],
+    }),
+  }),
+)
 
 // ---------------------------------------------------------------------------
 // estimate / estimate_line (lib/estimate-data.ts)

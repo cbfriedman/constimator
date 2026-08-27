@@ -27,17 +27,20 @@ export type DocType =
   | "Addendum"
   | "Official Bid Form"
   | "Sub Quote"
+  | "Plan Holders"
   | "Supporting Document"
 
-// A sub quote can't be created or picked here: it needs the sub's name and
-// trade alongside the file (see db/schema.ts's sub_quote), which this general
-// project-documents uploader has no fields for, so one uploaded through here
-// would be a document with no sub_quote row behind it. Its own screen owns
-// that. "Sub Quote" stays in DocType so an existing one still renders with a
-// proper label in this table — it just can't be chosen, and this type is what
-// carries that distinction into the change handler rather than leaving it as
-// a convention someone has to remember.
-export type SelectableDocType = Exclude<DocType, "Sub Quote">
+// Neither a sub quote nor a plan holders list can be created or picked here.
+// Each needs a field alongside the file that this general project-documents
+// uploader has nowhere to ask for — a sub quote needs the sub's name and
+// trade, a plan holders list needs the source label that tells one issue of
+// the roster from the next (see db/schema.ts) — so one uploaded through here
+// would be a document with no sub_quote or plan_holder_list row behind it.
+// Their own screens own that. Both stay in DocType so an existing one still
+// renders with a proper label in this table; they just can't be chosen, and
+// this type is what carries that distinction into the change handler rather
+// than leaving it as a convention someone has to remember.
+export type SelectableDocType = Exclude<DocType, "Sub Quote" | "Plan Holders">
 
 export const docTypeOptions: SelectableDocType[] = [
   "Plans",

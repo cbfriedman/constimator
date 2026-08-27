@@ -39,6 +39,11 @@ type AnalyticsEvent =
   // is a prime actually comparing?" vs "how many project documents were
   // uploaded?"), and merging them would make both unanswerable.
   | "sub_quote_uploaded"
+  // Distinct from document_uploaded for the same reason sub_quote_uploaded
+  // is: the question is "how many jobs is a contractor sizing up the
+  // competition on?", which merging into the generic upload count would make
+  // unanswerable.
+  | "plan_holder_list_uploaded"
 
 /**
  * Fires a product analytics event tied to a real user, grouped by org

@@ -13,6 +13,7 @@ const DB_TO_UI_TYPE: Record<DbDocType, UploadDoc["type"]> = {
   addendum: "Addendum",
   bid_form: "Official Bid Form",
   sub_quote: "Sub Quote",
+  plan_holders: "Plan Holders",
   other: "Supporting Document",
 }
 

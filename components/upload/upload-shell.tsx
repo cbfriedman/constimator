@@ -34,12 +34,14 @@ const DB_TO_UI_TYPE: Record<DbDocType, DocType> = {
   addendum: "Addendum",
   bid_form: "Official Bid Form",
   sub_quote: "Sub Quote",
+  plan_holders: "Plan Holders",
   other: "Supporting Document",
 }
 
-// Keyed on SelectableDocType, not DocType — "Sub Quote" is absent because
-// the picker can't produce it (see documents-table.tsx), and typing it this
-// way makes that a compile error rather than a dead entry.
+// Keyed on SelectableDocType, not DocType — "Sub Quote" and "Plan Holders"
+// are absent because the picker can't produce either (see
+// documents-table.tsx), and typing it this way makes that a compile error
+// rather than a dead entry.
 const UI_TO_DB_TYPE: Record<SelectableDocType, UploadableDocType> = {
   Plans: "plans",
   Specifications: "specifications",
