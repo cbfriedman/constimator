@@ -19,6 +19,7 @@
 //   node scripts/registry/spike-dir.ts counts
 //   node scripts/registry/spike-dir.ts search "smith" [pages]
 //   node scripts/registry/spike-dir.ts sample <rows> <out.ndjson>
+//   node scripts/registry/spike-dir.ts segment <out.ndjson>
 //
 // No env vars, no database, no credentials. Writes only where you tell it to.
 
@@ -323,6 +324,40 @@ async function sample(rows: number, out: string) {
   console.log(`\nwrote ${written} rows to ${out}`)
 }
 
+// Pulls the whole currently-approved set — the universe of entities allowed to
+// bid public work, and the only part of DIR that matters for segmenting the
+// CSLB list. It is ~35.5k rows, so at 2,000 per page it is under 20 requests:
+// a targeted subset, not a sweep of the 137k-row table. Still against a host
+// that disallows crawling, so it stays rate-limited and one-off.
+async function segment(out: string) {
+  const { appendFileSync, writeFileSync } = await import("node:fs")
+  const session = new Session()
+  await session.open()
+
+  const filter = "contractor_status=dir_approved"
+  const pageSize = 2000
+  writeFileSync(out, "")
+
+  const first = await session.query(filter, 1, pageSize)
+  const totalPages = first.num_pages ?? 1
+  console.log(`  ${first.row_count} approved registrations across ${totalPages} pages of ${pageSize}`)
+
+  let written = 0
+  for (let p = 1; p <= totalPages; p++) {
+    const data = p === 1 ? first : await session.query(filter, p, pageSize)
+    const list = data.list ?? []
+    if (!list.length) break
+    const lines = list.map((row) =>
+      JSON.stringify(Object.fromEntries(FIELDS.split(",").map((f) => [f, cell(row, f)]))),
+    )
+    appendFileSync(out, lines.join("\n") + "\n")
+    written += lines.length
+    console.log(`  page ${p}/${totalPages}: +${lines.length} (${written})`)
+    if (p < totalPages) await sleep(DELAY_MS)
+  }
+  console.log(`\nwrote ${written} rows to ${out}`)
+}
+
 // --- entry ------------------------------------------------------------------
 
 const [command, ...rest] = process.argv.slice(2)
@@ -337,11 +372,14 @@ try {
     case "search":
       await search(rest[0] ?? "smith", Number(rest[1] ?? 1))
       break
+    case "segment":
+      await segment(rest[0] ?? "dir-approved.ndjson")
+      break
     case "sample":
       await sample(Number(rest[0] ?? 500), rest[1] ?? "dir-sample.ndjson")
       break
     default:
-      console.error("usage: spike-dir.ts <probe|counts|search <term> [pages]|sample <rows> <out.ndjson>>")
+      console.error("usage: spike-dir.ts <probe|counts|search <term> [pages]|sample <rows> <out.ndjson>|segment <out.ndjson>>")
       process.exit(1)
   }
 } catch (err) {

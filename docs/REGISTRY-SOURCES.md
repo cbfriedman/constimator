@@ -351,6 +351,126 @@ The name-matching fallback the 60–85% band called for is still worth building,
 but for a narrower job: attaching a DIR flag to CSLB licences where DIR left the
 licence number blank or malformed. It is no longer on the critical path.
 
+## Sizing the public-works segment
+
+The actual reason we want DIR at all: isolating public-works contractors from
+the rest of the CSLB file, because they're the core market and they're marketed
+to differently.
+
+That reframing shrinks the job. We don't need to ask DIR about each of 244,471
+CSLB licences — we need DIR's **approved** set, which is 35,558 rows, or **18
+requests** at 2,000 per page (`spike-dir.ts segment`). Flag the CSLB licences
+that match; everything else is "not public works" by exclusion.
+
+Measured 2026-08-24, full approved set against the full master file:
+
+```
+approved DIR rows               35,558
+distinct PWCR numbers           35,482
+... carrying a CSLB number      22,237  (62.5%)
+... resolving in CSLB master    21,345  (96.0% of those)
+DISTINCT CSLB licences matched  21,244
+  ...of those, status CLEAR     20,777
+rows with NO cslb number        13,321
+```
+
+**The segment is ~20,800 marketable contractors** — distinct, currently-clear
+CSLB licences that hold an approved DIR public works registration. That is
+**8.5%** of the 244,471 licences in the master file. 99.9% of them have a phone
+number, and they carry full address, county and trade classifications from the
+CSLB side.
+
+Note the match rate here is **96.0%**, better than the 92.2% measured on a random
+sample of all DIR rows. Approved registrations are better maintained than expired
+ones, which makes sense — someone renewed them recently.
+
+Geographic distribution of the marketable segment:
+
+```
+Los Angeles     2787      Sacramento       926
+Orange          1719      Alameda          716
+San Diego       1715      Santa Clara      692
+Riverside       1565      Fresno           633
+San Bernardino  1181      (blank)         1027
+```
+
+### The 13,321 with no licence number are not who I expected
+
+I assumed most of these would be public agencies, school districts and JPAs —
+bodies that register with DIR but aren't contractors. **They aren't.** Only
+**64 of 13,321 (0.5%)** match an agency-style name pattern. The rest are
+ordinary businesses:
+
+```
+corporation_s_corp   3558      corporation_c_corp   1475
+corporation          2489      sole_proprietorships 1316
+llc                  2240      (blank)              1881
+```
+
+Looking at the names, a large share are trucking and hauling firms — `Shaw
+Trucking`, `SARANILLO TRUCKING LLC` — plus service businesses. That fits: hauling
+and services on a public works job require DIR registration for prevailing-wage
+purposes but do **not** require a CSLB contractor licence. So these are mostly
+genuinely unlicensed-but-registered entities, not bad data.
+
+Whether they're prospects is a product judgement, not a data one. They can't
+prime a unit-price civil bid, but they can sub. They're reachable only by name
+matching, since there's no licence number to join on and DIR carries no address
+or phone.
+
+## DBE / certification directories — partial spike
+
+Checked 2026-08-25. Enough to settle the design question; the record count is
+still open.
+
+**The URLs in circulation are wrong.** `nl.dot.gov` does not resolve — there is
+no national DBE database with an API. DBE certification runs state by state
+through Unified Certification Programs. `dot.ca.gov/programs/civil-rights/dbep`
+and `dot.ca.gov/hq/bep/find_certified.htm` both 404. The live systems are
+B2Gnow-hosted:
+
+- `californiaucp.dbesystem.com` — **1,164 firms, 1,255 certifications**.
+  Certification types offered are ACDBE, DBE, and DBE (FAA Only), and the
+  certifying agencies are airport authorities (e.g. San Francisco International
+  Airport). This is the aviation side.
+- `caltrans.dbesystem.com` — a separate instance, presumably the highway DBE
+  directory. Its search rejects a blank query with an ASP recordset error and I
+  did not get a count out of it. **Unresolved.**
+
+Neither host serves a robots.txt (404), so there's no crawl prohibition like
+DIR's.
+
+### There is no licence number in a DBE record
+
+This was the question that decides the whole approach. A full certified profile
+carries:
+
+```
+BUSINESS NAME, B2G VENDOR ID, OWNER, ADDRESS, PHONE, EMAIL, WEBSITE, COUNTY,
+CERTIFYING AGENCY, CERTIFICATION TYPE, CERTIFIED BUSINESS DESCRIPTION,
+commodity codes (NAICS + CA WCC), CUCP PUBLIC DIRECTORY CERTIFICATION NUMBER
+```
+
+No CSLB licence number. So certifications **cannot** be joined to CSLB the way
+DIR was, and name-based matching is genuinely required.
+
+### But try phone before fuzzy names
+
+Both sides carry a phone number — CSLB's master file has `BusinessPhone`, the
+DBE profile has `PHONE`. Normalised to digits, that is close to a unique key and
+far cheaper and more precise than Levenshtein over 244k × N names. Address and
+county are also on both sides as confirmers.
+
+Suggested order before reaching for fuzzy matching: **phone → address+name →
+fuzzy name**, with fuzzy as the fallback that feeds a review queue rather than
+the primary mechanism. That inverts the effort estimate in the original plan.
+
+### Worth noting: DBE records include email
+
+CSLB withholds email addresses by statute ("Email addresses are not provided,
+Business & Professions Code Section 27"). The DBE profiles publish them. For a
+marketing use case that is independently valuable, regardless of the join.
+
 ## Terms of use
 
 Quoted rather than summarised. **Neither source states an explicit prohibition on
