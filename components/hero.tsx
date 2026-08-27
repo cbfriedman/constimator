@@ -43,11 +43,15 @@ export function Hero() {
           </a>
         </div>
 
-        {/* "No credit card required" is load-bearing and true: TRIAL_DAYS in
+        {/* The draft wanted "Catch your first error or pay nothing" here. That's
+            an unbounded refund promise with nothing behind it — but the thing it
+            promises is already true and already has a mechanism: TRIAL_DAYS in
             lib/billing.ts gives every new org 30 days with no Stripe involvement
-            at all. If that ever changes, this line has to change with it. */}
+            at all, so nobody can be charged before they've seen what it catches.
+            Said that way instead. If TRIAL_DAYS changes, this line changes. */}
         <p className="mt-5 text-sm text-muted-foreground">
-          No credit card required · 30-day free trial · Keep using your current estimating tool
+          No credit card required · 30 days free · See what it catches on a real bid before you
+          pay anything
         </p>
       </div>
     </section>

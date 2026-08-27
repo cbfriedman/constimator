@@ -1,19 +1,33 @@
 import { ArrowRight, Check } from "lucide-react"
 
-// NOTE: nothing in lib/billing.ts enforces "15 projects/month" or a $124 vs
-// $249 price today — the only billing rule in code is the 30-day trial
-// (TRIAL_DAYS) and the per-org monthly AI spend cap. These are the numbers you
-// are committing to in public, so wire the Stripe price and the project quota
-// up to match before the pilot goes live, or the first founding member to count
-// their projects finds the gap.
+// Two claims from the original draft are gone, because the code doesn't back
+// them and there's no reason to build limits nobody asked for:
+//
+//   "15 projects per month"  — there is no project quota anywhere in the
+//                              codebase. Projects are unlimited today. Saying
+//                              15 would have invented a cap and then required
+//                              us to go build it.
+//   "Unlimited pages"        — not quite true. Document processing pauses when
+//                              an org crosses its monthly AI spend limit
+//                              (Settings → Monthly AI usage limit, $20 default).
+//                              Stated as the budget it actually is instead.
+//
+// PRICING MODEL — the one thing still needing a decision from you:
+// self-serve checkout in app/billing/actions.ts is SEAT-priced (quantity =
+// live user count, reconciled by lib/seat-sync.ts), per the Billing decision in
+// docs/DECISIONS.md. The founding rate below is flat per company. Those are
+// different models. It isn't blocking today because founding access is a mailto
+// and you create those subscriptions by hand — and seat-sync no longer touches
+// non-seat-priced subscriptions, so a hand-made flat one stays flat. But if you
+// ever want $124 to be self-serve, the checkout has to move to a flat price.
 const REGULAR_PRICE = "$249"
 const FOUNDING_PRICE = "$124"
 const SPOTS = 20
 
 const includes = [
-  "15 projects per month",
-  "Unlimited pages per project",
-  "Full bid-form reconciliation and exports",
+  "Unlimited projects and bid forms",
+  "Full bid-form reconciliation, PDF and Excel exports",
+  "Document reading, with a monthly AI budget you set",
   "Direct input on the product roadmap",
   "Founding rate locked for life",
 ]
@@ -48,6 +62,10 @@ export function Pricing() {
               </div>
 
               <p className="mt-3 text-center text-sm text-muted-foreground">
+                For your whole company, not per seat.
+              </p>
+
+              <p className="mt-1 text-center text-sm text-muted-foreground">
                 <span className="line-through">{REGULAR_PRICE}/month</span> regular price — 50% off,
                 locked for life
               </p>
@@ -76,7 +94,8 @@ export function Pricing() {
           </div>
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
-            Every account starts with a 30-day free trial. No credit card to begin.
+            Every account starts with 30 days free and no credit card — run a real bid through it
+            before you pay anything.
           </p>
         </div>
       </div>
