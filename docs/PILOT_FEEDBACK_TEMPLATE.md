@@ -40,6 +40,27 @@ useful answer too — say so if it's true.)
   there?
 - Anything that broke, errored, or just didn't work?
 
+## What it's worth
+
+Constimator is priced per user, per month. That's our guess, not
+something we know, and you're better placed to tell us than we are.
+
+- **How many people at your company would actually need their own
+  login?** Just whoever builds the estimate? Them plus whoever reviews
+  the bid before it goes out? Anyone else — PM, owner?
+- **What do you pay today** for estimating, takeoff, or bid software —
+  roughly, and for how many people?
+- **If Constimator caught one item like the ones above, once a year,
+  what would that be worth to you?**
+- **At $249 per user per month, what's your honest first reaction?**
+  Too high, about right, cheaper than you expected? (Founding members
+  pay half that, locked for as long as they stay.)
+- **Is per-user even the right shape?** Would you rather pay a flat rate
+  for the company, or per bid you run through it?
+
+There are no wrong answers here, and "I wouldn't pay for this" is the
+single most useful thing you could tell us.
+
 ## Time
 
 Roughly how long did the whole thing take? ____________
