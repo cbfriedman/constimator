@@ -571,3 +571,49 @@ outside the repo.
 One environment quirk: `www.cslb.ca.gov` did not resolve from the machine this
 ran on (the VPN resolver has no A record for it) while the apex `cslb.ca.gov`
 did, and the apex serves the same app. The scripts use the apex host throughout.
+
+## Not yet spiked: DBE, DVBE, LBE certifications
+
+Requested 2026-08-28. Nothing below has been measured — it is where to look,
+not what was found, and it is recorded here so the next spike has a starting
+point rather than as anything to design or quote against. Everything in the
+sections above was verified against live services; this section was not.
+
+"All certified DBEs in California" is not one source. It is three regimes run
+by three different kinds of body, and only the first two are statewide:
+
+| Programme | Who certifies | Where to start |
+|---|---|---|
+| **DBE** (federal, state-administered) | California Unified Certification Program; Caltrans hosts the statewide search | Caltrans CUCP DBE database |
+| **DVBE / SB** (California state) | Dept. of General Services, Office of Small Business & DBE Services | Cal eProcure supplier search |
+| **LBE** (local) | Each city or county separately — SF, LA, Oakland and others each run their own | No statewide source. One per agency. |
+
+**LBE is the scope trap.** There is no central registry, so "and the local ones
+too" is an open-ended tail of per-agency programmes, each with its own list and
+format. Pin down which agencies actually matter before treating it as in scope.
+
+### What the spike has to answer
+
+Same questions the DIR and CSLB spikes answered, in the same order — the point
+of that exercise was that three of five planned assumptions turned out false,
+including a file we expected to buy that was free and a search endpoint that no
+longer existed:
+
+- Is there a bulk download, a queryable endpoint, or only a paginated UI?
+- Row count, and what fields come back.
+- robots.txt and terms of use — CSLB and DIR differed sharply here.
+- Refresh cadence, and whether the snapshot includes lapsed certifications.
+- **The join key.** DBE certification is an attribute of a contractor, not a
+  separate entity. If these sources carry a CSLB licence number, they fold into
+  the same contractors table the plan holders matcher needs; if they don't, the
+  join is fuzzy name only and the coverage question from the DIR section
+  repeats itself.
+
+### Why it is worth sequencing with the contractor registry
+
+The contractors table does not exist yet, which is why
+plan_holder_contact.contractor_id is an inert seam (see db/schema.ts). That one
+table is now what stands between the product and three separate features:
+resolving plan holders to known contractors, DBE lookup, and finding certified
+subs to hit a job's participation goal. Built once, all three fall out of it.
+Built three times, they don't.
