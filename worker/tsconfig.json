@@ -11,5 +11,8 @@
     "rootDir": "src",
     "types": ["node"]
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  // Tests are typechecked and run by vitest, not compiled into dist/ — the
+  // deployed worker has no reason to ship them.
+  "exclude": ["src/**/*.test.ts"]
 }

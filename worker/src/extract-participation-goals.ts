@@ -1,6 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk"
 
 import type { ExtractedParticipationGoal, ExtractedSpecLink } from "./types.js"
+import { tryExtractPdfPageText } from "./pdf-text.js"
+import { formatSelectedPages, selectSpecPages } from "./select-spec-pages.js"
 
 // Reads the disadvantaged-business participation requirement out of a
 // project's specifications. Like extract-bid-form.ts and
@@ -21,23 +23,27 @@ import type { ExtractedParticipationGoal, ExtractedSpecLink } from "./types.js"
 // declared-but-blank TAKEOFF_MODEL= line in .env is "" (not undefined).
 const MODEL = process.env.TAKEOFF_MODEL || "claude-sonnet-5"
 
-// A PDF document block, not rasterized pages, for the same reason as
-// extract-bid-form.ts: the answers here are printed characters — a percentage
-// and a URL — and rasterizing throws away exactly the data this extractor
-// exists to read. A mistyped digit in a URL makes the link useless in a way a
-// slightly-off quantity never is.
+// Two ways in, and which one runs is decided by the document itself.
 //
-// The API accepts a base64 PDF block up to 32MB. A full spec book can exceed
-// that, so the check below fails the job with something a person can act on
-// rather than letting the request come back with an API-shaped 400. It's a
-// size check rather than a page check because nothing populates
-// document.page_count yet, and parsing the PDF just to count pages costs more
-// than it is worth when the byte length is already in hand.
+// The normal path reads the PDF's text layer and sends only the pages that
+// carry the participation language (see select-spec-pages.ts). That is what
+// makes a real spec book workable: agency special provisions run 200-800
+// pages and tens of megabytes, so sending the whole document is impossible
+// past the API's 32MB limit and wasteful long before it, and it buries a
+// two-paragraph clause in hundreds of pages of unrelated boilerplate.
+//
+// The fallback sends the PDF itself as a document block, for a scanned spec
+// with no text layer to select from — Claude's PDF support reads those, and
+// nothing else here can. That path is the only one the size ceiling applies
+// to now, so the ceiling stops being the common case and becomes what it
+// should have been: the limit on scans specifically.
 const MAX_PDF_BYTES = 32 * 1024 * 1024
 
 const SYSTEM_PROMPT = `You are reading the disadvantaged-business participation requirement out of a public agency's project specifications for a construction project — the special provisions, notice to bidders, or instructions to bidders.
 
 Every value you report is printed in this document. Read it exactly. Do not estimate, infer, normalize, or complete anything. In particular, do not report what an agency's participation goal usually is, or what a programme's typical percentage is — only what this document prints.
+
+You will be given either the whole document or an excerpt of it. An excerpt arrives as text under [PDF page N] headers naming the page each passage came from — report those numbers as sourcePage, so a reviewer can turn to the page you read. An excerpt is not a random sample: it is every page of the document that mentions a participation programme or says where documents are obtained. So if the passages you are given state no participation requirement, the document does not impose one, and an empty goals array is the correct answer rather than a sign you were shown too little.
 
 A participation requirement names a certification programme and, usually, a percentage of the contract that must go to firms holding that certification. These programmes are NOT interchangeable — report the one this document actually names:
 - DBE — Disadvantaged Business Enterprise (federal-aid work, certified through the California Unified Certification Program)
@@ -122,6 +128,35 @@ export type ParticipationGoalsExtractResult = {
   usage: { model: string; inputTokens: number; outputTokens: number }
 }
 
+// Reported when the document has a real text layer and not one page of it
+// mentions any participation programme. Nothing is sent to Claude in that
+// case — see below.
+const NO_GOAL_LANGUAGE_NOTE =
+  "No participation requirement found: none of this document's pages mention a DBE, DVBE, SB, MBE/WBE or LBE programme, or any participation goal. Read from the document's text directly, without an AI pass."
+
+function buildUserContent(pdfBytes: Buffer): Anthropic.ContentBlockParam[] {
+  if (pdfBytes.byteLength > MAX_PDF_BYTES) {
+    const sizeMb = (pdfBytes.byteLength / 1024 / 1024).toFixed(1)
+    throw new Error(
+      `This specifications file is a ${sizeMb} MB scan with no text layer — too large to read in one pass (the limit is 32 MB for a scanned document). Upload just the section carrying the participation requirement — the notice to bidders or the special provisions — and the goal will be read from that.`,
+    )
+  }
+  return [
+    {
+      type: "document",
+      source: {
+        type: "base64",
+        media_type: "application/pdf",
+        data: pdfBytes.toString("base64"),
+      },
+    },
+    {
+      type: "text",
+      text: "Read the participation requirement out of these specifications per the instructions.",
+    },
+  ]
+}
+
 export async function extractParticipationGoals(
   pdfBytes: Buffer,
 ): Promise<ParticipationGoalsExtractResult> {
@@ -130,12 +165,35 @@ export async function extractParticipationGoals(
     throw new Error("ANTHROPIC_API_KEY is not set — see .env.example")
   }
 
-  if (pdfBytes.byteLength > MAX_PDF_BYTES) {
-    const sizeMb = (pdfBytes.byteLength / 1024 / 1024).toFixed(1)
-    throw new Error(
-      `This specifications file is ${sizeMb} MB — too large to read in one pass (the limit is 32 MB). Upload just the section carrying the participation requirement — the notice to bidders or the special provisions — and the goal will be read from that.`,
-    )
+  // A parse failure is not fatal: Claude's PDF support reads some documents
+  // pdf.js won't parse, so a null here just means taking the fallback.
+  const pdfPages = await tryExtractPdfPageText(pdfBytes)
+  const selection = pdfPages ? selectSpecPages(pdfPages) : null
+
+  // A text-bearing document that never says "DBE", "disadvantaged business",
+  // "participation goal" or any of the other terms in select-spec-pages.ts
+  // does not carry a participation requirement, and no amount of model time
+  // will find one in it. Answering from the text costs nothing, takes no
+  // time, and is deterministic — where an API call here would be spending
+  // money to be told what we already know.
+  if (selection?.hasNoGoalLanguage) {
+    return {
+      goals: [],
+      links: [],
+      documentNotes: NO_GOAL_LANGUAGE_NOTE,
+      usage: { model: MODEL, inputTokens: 0, outputTokens: 0 },
+    }
   }
+
+  const content: Anthropic.ContentBlockParam[] =
+    selection && selection.pages.length > 0
+      ? [
+          {
+            type: "text",
+            text: `These are the pages of a ${pdfPages?.length ?? selection.pages.length}-page specifications document that mention a participation programme or where documents are obtained.\n\n${formatSelectedPages(selection.pages)}\n\nRead the participation requirement out of these specifications per the instructions.`,
+          },
+        ]
+      : buildUserContent(pdfBytes)
 
   const client = new Anthropic({ apiKey })
 
@@ -150,25 +208,7 @@ export async function extractParticipationGoals(
     system: SYSTEM_PROMPT,
     tools: [TOOL],
     tool_choice: { type: "tool", name: "record_participation_goals" },
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "document",
-            source: {
-              type: "base64",
-              media_type: "application/pdf",
-              data: pdfBytes.toString("base64"),
-            },
-          },
-          {
-            type: "text",
-            text: "Read the participation requirement out of these specifications per the instructions.",
-          },
-        ],
-      },
-    ],
+    messages: [{ role: "user", content }],
   })
 
   const toolUse = response.content.find(

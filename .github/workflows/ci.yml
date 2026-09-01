@@ -69,6 +69,26 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
 
+  # The worker is a standalone package with its own node_modules and its own
+  # npm lockfile (see worker/README.md), so it is not covered by any of the
+  # jobs above — until now nothing in CI compiled or ran it at all.
+  worker:
+    name: Worker
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: worker
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
   build:
     name: Build
     runs-on: ubuntu-latest
