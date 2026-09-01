@@ -59,13 +59,16 @@ export function Features() {
             </span>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h3 className="font-display text-lg font-semibold">Extracts the bid requirements</h3>
+                <h3 className="font-display text-lg font-semibold">Bid requirements in one summary</h3>
                 <EarlyAccessBadge />
               </div>
               <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                Engineer&apos;s estimate, working days, liquidated damages, bonding, prevailing
-                wage, DBE goals, and bid deadlines — surfaced in one summary, each tied back to
-                the page it came from.
+                Constimator reads the DBE/DVBE participation goal off the specs — the
+                percentage, which certification it calls for, and the link the specs print for
+                obtaining the documents — tied back to the page it came from. The
+                engineer&apos;s estimate and bid deadline you enter when you create the project
+                sit alongside it. Goal extraction is new and still being validated against real
+                spec books.
               </p>
             </div>
           </div>
