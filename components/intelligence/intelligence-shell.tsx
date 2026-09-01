@@ -17,19 +17,30 @@ import type {
   DocumentView,
   ExtractedItemView,
   IntelligenceProjectView,
+  ParticipationGoalView,
+  SpecLinkView,
 } from "@/app/intelligence/actions"
 
 export function IntelligenceShell({
   project,
   documents,
   items,
+  participationGoals,
+  specLinks,
+  specsAnalyzed,
 }: {
   project: IntelligenceProjectView
   documents: DocumentView[]
   items: ExtractedItemView[]
+  participationGoals: ParticipationGoalView[]
+  specLinks: SpecLinkView[]
+  specsAnalyzed: boolean
 }) {
   const router = useRouter()
-  const hasCompletedProcessing = items.length > 0
+  // Specs contribute no items — they're read for the participation
+  // requirement, not for quantities — so a project whose only processed
+  // document is a spec book has still been analyzed.
+  const hasCompletedProcessing = items.length > 0 || specsAnalyzed
 
   return (
     <SourceReferenceProvider>
@@ -62,7 +73,13 @@ export function IntelligenceShell({
               </TabsList>
 
               <TabsContent value="overview">
-                <OverviewTab project={project} items={items} />
+                <OverviewTab
+                  project={project}
+                  items={items}
+                  participationGoals={participationGoals}
+                  specLinks={specLinks}
+                  specsAnalyzed={specsAnalyzed}
+                />
               </TabsContent>
               <TabsContent value="schedules">
                 <SchedulesTab items={items} />

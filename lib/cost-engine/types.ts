@@ -90,6 +90,51 @@ export type ExtractedPlanHolder = {
   notes?: string
 }
 
+/**
+ * One participation requirement read off a project's specifications — the
+ * share of the contract that has to go to firms holding a given
+ * certification (DBE, DVBE, SB, LBE, ...). Mirrors worker/src/types.ts's
+ * ExtractedParticipationGoal — same hand-sync rule as the types above.
+ *
+ * `rawText` is required and verbatim, for the same reason it is on
+ * ExtractedQuoteCondition: the Project Intelligence summary shows the clause
+ * beside the parsed percentage, and a number a bidder can't check against the
+ * specs cheaply is a number they won't bid against.
+ *
+ * `goalPercent` is optional, and that is the important part of the shape. A
+ * spec that imposes a requirement without setting a percentage is common —
+ * race-neutral goals, good-faith-effort-only clauses, an explicit "no goal has
+ * been established" — and requiring it would push the extractor into supplying
+ * the number the agency usually uses. See
+ * worker/src/extract-participation-goals.ts.
+ */
+export type ExtractedParticipationGoal = {
+  rawText: string
+  program: string
+  goalPercent?: number
+  appliesTo?: string
+  confidence?: number
+  sourcePage?: number
+  notes?: string
+}
+
+/**
+ * A web address printed in the specifications alongside a participation
+ * requirement — where the directory of certified firms is searched, where the
+ * required forms or the bid documents are obtained. Mirrors
+ * worker/src/types.ts's ExtractedSpecLink — same hand-sync rule.
+ *
+ * `label` is what the document says the address is for, in the document's own
+ * words, so nothing downstream has to assert what kind of link it is. The URL
+ * came out of a PDF via an AI extraction, so it is untrusted input: run it
+ * through lib/spec-links.ts's safeSpecUrl before rendering it as a link.
+ */
+export type ExtractedSpecLink = {
+  url: string
+  label: string
+  sourcePage?: number
+}
+
 export type GeneratedEstimateLine = {
   description: string
   quantity: string

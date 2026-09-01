@@ -18,8 +18,10 @@ import {
 
 import type {
   ExtractedBidItem,
+  ExtractedParticipationGoal,
   ExtractedPlanHolder,
   ExtractedQuoteCondition,
+  ExtractedSpecLink,
   ExtractedTakeoffItem,
 } from "@/lib/cost-engine/types"
 
@@ -541,7 +543,7 @@ export const takeoffJobs = pgTable(
     // contractor's own estimate. `kind` is optional because rows written
     // before step 40 predate it; absent means plan takeoff.
     result: jsonb("result").$type<{
-      kind?: "plan_takeoff" | "bid_form" | "sub_quote" | "plan_holders"
+      kind?: "plan_takeoff" | "bid_form" | "sub_quote" | "plan_holders" | "specifications"
       items?: ExtractedTakeoffItem[]
       bidItems?: ExtractedBidItem[]
       // Step 41 — set only for kind "sub_quote". Stays raw here until a
@@ -556,6 +558,15 @@ export const takeoffJobs = pgTable(
       planHolders?: ExtractedPlanHolder[]
       /** Printed on the roster when it prints one, ISO yyyy-mm-dd. */
       planHoldersIssuedOn?: string
+      // Set only for kind "specifications" — the participation requirement
+      // (DBE/DVBE/SB/LBE goal) the specs impose, and the web addresses they
+      // print beside it. Unlike conditions and planHolders these are NOT
+      // materialized into their own rows on review: app/intelligence/actions.ts
+      // reads them straight out of this jsonb to show in the Project
+      // Intelligence summary. They stay read-only reference, so there is
+      // nothing for a review gate to confirm into.
+      participationGoals?: ExtractedParticipationGoal[]
+      specLinks?: ExtractedSpecLink[]
       quoteTotalAmount?: number
       documentNotes?: string
     }>(),

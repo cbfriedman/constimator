@@ -5,6 +5,7 @@ import { extractQuantities } from "./extract.js"
 import { extractBidForm } from "./extract-bid-form.js"
 import { extractQuoteConditions } from "./extract-quote-conditions.js"
 import { extractPlanHolders } from "./extract-plan-holders.js"
+import { extractParticipationGoals } from "./extract-participation-goals.js"
 import { checkSpendCap, checkTakeoffRateLimit, formatUsd, recordAiUsage } from "./ai-limits.js"
 import { captureTakeoffCompleted } from "./analytics.js"
 import { logger } from "./logger.js"
@@ -121,14 +122,23 @@ export async function processJob(job: ClaimedJob) {
 
     const fileBytes = await downloadDocument(document.storage_bucket, document.storage_path)
 
-    // Step 40, extended in step 41 and again for plan holders: which
-    // extractor runs is decided by the document's own type, set at upload
-    // time. A bid form is transcribed (the quantities are printed on it), a
-    // sub quote is read for the conditions attached to its price, a plan
-    // holders list is parsed for who else pulled the documents, and
-    // everything else goes through the plan-sheet takeoff. Each writes a
-    // different field of `result` — see types.ts — so one kind's output can't
-    // be mistaken for another's downstream.
+    // Step 40, extended in step 41 and again for plan holders and specs:
+    // which extractor runs is decided by the document's own type, set at
+    // upload time. A bid form is transcribed (the quantities are printed on
+    // it), a sub quote is read for the conditions attached to its price, a
+    // plan holders list is parsed for who else pulled the documents, a
+    // specifications document is read for the participation requirement it
+    // imposes, and everything else goes through the plan-sheet takeoff. Each
+    // writes a different field of `result` — see types.ts — so one kind's
+    // output can't be mistaken for another's downstream.
+    //
+    // Specs used to fall through to the plan-sheet takeoff, which was wrong
+    // in a way worth naming: that path rasterizes the first 20 pages and
+    // measures quantities off them, and its results are the ones that feed
+    // generateEstimateFromTakeoff. Running it over a spec book produced
+    // quantities nobody measured, filed under kind "plan_takeoff", which put
+    // them straight into the estimate. Routing specs here ends that as well
+    // as reading the goal.
     let result: TakeoffResult
     let usage: { model: string; inputTokens: number; outputTokens: number }
     let itemCount: number
@@ -186,6 +196,24 @@ export async function processJob(job: ClaimedJob) {
       usageKind = "plan_holders_extraction"
       if (extracted.documentNotes) {
         logger.info("Plan holders extraction notes", {
+          jobId: job.id,
+          documentId: job.document_id,
+          documentNotes: extracted.documentNotes,
+        })
+      }
+    } else if (document.type === "specifications") {
+      const extracted = await extractParticipationGoals(fileBytes)
+      result = {
+        kind: "specifications",
+        participationGoals: extracted.goals,
+        specLinks: extracted.links,
+        documentNotes: extracted.documentNotes,
+      }
+      usage = extracted.usage
+      itemCount = extracted.goals.length
+      usageKind = "participation_goals_extraction"
+      if (extracted.documentNotes) {
+        logger.info("Specifications extraction notes", {
           jobId: job.id,
           documentId: job.document_id,
           documentNotes: extracted.documentNotes,

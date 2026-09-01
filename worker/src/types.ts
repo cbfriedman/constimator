@@ -77,22 +77,68 @@ export type ExtractedPlanHolder = {
   notes?: string
 }
 
+// One participation requirement read off a project's specifications — the
+// share of the contract that has to go to firms holding a given
+// certification. Mirrors lib/cost-engine/types.ts's
+// ExtractedParticipationGoal in the main app — same hand-sync rule as the
+// types above.
+//
+// rawText is required for the same reason it is on ExtractedQuoteCondition:
+// the summary shows the verbatim clause beside the parsed percentage, and a
+// number a bidder can't check against the specs cheaply is a number they
+// won't bid against.
+//
+// goalPercent is optional, and that is the important part of this shape. A
+// spec that imposes a requirement without setting a percentage is common —
+// race-neutral goals, good-faith-effort-only clauses, an explicit "no goal
+// has been established" — and requiring the field here would push the
+// extractor into supplying the number the agency usually uses. See
+// worker/src/extract-participation-goals.ts.
+export type ExtractedParticipationGoal = {
+  rawText: string
+  program: string
+  goalPercent?: number
+  appliesTo?: string
+  confidence?: number
+  sourcePage?: number
+  notes?: string
+}
+
+// A web address printed in the specifications alongside a participation
+// requirement — where the directory of certified firms is searched, where the
+// required forms or bid documents are obtained. Mirrors
+// lib/cost-engine/types.ts's ExtractedSpecLink — same hand-sync rule.
+//
+// `label` is what the document says the address is for, in the document's own
+// words, so the UI never has to assert what kind of link it is.
+export type ExtractedSpecLink = {
+  url: string
+  label: string
+  sourcePage?: number
+}
+
 // Shape written into takeoff_job.result on success. `kind` says which
 // extractor ran, and only one of items/bidItems/conditions is ever populated
 // — app/processing/actions.ts keys off that to decide whether a result should
 // feed the estimate (plan takeoff) or not (bid form, which is the *other*
 // side of the reconciliation and must never become the contractor's own
 // estimate lines; sub quotes, which are a third party's pricing and belong to
-// the leveling grid, not to this contractor's estimate either; and plan
-// holders, which are who else is bidding and say nothing about the work).
+// the leveling grid, not to this contractor's estimate either; plan
+// holders, which are who else is bidding and say nothing about the work; and
+// specifications, which carry the participation requirement and likewise no
+// quantities).
 export type TakeoffResult = {
-  kind?: "plan_takeoff" | "bid_form" | "sub_quote" | "plan_holders"
+  kind?: "plan_takeoff" | "bid_form" | "sub_quote" | "plan_holders" | "specifications"
   items?: ExtractedTakeoffItem[]
   bidItems?: ExtractedBidItem[]
   conditions?: ExtractedQuoteCondition[]
   planHolders?: ExtractedPlanHolder[]
   /** Printed on the roster when it prints one, ISO yyyy-mm-dd. */
   planHoldersIssuedOn?: string
+  /** Set only for kind "specifications". */
+  participationGoals?: ExtractedParticipationGoal[]
+  /** Set only for kind "specifications" — the links printed beside the goals. */
+  specLinks?: ExtractedSpecLink[]
   quoteTotalAmount?: number
   documentNotes?: string
 }

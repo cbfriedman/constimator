@@ -3,7 +3,8 @@ import { IntelligenceShell } from "@/components/intelligence/intelligence-shell"
 import { NoProjectState } from "@/components/no-project-state"
 
 export default async function IntelligencePage() {
-  const { project, documents, items } = await getIntelligenceData()
+  const { project, documents, items, participationGoals, specLinks, specsAnalyzed } =
+    await getIntelligenceData()
 
   if (!project) {
     return (
@@ -14,5 +15,14 @@ export default async function IntelligencePage() {
     )
   }
 
-  return <IntelligenceShell project={project} documents={documents} items={items} />
+  return (
+    <IntelligenceShell
+      project={project}
+      documents={documents}
+      items={items}
+      participationGoals={participationGoals}
+      specLinks={specLinks}
+      specsAnalyzed={specsAnalyzed}
+    />
+  )
 }

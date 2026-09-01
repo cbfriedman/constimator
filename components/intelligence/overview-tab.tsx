@@ -1,4 +1,4 @@
-import { CalendarClock, FileQuestion } from "lucide-react"
+import { CalendarClock, ExternalLink, FileQuestion } from "lucide-react"
 
 import {
   Card,
@@ -8,14 +8,25 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { SourceChip } from "@/components/intelligence/source-reference"
-import type { ExtractedItemView, IntelligenceProjectView } from "@/app/intelligence/actions"
+import type {
+  ExtractedItemView,
+  IntelligenceProjectView,
+  ParticipationGoalView,
+  SpecLinkView,
+} from "@/app/intelligence/actions"
 
 export function OverviewTab({
   project,
   items,
+  participationGoals,
+  specLinks,
+  specsAnalyzed,
 }: {
   project: IntelligenceProjectView
   items: ExtractedItemView[]
+  participationGoals: ParticipationGoalView[]
+  specLinks: SpecLinkView[]
+  specsAnalyzed: boolean
 }) {
   const keyFacts = [
     project.workingDays != null && { label: "Working Days", value: String(project.workingDays) },
@@ -28,6 +39,22 @@ export function OverviewTab({
       label: "Engineer's Estimate",
       value: project.engineersEstimate,
     },
+    // One tile per programme the specs name — a job can carry a DBE goal and
+    // a DVBE goal at once, and they are separate obligations. "Stated, no
+    // percentage" is the specs imposing a requirement without setting a
+    // number (see ParticipationGoalView); the verbatim clause under the grid
+    // is what says which kind it is.
+    ...participationGoals.map((goal) => ({
+      label: `${goal.program} Goal`,
+      value: goal.goal ?? "Stated, no percentage",
+    })),
+    // Only claim the specs set no goal once the specs have actually been
+    // read. Before that the honest answer is silence, not "none".
+    specsAnalyzed &&
+      participationGoals.length === 0 && {
+        label: "Participation Goal",
+        value: "None in the specs",
+      },
   ].filter(Boolean) as { label: string; value: string }[]
 
   const scopeItems = items.filter((item) => item.quantity > 0)
@@ -61,11 +88,14 @@ export function OverviewTab({
           <CardHeader>
             <CardTitle>Key Facts</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-col gap-4">
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-              {keyFacts.map((fact) => (
+              {keyFacts.map((fact, i) => (
                 <div
-                  key={fact.label}
+                  // Indexed because two goal tiles can share a label — the
+                  // specs naming the same programme twice is the agency's
+                  // doing, not something to drop on the floor.
+                  key={`${fact.label}-${i}`}
                   className="flex flex-col gap-1 rounded-lg border bg-muted/30 p-3"
                 >
                   <span className="text-xs text-muted-foreground">{fact.label}</span>
@@ -73,6 +103,49 @@ export function OverviewTab({
                 </div>
               ))}
             </div>
+
+            {participationGoals.length > 0 || specLinks.length > 0 ? (
+              <div className="flex flex-col gap-3 border-t pt-4">
+                {participationGoals.map((goal, i) => (
+                  <div key={`${goal.program}-${i}`} className="flex flex-col gap-1">
+                    <p className="text-xs leading-relaxed text-muted-foreground">
+                      {/* The clause verbatim. A percentage a bidder can't
+                          check against the specs in one glance is a
+                          percentage they'll go and look up anyway. */}
+                      &ldquo;{goal.rawText}&rdquo;
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <SourceChip
+                        label={
+                          goal.sourcePage != null
+                            ? `${goal.documentName} p.${goal.sourcePage}`
+                            : goal.documentName
+                        }
+                      />
+                      {goal.appliesTo ? (
+                        <span className="text-xs text-muted-foreground">{goal.appliesTo}</span>
+                      ) : null}
+                    </div>
+                    {goal.notes ? (
+                      <p className="text-xs text-muted-foreground">{goal.notes}</p>
+                    ) : null}
+                  </div>
+                ))}
+
+                {specLinks.map((link) => (
+                  <a
+                    key={link.url}
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex w-fit max-w-full items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+                  >
+                    <ExternalLink className="size-3.5 shrink-0" />
+                    <span className="truncate">{link.label}</span>
+                  </a>
+                ))}
+              </div>
+            ) : null}
           </CardContent>
         </Card>
       ) : null}
