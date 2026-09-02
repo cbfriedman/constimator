@@ -41,7 +41,32 @@ node --env-file=.env.local scripts/real-job/upload.ts ./scripts/real-job/pdfs/sh
 Uploads, queues, and waits for the job to finish, then prints the document id.
 `--org`/`--project` can be omitted when there's only one of each. `--type`
 defaults to `bid_form`; pass `--type plans` to exercise the plan-sheet takeoff
-path instead.
+path instead, or `--type specifications` for the participation-goal reader.
+
+### Plan holders lists and plan room exports
+
+```sh
+node --env-file=.env.local scripts/real-job/upload.ts ./scripts/real-job/pdfs/ops-export.pdf \
+  --type plan_holders --label "Online Plan Service export, 3/14"
+```
+
+`--label` is required and has no default, matching the app's own upload: a
+roster gets reissued as more bidders pull documents, and the label is the only
+thing telling one issue from the next. The run creates the `plan_holder_list`
+row too, so the result is reviewable at `/plan-holders` rather than only
+visible in `takeoff_job.result`.
+
+Instead of pointing at `compare.ts` — a roster has no bid items to compare —
+this prints the first few parsed companies beside their verbatim source lines,
+which is what a reader test actually needs to judge.
+
+**It must be a PDF.** Not a harness limitation: `lib/document-upload.ts`
+restricts plan holder lists to `application/pdf`, and the extractor sends the
+file to Claude as a PDF document block. Plan services export rosters as CSV or
+XLSX at least as often, and those are rejected before the reader sees them —
+so when asking a plan room member for an export, ask for the PDF or print-to-PDF
+version. A spreadsheet export needs a non-vision code path that doesn't exist
+yet.
 
 ### No document handy?
 

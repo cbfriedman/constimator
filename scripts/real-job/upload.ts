@@ -24,8 +24,11 @@
 //   --org <slug>          Required if the database has more than one org.
 //   --project <number>    Project number (e.g. 24-118). Required if the org
 //                         has more than one project.
-//   --type <doc-type>     plans | specifications | bid_form | addendum | other
-//                         Defaults to bid_form.
+//   --type <doc-type>     plans | specifications | bid_form | addendum |
+//                         plan_holders | other. Defaults to bid_form.
+//   --label <text>        Only with --type plan_holders: the roster's source
+//                         label ("Online Plan Service export, 3/14"), which
+//                         the app requires and the extractor can't infer.
 //   --no-wait             Queue the job and exit instead of waiting.
 //   --timeout <seconds>   How long to wait for the job. Default 900.
 
@@ -37,7 +40,19 @@ import postgres from "postgres"
 
 const DOCUMENTS_BUCKET = "project-documents"
 const MAX_FILE_SIZE_BYTES = 500 * 1024 * 1024
-const DOC_TYPES = ["plans", "specifications", "bid_form", "addendum", "other"]
+// Mirrors the document_type enum, minus sub_quote — a sub quote needs its
+// sub's name and trade recorded alongside the file, which this harness has
+// nowhere to ask for (scripts/real-job/run-sub-quote-samples.mjs covers that
+// path instead). plan_holders IS here: a roster needs only a source label,
+// which --label supplies.
+const DOC_TYPES = [
+  "plans",
+  "specifications",
+  "bid_form",
+  "addendum",
+  "plan_holders",
+  "other",
+]
 const TRIAL_DAYS = 30
 const ENTITLED_STATUSES = ["trialing", "active"]
 
@@ -46,6 +61,7 @@ type Args = {
   org?: string
   project?: string
   type: string
+  label?: string
   wait: boolean
   timeoutSeconds: number
 }
@@ -82,11 +98,24 @@ function parseArgs(argv: string[]): Args {
     throw new Error(`--type must be one of: ${DOC_TYPES.join(", ")}`)
   }
 
+  // Required rather than defaulted, matching the app's own upload: agencies
+  // and plan services reissue a roster as more bidders pull documents, and
+  // the only thing telling the 3/14 issue from the 3/21 one is what a human
+  // calls it. A default here would quietly make every run look like the same
+  // roster.
+  const label = flags.get("label")
+  if (type === "plan_holders" && !label) {
+    throw new Error(
+      "--type plan_holders needs --label, e.g. --label 'Online Plan Service export, 3/14'",
+    )
+  }
+
   return {
     pdfPath,
     org: flags.get("org"),
     project: flags.get("project"),
     type,
+    label,
     wait: !flags.has("no-wait"),
     timeoutSeconds: Number(flags.get("timeout") ?? 900),
   }
@@ -213,6 +242,24 @@ async function main() {
       )
       returning id
     `
+    // The worker's plan_holders branch updates plan_holder_list's status as
+    // the job moves, and app/plan-holders/actions.ts materializes contacts
+    // from the list row on first read of the review screen. Without this row
+    // those updates are silent no-ops: the extraction still lands in
+    // takeoff_job.result, but nothing is reviewable in the app, which is half
+    // of what a real-path test is for.
+    if (args.type === "plan_holders") {
+      const [list] = await sql`
+        insert into public.plan_holder_list (
+          org_id, project_id, document_id, source_label, status
+        ) values (
+          ${org.id}, ${project.id}, ${document.id}, ${args.label!}, 'uploaded'
+        )
+        returning id
+      `
+      console.log(`List     : ${list.id} (${args.label})`)
+    }
+
     const [job] = await sql`
       insert into public.takeoff_job (org_id, document_id, status)
       values (${org.id}, ${document.id}, 'queued')
@@ -246,6 +293,31 @@ async function main() {
         return
       }
       if (row.status === "complete") {
+        // A roster has no bid items to compare, so compare.ts has nothing to
+        // say about it. What a reader test needs instead is the first few
+        // rows printed here, beside the source document, so the parse can be
+        // eyeballed straight away.
+        if (row.result?.kind === "plan_holders") {
+          const holders = row.result?.planHolders ?? []
+          console.log(`\nComplete — extracted ${holders.length} plan holders.`)
+          if (row.result?.planHoldersIssuedOn) {
+            console.log(`Issued on: ${row.result.planHoldersIssuedOn}`)
+          }
+          if (row.result?.documentNotes) {
+            console.log(`Notes    : ${row.result.documentNotes}`)
+          }
+          for (const holder of holders.slice(0, 5)) {
+            const parsed = [holder.contactName, holder.city, holder.phone, holder.licenseNumber]
+              .filter(Boolean)
+              .join(" | ")
+            console.log(`\n  ${holder.companyName}${parsed ? `\n    ${parsed}` : ""}`)
+            console.log(`    raw: ${holder.rawText?.replace(/\s+/g, " ").slice(0, 120)}`)
+          }
+          if (holders.length > 5) console.log(`\n  ... and ${holders.length - 5} more.`)
+          console.log("\nNext: open /plan-holders in the app to review the full list.")
+          return
+        }
+
         const extracted = row.result?.bidItems ?? row.result?.items ?? []
         console.log(`\nComplete — extracted ${extracted.length} items (kind=${row.result?.kind ?? "plan_takeoff"}).`)
         console.log(
