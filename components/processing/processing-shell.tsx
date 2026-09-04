@@ -227,12 +227,12 @@ export function ProcessingShell({
       <div className="flex flex-wrap items-center justify-end gap-3 border-t pt-4">
         <Button
           variant="outline"
-          onClick={() => router.push("/schedules")}
+          onClick={() => router.push(`/schedules?project=${projectId}`)}
           disabled={!canContinue}
         >
           View Schedules &amp; Tables
         </Button>
-        <Button onClick={() => router.push("/intelligence")} disabled={!canContinue}>
+        <Button onClick={() => router.push(`/intelligence?project=${projectId}`)} disabled={!canContinue}>
           View Project Intelligence
         </Button>
       </div>

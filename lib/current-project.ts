@@ -1,46 +1,57 @@
 import "server-only"
 
 import { cache } from "react"
+import { cookies, headers } from "next/headers"
 import { eq } from "drizzle-orm"
 
 import { bids, projects, estimates } from "@/db/schema"
 import type { getScopedDb } from "@/lib/db/scoped"
 import { todayIsoDate } from "@/lib/format-date"
 import { syncRateDrift } from "@/lib/cost-engine/drift"
+import {
+  CURRENT_PROJECT_COOKIE,
+  CURRENT_PROJECT_HEADER,
+  PROJECT_COOKIE_OPTIONS,
+  isProjectId,
+  pickNewestProject,
+  resolveCurrentProject,
+} from "@/lib/project-scope"
 
 export type ScopedDb = Awaited<ReturnType<typeof getScopedDb>>
-type ProjectRow = typeof projects.$inferSelect
 type BidRow = typeof bids.$inferSelect
 
+/** @deprecated Use pickNewestProject — kept so existing callers keep compiling. */
+export const pickCurrentProject = pickNewestProject
+
+async function requestedProjectId(): Promise<string | null> {
+  const headerStore = await headers()
+  const fromHeader = headerStore.get(CURRENT_PROJECT_HEADER)
+  if (isProjectId(fromHeader)) return fromHeader
+
+  const cookieStore = await cookies()
+  const fromCookie = cookieStore.get(CURRENT_PROJECT_COOKIE)?.value
+  return isProjectId(fromCookie) ? fromCookie : null
+}
+
+export async function persistCurrentProjectId(projectId: string): Promise<void> {
+  const cookieStore = await cookies()
+  cookieStore.set(CURRENT_PROJECT_COOKIE, projectId, PROJECT_COOKIE_OPTIONS)
+}
+
 // The single rule for "which project" cost-setup/estimate/reconciliation/
-// reports/schedules operate on, since none of them take a ?project= id (or
-// equivalent) the way /upload does. Exported so callers that already have
-// the row list in hand (e.g. the dashboard, deciding which table row is
-// safe to click into) can apply the exact same rule without a second query.
-function createdAtMs(value: Date | string): number {
-  const ms = (value instanceof Date ? value : new Date(value)).getTime()
-  return Number.isNaN(ms) ? 0 : ms
-}
-
-export function pickCurrentProject(rows: ProjectRow[]): ProjectRow | null {
-  if (rows.length === 0) return null
-  return [...rows].sort((a, b) => createdAtMs(b.createdAt) - createdAtMs(a.createdAt))[0]
-}
-
-// Stand-in for real per-project routing — see pickCurrentProject above.
-// Revisit once these pages are project-scoped.
+// reports/schedules/intelligence operate on. Preference order:
+//   1. `?project=` (copied onto x-constimator-project by middleware)
+//   2. the durable selection cookie
+//   3. newest-created project (first visit / cookie expired)
 //
 // Cached per request (React's cache(), scoped to one render — not a
 // long-lived cache and never needs manual invalidation). An audit found
 // this running 4x on a single /reports load: the root layout's
 // getProjectStateSnapshot(), the page's own getEstimateData(), and
-// getReconciliationData() each called it independently. Same for
-// getOrCreateCurrentEstimate below and getBidsForProject further down —
-// all three were the actual redundant work; the diff math itself
-// (lib/reconciliation-diff.ts) is cheap by comparison.
+// getReconciliationData() each called it independently.
 export const getCurrentProject = cache(async (scopedDb: ScopedDb) => {
   const projectRows = await scopedDb.projects.findMany()
-  return pickCurrentProject(projectRows)
+  return resolveCurrentProject(projectRows, await requestedProjectId())
 })
 
 // The official bid-form lines for a project — fetched separately by both

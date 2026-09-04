@@ -44,6 +44,7 @@ type AnalyticsEvent =
   // competition on?", which merging into the generic upload count would make
   // unanswerable.
   | "plan_holder_list_uploaded"
+  | "bid_form_imported"
 
 /**
  * Fires a product analytics event tied to a real user, grouped by org

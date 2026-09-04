@@ -1,6 +1,13 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 
+import {
+  CURRENT_PROJECT_COOKIE,
+  CURRENT_PROJECT_HEADER,
+  PROJECT_COOKIE_OPTIONS,
+  isProjectId,
+} from "@/lib/project-scope"
+
 // /accept-invite (step 32): landing point for Supabase's invite email
 // link. The server has no session cookie yet on the very first request
 // here — the invite link carries the session as a URL hash fragment
@@ -44,13 +51,32 @@ const BYPASS_PATHS = new Set([
   "/api/cron/uptime-check",
 ])
 
+function requestedProjectId(request: NextRequest): string | null {
+  const fromQuery = request.nextUrl.searchParams.get("project")
+  if (isProjectId(fromQuery)) return fromQuery
+  const fromCookie = request.cookies.get(CURRENT_PROJECT_COOKIE)?.value
+  return isProjectId(fromCookie) ? fromCookie : null
+}
+
 export async function updateSession(request: NextRequest) {
   const { pathname } = request.nextUrl
   if (BYPASS_PATHS.has(pathname)) {
     return NextResponse.next({ request })
   }
 
-  let supabaseResponse = NextResponse.next({ request })
+  // `?project=` is the explicit workspace selection. Copy it onto a request
+  // header so the root layout (which cannot read searchParams) and every
+  // getCurrentProject() call on this same request see it, and persist it
+  // in a cookie so subsequent navigations without the query still stick.
+  const projectId = requestedProjectId(request)
+  const requestHeaders = new Headers(request.headers)
+  if (projectId) {
+    requestHeaders.set(CURRENT_PROJECT_HEADER, projectId)
+  }
+
+  let supabaseResponse = NextResponse.next({
+    request: { headers: requestHeaders },
+  })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -64,7 +90,9 @@ export async function updateSession(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value),
           )
-          supabaseResponse = NextResponse.next({ request })
+          supabaseResponse = NextResponse.next({
+            request: { headers: requestHeaders },
+          })
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options),
           )
@@ -93,6 +121,14 @@ export async function updateSession(request: NextRequest) {
     redirectUrl.pathname = "/dashboard"
     redirectUrl.search = ""
     return NextResponse.redirect(redirectUrl)
+  }
+
+  if (projectId) {
+    supabaseResponse.cookies.set(
+      CURRENT_PROJECT_COOKIE,
+      projectId,
+      PROJECT_COOKIE_OPTIONS,
+    )
   }
 
   return supabaseResponse

@@ -20,7 +20,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty"
 import { ProjectCardAction } from "@/components/projects/project-card-action"
-import { pickCurrentProject } from "@/lib/current-project"
+import { getCurrentProject } from "@/lib/current-project"
 import { getScopedDb } from "@/lib/db/scoped"
 import { sortByBidDate, toProjectListItem } from "@/lib/projects"
 import { cn } from "@/lib/utils"
@@ -37,7 +37,7 @@ export default async function ProjectsPage() {
   const scopedDb = await getScopedDb()
   const rows = await scopedDb.projects.findMany()
   const projectsList = sortByBidDate(rows).map(toProjectListItem)
-  const currentProjectId = pickCurrentProject(rows)?.id ?? null
+  const currentProjectId = (await getCurrentProject(scopedDb))?.id ?? null
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-6">
@@ -85,6 +85,9 @@ export default async function ProjectsPage() {
                     <CardDescription>
                       #{project.number} · {project.owner}
                     </CardDescription>
+                    {project.id === currentProjectId ? (
+                      <p className="text-xs font-medium text-primary">Current workspace</p>
+                    ) : null}
                   </div>
                   <Badge className={cn(toneStyles[project.statusTone])}>
                     {project.status}
@@ -115,8 +118,7 @@ export default async function ProjectsPage() {
                 <ProjectCardAction
                   href={project.href}
                   buttonLabel={project.buttonLabel}
-                  isProjectScoped={project.isProjectScoped}
-                  isCurrent={project.id === currentProjectId}
+                  projectId={project.id}
                 />
               </CardFooter>
             </Card>

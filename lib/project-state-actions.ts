@@ -1,26 +1,49 @@
 "use server"
 
-import { eq } from "drizzle-orm"
+import { eq, inArray } from "drizzle-orm"
 
 import { getEstimateData } from "@/app/estimate/actions"
-import { estimates, users } from "@/db/schema"
+import { documents, estimates, projects, reviewRequests, takeoffJobs, users } from "@/db/schema"
 import {
   getScopedDb,
   NoOrgMembershipError,
   UnauthenticatedError,
 } from "@/lib/db/scoped"
 import { getBillingStatus } from "@/lib/billing"
+import { pendingBidFormExtractions } from "@/lib/bid-form-import"
 import {
   getBidsForProject,
   getCurrentProject,
   getOrCreateCurrentEstimate,
+  persistCurrentProjectId,
 } from "@/lib/current-project"
 import { formatDisplayDate, todayIsoDate } from "@/lib/format-date"
 import { logger } from "@/lib/logger"
+import { parseInput, uuidSchema } from "@/lib/validation"
 import { computeDaysOut } from "@/lib/projects"
+import { withProjectQuery } from "@/lib/project-scope"
 import { diffBidAgainstEstimate } from "@/lib/reconciliation-diff"
 
+export type WorkspaceProjectOption = {
+  id: string
+  name: string
+  number: string
+}
+
+export type WorkspaceNotification = {
+  id: string
+  title: string
+  body: string
+  href: string
+  tone: "warning" | "danger" | "info"
+}
+
 export type ProjectStateSnapshot = {
+  // Every project in the org, for the sidebar switcher. Sorted newest first
+  // so the list matches what a contractor just created.
+  projects: WorkspaceProjectOption[]
+  notifications: WorkspaceNotification[]
+  reviewStatus: "requested" | "in_progress" | "completed" | null
   // The org's current project (see lib/current-project.ts) — null when the
   // org has no projects yet. Read by the sidebar so "Upload Documents"
   // links to a real project instead of dead-ending on "No project selected."
@@ -92,32 +115,118 @@ export async function getProjectStateSnapshot(): Promise<ProjectStateSnapshot | 
     const userName = currentUser?.fullName?.trim() || currentUser?.email.split("@")[0] || "You"
     const userEmail = currentUser?.email ?? ""
 
+    const projectRows = await scopedDb.projects.findMany()
     const project = await getCurrentProject(scopedDb)
     const estimate = project
       ? await getOrCreateCurrentEstimate(scopedDb, project.id)
       : null
 
     let reconciliationAttentionCount = 0
+    let pendingBidFormCount = 0
+    let failedJobCount = 0
+    let reviewStatus: ProjectStateSnapshot["reviewStatus"] = null
+
     if (project && estimate) {
-      // Both cached per request — getBidsForProject and getEstimateData are
-      // the same calls getReconciliationData() makes for /reconciliation and
-      // /reports, so on those routes this is a cache hit, not a second
-      // round-trip. See lib/current-project.ts for why this needed caching.
-      const [bidRows, { rows: estimateLineRows }] = await Promise.all([
-        getBidsForProject(scopedDb, project.id),
-        getEstimateData(),
-      ])
+      const [bidRows, { rows: estimateLineRows }, docs, reviewRows] =
+        await Promise.all([
+          getBidsForProject(scopedDb, project.id),
+          getEstimateData(),
+          scopedDb.documents.findMany(eq(documents.projectId, project.id)),
+          scopedDb.reviewRequests.findMany(
+            eq(reviewRequests.projectId, project.id),
+          ),
+        ])
       if (bidRows.length > 0) {
         reconciliationAttentionCount = diffBidAgainstEstimate(
           bidRows,
           estimateLineRows,
         ).filter((diff) => diff.attention).length
       }
+
+      const latestReview = [...reviewRows].sort(
+        (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+      )[0]
+      reviewStatus = latestReview?.status ?? null
+
+      if (docs.length > 0) {
+        const jobs = await scopedDb.takeoffJobs.findMany(
+          inArray(
+            takeoffJobs.documentId,
+            docs.map((doc) => doc.id),
+          ),
+        )
+        failedJobCount = jobs.filter((job) => job.status === "failed").length
+        pendingBidFormCount = pendingBidFormExtractions(jobs, docs, bidRows).length
+      }
     }
 
     const billingStatus = getBillingStatus(org)
+    const currentHref = (path: string) => withProjectQuery(path, project?.id ?? null)
+
+    const notifications: WorkspaceNotification[] = []
+    if (!org.costSetupComplete) {
+      notifications.push({
+        id: "cost-setup",
+        title: "Cost Setup is incomplete",
+        body: "Company rates need finishing before totals are final.",
+        href: "/cost-setup",
+        tone: "warning",
+      })
+    }
+    if (estimate?.rateDrift && !estimate.driftDismissed) {
+      notifications.push({
+        id: "rate-drift",
+        title: "Company rates changed",
+        body: "Recalculate the estimate against current rates.",
+        href: currentHref("/estimate"),
+        tone: "warning",
+      })
+    }
+    if (reconciliationAttentionCount > 0) {
+      notifications.push({
+        id: "recon",
+        title: `${reconciliationAttentionCount} reconciliation item${reconciliationAttentionCount === 1 ? "" : "s"} need attention`,
+        body: "Missing items, quantity mismatches, or unit mismatches.",
+        href: currentHref("/reconciliation"),
+        tone: "danger",
+      })
+    }
+    if (pendingBidFormCount > 0) {
+      notifications.push({
+        id: "bid-form",
+        title: "Extracted bid form ready to import",
+        body: "Review AI-extracted bid items before they become official.",
+        href: currentHref("/reconciliation"),
+        tone: "info",
+      })
+    }
+    if (failedJobCount > 0) {
+      notifications.push({
+        id: "processing",
+        title: `${failedJobCount} document${failedJobCount === 1 ? "" : "s"} failed to process`,
+        body: "Retry from AI Processing.",
+        href: currentHref("/processing"),
+        tone: "danger",
+      })
+    }
+    if (reviewStatus === "requested" || reviewStatus === "in_progress") {
+      notifications.push({
+        id: "review",
+        title: "Human review in progress",
+        body: "We'll follow up on the request for this project.",
+        href: currentHref("/review"),
+        tone: "info",
+      })
+    }
+
+    const projectOptions: WorkspaceProjectOption[] = [...projectRows]
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+      .map((row) => ({ id: row.id, name: row.name, number: row.number }))
 
     return {
+      projects: projectOptions,
+      notifications,
+      reviewStatus,
       currentProjectId: project?.id ?? null,
       currentProjectName: project?.name ?? null,
       currentProjectNumber: project?.number ?? null,
@@ -196,4 +305,14 @@ export async function resetProjectStateAction(estimateId: string | null) {
       recalculated: false,
     })
   }
+}
+
+export async function selectCurrentProjectAction(rawProjectId: string): Promise<void> {
+  const projectId = parseInput(uuidSchema, rawProjectId)
+  const scopedDb = await getScopedDb()
+  const project = await scopedDb.projects.findFirst(eq(projects.id, projectId))
+  if (!project) {
+    throw new Error("Project not found.")
+  }
+  await persistCurrentProjectId(project.id)
 }

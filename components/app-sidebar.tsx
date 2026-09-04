@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import {
   LayoutDashboard,
   FolderKanban,
@@ -38,6 +38,14 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { useProjectState } from "@/components/project-state-provider"
+import { withProjectQuery } from "@/lib/project-scope"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 const mainNav = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -56,13 +64,13 @@ const mainNav = [
     title: "Bid Reconciliation",
     href: "/reconciliation",
     icon: GitCompareArrows,
-    badge: { text: "3", tone: "danger" as const },
+    attentionBadge: true,
   },
   {
     title: "Human Review",
     href: "/review",
     icon: UserCheck,
-    badge: { text: "In review", tone: "review" as const },
+    reviewBadge: true,
   },
   { title: "Reports", href: "/reports", icon: BarChart3 },
 ]
@@ -89,7 +97,11 @@ export function AppSidebar() {
     currentProjectId,
     currentProjectName,
     currentProjectNumber,
+    projects,
+    reviewStatus,
+    selectProject,
   } = useProjectState()
+  const router = useRouter()
 
   return (
     <Sidebar>
@@ -121,14 +133,13 @@ export function AppSidebar() {
               {mainNav.map((item) => {
                 const showSetupDot =
                   item.href === "/cost-setup" && !costSetupComplete
-                const badgeText =
-                  item.href === "/reconciliation" && item.badge
-                    ? String(attentionCount)
-                    : item.badge?.text
-                const href =
-                  item.href === "/upload" && currentProjectId
-                    ? `/upload?project=${currentProjectId}`
-                    : item.href
+                const showAttention =
+                  "attentionBadge" in item && item.attentionBadge && attentionCount > 0
+                const showReview =
+                  "reviewBadge" in item &&
+                  item.reviewBadge &&
+                  (reviewStatus === "requested" || reviewStatus === "in_progress")
+                const href = withProjectQuery(item.href, currentProjectId)
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton
@@ -146,15 +157,14 @@ export function AppSidebar() {
                         />
                       </SidebarMenuBadge>
                     ) : null}
-                    {item.badge && !showSetupDot ? (
-                      <SidebarMenuBadge
-                        className={
-                          item.badge.tone === "danger"
-                            ? "border-transparent bg-destructive text-white"
-                            : "border-transparent bg-review/15 text-review"
-                        }
-                      >
-                        {badgeText}
+                    {showAttention ? (
+                      <SidebarMenuBadge className="border-transparent bg-destructive text-white">
+                        {attentionCount}
+                      </SidebarMenuBadge>
+                    ) : null}
+                    {showReview ? (
+                      <SidebarMenuBadge className="border-transparent bg-review/15 text-review">
+                        In review
                       </SidebarMenuBadge>
                     ) : null}
                   </SidebarMenuItem>
@@ -165,14 +175,46 @@ export function AppSidebar() {
         </SidebarGroup>
         {currentProjectName ? (
           <SidebarGroup>
-            <SidebarGroupLabel className="uppercase" title={currentProjectName}>
+            <SidebarGroupLabel className="uppercase">
               Current Project
             </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <p className="px-2 text-xs leading-relaxed text-muted-foreground">
-                {currentProjectName}
-                {currentProjectNumber ? ` · #${currentProjectNumber}` : ""}
-              </p>
+            <SidebarGroupContent className="px-2">
+              {projects.length > 1 ? (
+                <Select
+                  value={currentProjectId ?? undefined}
+                  onValueChange={(value) => {
+                    if (!value) return
+                    selectProject(value).then(() => {
+                      router.push(withProjectQuery(pathname, value))
+                      router.refresh()
+                    })
+                  }}
+                >
+                  <SelectTrigger size="sm" className="w-full">
+                    <SelectValue>
+                      {() => (
+                        <span className="truncate text-left text-xs">
+                          {currentProjectName}
+                          {currentProjectNumber ? ` · #${currentProjectNumber}` : ""}
+                        </span>
+                      )}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {projects.map((project) => (
+                      <SelectItem key={project.id} value={project.id}>
+                        {project.name}
+                        {project.number ? ` · #${project.number}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  {currentProjectName}
+                  {currentProjectNumber ? ` · #${currentProjectNumber}` : ""}
+                </p>
+              )}
             </SidebarGroupContent>
           </SidebarGroup>
         ) : null}

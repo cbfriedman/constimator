@@ -7,7 +7,7 @@ import { z } from "zod"
 import { estimateLines, estimates, projects } from "@/db/schema"
 import { generateEstimateLines } from "@/lib/cost-engine/generate-estimate"
 import { getScopedDb } from "@/lib/db/scoped"
-import { getCurrentProject, getOrCreateCurrentEstimate } from "@/lib/current-project"
+import { getCurrentProject, getBidsForProject, getOrCreateCurrentEstimate } from "@/lib/current-project"
 import { estimateRows as defaultEstimateRows } from "@/lib/estimate-data"
 import { UI_TO_DB_SOURCE } from "@/lib/estimate-view"
 import { todayIsoDate } from "@/lib/format-date"
@@ -72,11 +72,12 @@ async function seedDefaultsIfEmpty(
 export const getEstimateData = cache(async () => {
   const scopedDb = await getScopedDb()
   const project = await getCurrentProject(scopedDb)
-  if (!project) return { rows: [], project: null }
+  if (!project) return { rows: [], project: null, bidLineCount: 0 }
 
   const estimate = await getOrCreateCurrentEstimate(scopedDb, project.id)
   const rows = await seedDefaultsIfEmpty(scopedDb, estimate.id, project)
-  return { rows, project }
+  const bidRows = await getBidsForProject(scopedDb, project.id)
+  return { rows, project, bidLineCount: bidRows.length }
 })
 
 export async function overrideEstimateLineAction(rawId: string) {
@@ -252,4 +253,56 @@ export async function generateEstimateFromTakeoff(
   })
 
   return inserted.flat()
+}
+
+export async function importFromBidScheduleAction(rawProjectId: string) {
+  const projectId = parseInput(uuidSchema, rawProjectId)
+  const scopedDb = await getScopedDb()
+  const estimate = await getOrCreateCurrentEstimate(scopedDb, projectId)
+  const [bidRows, existingLines] = await Promise.all([
+    getBidsForProject(scopedDb, projectId),
+    scopedDb.estimateLines.findMany(eq(estimateLines.estimateId, estimate.id)),
+  ])
+  if (bidRows.length === 0) {
+    throw new Error("Enter or import the official bid form first.")
+  }
+
+  const defaultMarkup = existingLines[0]?.markupPct ?? "10"
+  let lineNumber = existingLines.length + 1
+  let added = 0
+
+  for (const bid of bidRows) {
+    if (existingLines.some((line) => line.bidId === bid.id)) continue
+
+    const descriptionMatches = existingLines.filter(
+      (line) =>
+        line.description.trim().toLowerCase() === bid.description.trim().toLowerCase(),
+    )
+    if (descriptionMatches.length === 1) {
+      const match = descriptionMatches[0]
+      if (!match.bidId) {
+        await scopedDb.estimateLines.update(eq(estimateLines.id, match.id), {
+          bidId: bid.id,
+        })
+      }
+      continue
+    }
+
+    await scopedDb.estimateLines.insert({
+      estimateId: estimate.id,
+      bidId: bid.id,
+      lineNumber: lineNumber,
+      description: bid.description,
+      quantity: bid.officialQuantity,
+      unit: bid.unit,
+      unitPrice: "0",
+      markupPct: defaultMarkup,
+      total: "0",
+      source: "official",
+    })
+    lineNumber += 1
+    added += 1
+  }
+
+  return { added, bidLineCount: bidRows.length }
 }

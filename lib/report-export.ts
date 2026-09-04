@@ -14,6 +14,7 @@ import { EXPORT_FOOTER_NOTE, VERIFICATION_DISCLAIMER } from "@/lib/export-discla
 
 import type { EstimateLineView } from "@/lib/estimate-view"
 import type { ReconciliationRowView } from "@/lib/reconciliation-view"
+import type { TableReport } from "@/lib/report-tables"
 
 export type ReportContext = {
   orgName: string
@@ -193,6 +194,53 @@ export function exportReconciliationExcel(
   const sheet = XLSX.utils.aoa_to_sheet(sheetRows)
   const workbook = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(workbook, sheet, "Reconciliation")
+  return downloadWorkbook(workbook, fileName)
+}
+
+export function exportTablePdf(
+  title: string,
+  context: ReportContext,
+  table: TableReport,
+  fileName: string,
+): number {
+  const doc = new jsPDF()
+  pdfHeader(doc, title, context)
+  autoTable(doc, {
+    startY: 36,
+    head: [table.headers],
+    body: table.body,
+    styles: { fontSize: 8 },
+    headStyles: { fillColor: [234, 88, 12] },
+  })
+  let y = (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 8
+  for (const [label, value] of table.totals ?? []) {
+    doc.setFontSize(10)
+    doc.text(`${label}: ${value}`, 14, y)
+    y += 6
+  }
+  pdfDisclaimerFooter(doc)
+  return triggerDownload(doc.output("blob"), fileName)
+}
+
+export function exportTableExcel(
+  title: string,
+  context: ReportContext,
+  table: TableReport,
+  fileName: string,
+): number {
+  const sheetRows = [
+    [`${context.projectName} · #${context.projectNumber}`],
+    [`${context.orgName} · Bid date ${context.bidDate} · Prepared ${context.preparedDate}`],
+    [title],
+    [],
+    table.headers,
+    ...table.body,
+    [],
+    ...(table.totals ?? []).map(([label, value]) => ["", "", "", "", label, value]),
+  ]
+  const sheet = XLSX.utils.aoa_to_sheet(sheetRows)
+  const workbook = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(workbook, sheet, title.slice(0, 31))
   return downloadWorkbook(workbook, fileName)
 }
 

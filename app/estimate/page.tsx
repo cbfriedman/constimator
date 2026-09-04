@@ -7,7 +7,7 @@ function formatWholeCurrency(n: number): string {
 }
 
 export default async function EstimatePage() {
-  const { rows: lineRows, project } = await getEstimateData()
+  const { rows: lineRows, project, bidLineCount } = await getEstimateData()
 
   const subtotal = sumLineTotals(lineRows)
   const markup = sumLineMarkup(lineRows)
@@ -35,6 +35,7 @@ export default async function EstimatePage() {
       markupPct={markupPct}
       bidTotal={formatWholeCurrency(bidTotal)}
       vsEngineersEstimatePct={vsEngineersEstimatePct}
+      bidLineCount={bidLineCount}
     />
   )
 }

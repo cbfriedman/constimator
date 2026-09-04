@@ -1,11 +1,17 @@
 "use server"
 
-import { eq } from "drizzle-orm"
+import { eq, inArray } from "drizzle-orm"
 import { z } from "zod"
 
 import { getEstimateData } from "@/app/estimate/actions"
-import { bids, estimateLines, estimates, projects, reconciliationItems } from "@/db/schema"
+import { bids, documents, estimateLines, estimates, projects, reconciliationItems, takeoffJobs } from "@/db/schema"
 import { captureEvent } from "@/lib/analytics"
+import {
+  bidRowsFromExtractedItems,
+  extractedBidItemSchema,
+  pendingBidFormExtractions,
+  type PendingBidFormExtraction,
+} from "@/lib/bid-form-import"
 import {
   getBidsForProject,
   getCurrentProject,
@@ -118,15 +124,87 @@ export async function getReconciliationData() {
   const scopedDb = await getScopedDb()
   const project = await getCurrentProject(scopedDb)
   if (!project) {
-    return { bidRows: [], itemRows: [], estimateLineRows: [], project: null }
+    return {
+      bidRows: [],
+      itemRows: [],
+      estimateLineRows: [],
+      project: null,
+      pendingExtractions: [] as PendingBidFormExtraction[],
+    }
   }
 
   const { bidRows, itemRows, estimateLineRows } = await recomputeReconciliation(
     scopedDb,
     project.id,
   )
+  const pendingExtractions = await loadPendingBidFormExtractions(scopedDb, project.id, bidRows)
 
-  return { bidRows, itemRows, estimateLineRows, project }
+  return { bidRows, itemRows, estimateLineRows, project, pendingExtractions }
+}
+
+async function loadPendingBidFormExtractions(
+  scopedDb: Awaited<ReturnType<typeof getScopedDb>>,
+  projectId: string,
+  bidRows: Awaited<ReturnType<typeof getBidsForProject>>,
+): Promise<PendingBidFormExtraction[]> {
+  const docs = await scopedDb.documents.findMany(eq(documents.projectId, projectId))
+  if (docs.length === 0) return []
+  const jobs = await scopedDb.takeoffJobs.findMany(
+    inArray(
+      takeoffJobs.documentId,
+      docs.map((doc) => doc.id),
+    ),
+  )
+  return pendingBidFormExtractions(jobs, docs, bidRows)
+}
+
+const importBidFormSchema = z.object({
+  projectId: uuidSchema,
+  documentId: uuidSchema,
+  replaceExisting: z.boolean(),
+  items: z.array(extractedBidItemSchema).min(1, "Nothing to import"),
+})
+
+export async function importExtractedBidFormAction(rawInput: {
+  projectId: string
+  documentId: string
+  replaceExisting: boolean
+  items: unknown[]
+}) {
+  const input = parseInput(importBidFormSchema, rawInput)
+  const scopedDb = await getScopedDb()
+  const project = await scopedDb.projects.findFirst(eq(projects.id, input.projectId))
+  if (!project) {
+    throw new Error("Project not found.")
+  }
+  const document = await scopedDb.documents.findFirst(eq(documents.id, input.documentId))
+  if (!document || document.projectId !== project.id) {
+    throw new Error("Document not found.")
+  }
+
+  const existing = await scopedDb.bids.findMany(eq(bids.projectId, project.id))
+  if (existing.length > 0 && !input.replaceExisting) {
+    throw new Error("This project already has an official bid form. Confirm replace to overwrite it.")
+  }
+  if (existing.length > 0) {
+    await scopedDb.bids.delete(eq(bids.projectId, project.id))
+  }
+
+  const rows = bidRowsFromExtractedItems(input.items, document.id)
+  await scopedDb.bids.insertMany(rows.map((row) => ({ projectId: project.id, ...row })))
+
+  await captureEvent("bid_form_imported", {
+    userId: scopedDb.userId,
+    orgId: scopedDb.orgId,
+    properties: {
+      projectId: project.id,
+      documentId: document.id,
+      itemCount: rows.length,
+      replaced: existing.length > 0,
+    },
+  })
+
+  return { imported: rows.length }
 }
 
 export async function addMissingItemToEstimateAction(rawBidId: string) {

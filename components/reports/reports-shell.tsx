@@ -25,6 +25,8 @@ import {
   exportEstimateSummaryPdf,
   exportReconciliationExcel,
   exportReconciliationPdf,
+  exportTableExcel,
+  exportTablePdf,
   formatFileSize,
 } from "@/lib/report-export"
 import { ReportPicker } from "@/components/reports/report-picker"
@@ -34,12 +36,21 @@ import {
   type ExportFormat,
 } from "@/components/reports/export-bar"
 import {
+  CostKindReport,
+  DetailedEstimateReport,
   EstimateSummaryReport,
-  PlaceholderReport,
+  ProposalSummaryReport,
+  QuantitySummaryReport,
   ReconciliationReport,
   type ReportContext,
   type ReportOptions,
 } from "@/components/reports/report-previews"
+import {
+  costKindTable,
+  detailedEstimateTable,
+  proposalTable,
+  quantitySummaryTable,
+} from "@/lib/report-tables"
 import type { EstimateLineView } from "@/lib/estimate-view"
 import type { ReconciliationRowView } from "@/lib/reconciliation-view"
 
@@ -83,7 +94,7 @@ export function ReportsShell({
   })
   const [downloads, setDownloads] = React.useState<DownloadEntry[]>([])
   const downloadId = React.useRef(0)
-  const { costSetupComplete } = useProjectState()
+  const { costSetupComplete, currentProjectId } = useProjectState()
   const [exportDialogOpen, setExportDialogOpen] = React.useState(false)
 
   function handleSelect(id: ReportId) {
@@ -101,11 +112,7 @@ export function ReportsShell({
   function performExport(preliminary: boolean, exportFormat: ExportFormat = format) {
     const ext = exportFormat === "pdf" ? "pdf" : "xlsx"
     const name = `${fileSlug[selected]}_${context.projectNumber}.${ext}`
-
-    // Only estimate-summary and reconciliation have real preview data
-    // behind them (current?.hasPreview below) — the other report ids in
-    // lib/report-data.ts are still placeholders with nothing real to
-    // generate a file from yet.
+    const currentReport = reports.find((r) => r.id === selected)
     let bytes: number
     if (selected === "estimate-summary") {
       bytes =
@@ -117,8 +124,51 @@ export function ReportsShell({
         exportFormat === "pdf"
           ? exportReconciliationPdf(context, reconciliationRows, bidTotal, name)
           : exportReconciliationExcel(context, reconciliationRows, name)
+    } else if (selected === "detailed-estimate") {
+      const table = detailedEstimateTable(estimateRows)
+      bytes =
+        exportFormat === "pdf"
+          ? exportTablePdf("Detailed Estimate", context, table, name)
+          : exportTableExcel("Detailed Estimate", context, table, name)
+    } else if (selected === "quantity-summary") {
+      const table = quantitySummaryTable(estimateRows)
+      bytes =
+        exportFormat === "pdf"
+          ? exportTablePdf("Quantity Summary", context, table, name)
+          : exportTableExcel("Quantity Summary", context, table, name)
+    } else if (selected === "labor-summary") {
+      const table = costKindTable(estimateRows, "labor")
+      bytes =
+        exportFormat === "pdf"
+          ? exportTablePdf("Labor Summary", context, table, name)
+          : exportTableExcel("Labor Summary", context, table, name)
+    } else if (selected === "material-summary") {
+      const table = costKindTable(estimateRows, "material")
+      bytes =
+        exportFormat === "pdf"
+          ? exportTablePdf("Material Summary", context, table, name)
+          : exportTableExcel("Material Summary", context, table, name)
+    } else if (selected === "equipment-summary") {
+      const table = costKindTable(estimateRows, "equip")
+      bytes =
+        exportFormat === "pdf"
+          ? exportTablePdf("Equipment Summary", context, table, name)
+          : exportTableExcel("Equipment Summary", context, table, name)
+    } else if (selected === "proposal-summary") {
+      const table = {
+        ...proposalTable(estimateRows),
+        totals: [
+          ["Subtotal", subtotal],
+          ["Markup", markup],
+          ["Bid Total", bidTotal],
+        ] as Array<[string, string]>,
+      }
+      bytes =
+        exportFormat === "pdf"
+          ? exportTablePdf("Proposal Summary", context, table, name)
+          : exportTableExcel("Proposal Summary", context, table, name)
     } else {
-      toast.error(`${current?.name ?? "This report"} isn't available to export yet.`)
+      toast.error(`${currentReport?.name ?? "This report"} isn't available to export yet.`)
       return
     }
 
@@ -150,8 +200,6 @@ export function ReportsShell({
     }
     performExport(false, exportFormat ?? format)
   }
-
-  const current = reports.find((r) => r.id === selected)
 
   return (
     <div className="flex h-full flex-col">
@@ -186,28 +234,66 @@ export function ReportsShell({
             <div className="w-full max-w-3xl rounded-md border border-border bg-background p-8 shadow-lg">
               {loading ? (
                 <ReportSkeleton />
-              ) : current?.hasPreview ? (
-                selected === "reconciliation" ? (
-                  <ReconciliationReport
-                    context={context}
-                    rows={reconciliationRows}
-                    bidTotal={bidTotal}
-                    reviewedCount={reviewedCount}
-                    overriddenCount={overriddenCount}
-                    options={options}
-                  />
-                ) : (
-                  <EstimateSummaryReport
-                    context={context}
-                    rows={estimateRows}
-                    subtotal={subtotal}
-                    markup={markup}
-                    bidTotal={bidTotal}
-                    options={options}
-                  />
-                )
+              ) : selected === "reconciliation" ? (
+                <ReconciliationReport
+                  context={context}
+                  rows={reconciliationRows}
+                  bidTotal={bidTotal}
+                  reviewedCount={reviewedCount}
+                  overriddenCount={overriddenCount}
+                  options={options}
+                />
+              ) : selected === "detailed-estimate" ? (
+                <DetailedEstimateReport
+                  context={context}
+                  rows={estimateRows}
+                  options={options}
+                />
+              ) : selected === "quantity-summary" ? (
+                <QuantitySummaryReport
+                  context={context}
+                  rows={estimateRows}
+                  options={options}
+                />
+              ) : selected === "labor-summary" ? (
+                <CostKindReport
+                  context={context}
+                  rows={estimateRows}
+                  kind="labor"
+                  options={options}
+                />
+              ) : selected === "material-summary" ? (
+                <CostKindReport
+                  context={context}
+                  rows={estimateRows}
+                  kind="material"
+                  options={options}
+                />
+              ) : selected === "equipment-summary" ? (
+                <CostKindReport
+                  context={context}
+                  rows={estimateRows}
+                  kind="equip"
+                  options={options}
+                />
+              ) : selected === "proposal-summary" ? (
+                <ProposalSummaryReport
+                  context={context}
+                  rows={estimateRows}
+                  subtotal={subtotal}
+                  markup={markup}
+                  bidTotal={bidTotal}
+                  options={options}
+                />
               ) : (
-                <PlaceholderReport reportId={selected} />
+                <EstimateSummaryReport
+                  context={context}
+                  rows={estimateRows}
+                  subtotal={subtotal}
+                  markup={markup}
+                  bidTotal={bidTotal}
+                  options={options}
+                />
               )}
             </div>
           </div>
@@ -217,7 +303,13 @@ export function ReportsShell({
       <div className="flex items-center border-t border-border px-6 py-3">
         <Button
           variant="outline"
-          onClick={() => router.push("/intelligence")}
+          onClick={() =>
+            router.push(
+              currentProjectId
+                ? `/intelligence?project=${currentProjectId}`
+                : "/intelligence",
+            )
+          }
         >
           <ArrowLeft data-icon="inline-start" />
           Back to Project

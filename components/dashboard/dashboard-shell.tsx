@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation"
 import { FileBarChart, Flag, FolderKanban, Plus, Timer } from "lucide-react"
-import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -62,22 +61,14 @@ function DashboardContent({
   activity: ActivityItem[]
 }) {
   const router = useRouter()
-  const { attentionCount } = useProjectState()
+  const { attentionCount, selectProject } = useProjectState()
   const isEmpty = projects.length === 0
 
-  // cost-setup/estimate/reconciliation/reports/schedules aren't project-
-  // scoped yet (see lib/current-project.ts) — they always operate on the
-  // org's most-recently-created project. Clicking any other row would land
-  // on pages showing a different project's data, so only the current one
-  // navigates for real.
   function handleProjectClick(project: DashboardProject) {
-    if (project.id === currentProjectId) {
+    selectProject(project.id).then(() => {
       router.push(project.href ?? "/intelligence")
-      return
-    }
-    toast.info(
-      "This project isn't wired up yet — Constimator currently works with your most recently created project.",
-    )
+      router.refresh()
+    })
   }
 
   if (isEmpty) {
@@ -135,15 +126,17 @@ function DashboardContent({
     {
       label: "Items Flagged in Reconciliation",
       value: String(attentionCount),
-      subtitle: "Across 1 project — needs review",
+      subtitle: currentProjectId
+        ? "On the current project — needs review"
+        : "Needs review",
       icon: Flag,
       href: "/reconciliation",
       tone: "warning" as const,
     },
     {
       label: "Reports Ready",
-      value: "2",
-      subtitle: "Estimate + reconciliation exports available",
+      value: "8",
+      subtitle: "Estimate, reconciliation, cost, and proposal exports",
       icon: FileBarChart,
       href: "/reports",
       tone: "review" as const,

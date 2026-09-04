@@ -23,6 +23,8 @@ import { cn } from "@/lib/utils"
 import { type FilterKey, type StatusColor, filterChips } from "@/lib/reconciliation-data"
 import type { ReconciliationRowView } from "@/lib/reconciliation-view"
 import { addMissingItemToEstimateAction } from "@/app/reconciliation/actions"
+import { BidFormImportCard } from "@/components/reconciliation/bid-form-import-card"
+import type { PendingBidFormExtraction } from "@/lib/bid-form-import"
 import type { bids } from "@/db/schema"
 
 type BidRow = typeof bids.$inferSelect
@@ -44,11 +46,13 @@ export function ReconciliationShell({
   projectName,
   initialBidRows,
   initialRows,
+  pendingExtractions,
 }: {
   projectId: string
   projectName: string
   initialBidRows: BidRow[]
   initialRows: ReconciliationRowView[]
+  pendingExtractions: PendingBidFormExtraction[]
 }) {
   const router = useRouter()
   const [bidRows, setBidRows] = useState<BidRow[]>(initialBidRows)
@@ -142,7 +146,16 @@ export function ReconciliationShell({
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
-        ) : !hasBidForm ? (
+        ) : (
+          <>
+            {pendingExtractions.length > 0 ? (
+              <BidFormImportCard
+                projectId={projectId}
+                hasExistingBidForm={hasBidForm}
+                extractions={pendingExtractions}
+              />
+            ) : null}
+            {!hasBidForm ? (
           <div className="flex flex-col gap-6">
             <Empty className="border">
               <EmptyHeader>
@@ -260,6 +273,8 @@ export function ReconciliationShell({
                 Generate Reports
               </Button>
             </div>
+          </>
+            )}
           </>
         )}
       </div>

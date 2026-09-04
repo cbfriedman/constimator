@@ -29,13 +29,13 @@ export const reports: ReportDef[] = [
     id: "detailed-estimate",
     name: "Detailed Estimate",
     description: "Full cost breakdown per item",
-    hasPreview: false,
+    hasPreview: true,
   },
   {
     id: "quantity-summary",
     name: "Quantity Summary",
-    description: "Quantities by category",
-    hasPreview: false,
+    description: "Quantities by unit",
+    hasPreview: true,
   },
   {
     id: "reconciliation",
@@ -47,26 +47,26 @@ export const reports: ReportDef[] = [
   {
     id: "labor-summary",
     name: "Labor Summary",
-    description: "Labor hours and cost by trade",
-    hasPreview: false,
+    description: "Labor cost by line item",
+    hasPreview: true,
   },
   {
     id: "material-summary",
     name: "Material Summary",
-    description: "Material takeoff and pricing",
-    hasPreview: false,
+    description: "Material cost by line item",
+    hasPreview: true,
   },
   {
     id: "equipment-summary",
     name: "Equipment Summary",
-    description: "Equipment hours and rates",
-    hasPreview: false,
+    description: "Equipment cost by line item",
+    hasPreview: true,
   },
   {
     id: "proposal-summary",
     name: "Proposal Summary",
-    description: "Client-facing proposal package",
-    hasPreview: false,
+    description: "Client-facing bid items and totals",
+    hasPreview: true,
   },
 ]
 

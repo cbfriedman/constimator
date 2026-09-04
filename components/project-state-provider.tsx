@@ -6,9 +6,12 @@ import {
   dismissDriftAction,
   recalculateAction,
   resetProjectStateAction,
+  selectCurrentProjectAction,
   setCostSetupCompleteAction,
   triggerRateDriftAction,
   type ProjectStateSnapshot,
+  type WorkspaceNotification,
+  type WorkspaceProjectOption,
 } from "@/lib/project-state-actions"
 import { formatDisplayDate, todayIsoDate } from "@/lib/format-date"
 
@@ -20,6 +23,10 @@ type ProjectStateValue = {
   currentProjectNumber: string | null
   /** Real days-until-bid for the current project, or null with no bid date. */
   currentProjectDaysOut: number | null
+  projects: WorkspaceProjectOption[]
+  notifications: WorkspaceNotification[]
+  reviewStatus: "requested" | "in_progress" | "completed" | null
+  selectProject: (projectId: string) => Promise<void>
   /** The real signed-in user — TopBar's account menu. */
   user: { name: string; email: string; initials: string }
   /** The real signed-in user's org name — TopBar's account menu. */
@@ -150,12 +157,20 @@ export function ProjectStateProvider({
     resetProjectStateAction(estimateIdRef.current).catch(() => {})
   }, [])
 
+  const selectProject = React.useCallback(async (projectId: string) => {
+    await selectCurrentProjectAction(projectId)
+  }, [])
+
   const value = React.useMemo<ProjectStateValue>(
     () => ({
       currentProjectId: initialProjectState?.currentProjectId ?? null,
       currentProjectName: initialProjectState?.currentProjectName ?? null,
       currentProjectNumber: initialProjectState?.currentProjectNumber ?? null,
       currentProjectDaysOut: initialProjectState?.currentProjectDaysOut ?? null,
+      projects: initialProjectState?.projects ?? [],
+      notifications: initialProjectState?.notifications ?? [],
+      reviewStatus: initialProjectState?.reviewStatus ?? null,
+      selectProject,
       user: initialProjectState?.user ?? { name: "", email: "", initials: "?" },
       orgName: initialProjectState?.orgName ?? "",
       attentionCount: initialProjectState?.reconciliationAttentionCount ?? 0,
@@ -194,6 +209,7 @@ export function ProjectStateProvider({
       recalculate,
       resetKey,
       reset,
+      selectProject,
     ],
   )
 

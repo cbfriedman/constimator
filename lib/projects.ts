@@ -1,13 +1,10 @@
 import type { projects } from "@/db/schema"
 import type { DashboardProject, ProjectsListItem } from "@/lib/mock-data"
+import { withProjectQuery } from "@/lib/project-scope"
 
 type ProjectRow = typeof projects.$inferSelect
 export type StatusTone = "success" | "warning" | "primary" | "muted" | "review"
 
-// Other downstream pages (intelligence, estimate, etc.) still aren't wired
-// to a specific project id — those routes just show the fixed demo content.
-// /upload is: it's real now (step 12), so its href needs the project id.
-//
 // label/tone are the canonical status vocabulary shown everywhere a project
 // status appears (dashboard, /projects, sidebar) — keep them in sync with
 // the homepage's honest-framing rules: no "AI Processing" wording that
@@ -100,19 +97,8 @@ export function sortByBidDate(rows: ProjectRow[]): ProjectRow[] {
   })
 }
 
-// /upload and /processing both accept a real ?project= id and look up
-// that exact project — safe to link to directly regardless of which
-// project is "current." /intelligence, /estimate, and /reconciliation
-// don't (see the file-header comment) — callers gate those to the
-// current project only (see components/dashboard/dashboard-shell.tsx and
-// components/projects/project-card-action.tsx) rather than linking
-// somewhere that would silently show a different project's data.
-const PROJECT_SCOPED_PATHS = new Set(["/upload", "/processing"])
-
 function hrefFor(meta: { href: string }, projectId: string): string {
-  return PROJECT_SCOPED_PATHS.has(meta.href)
-    ? `${meta.href}?project=${projectId}`
-    : meta.href
+  return withProjectQuery(meta.href, projectId)
 }
 
 export function toDashboardProject(row: ProjectRow): DashboardProject {
@@ -144,6 +130,6 @@ export function toProjectListItem(row: ProjectRow): ProjectsListItem {
     bidDate: formatBidDate(row.bidDate),
     buttonLabel: meta.buttonLabel,
     href: hrefFor(meta, row.id),
-    isProjectScoped: PROJECT_SCOPED_PATHS.has(meta.href),
+    isProjectScoped: true,
   }
 }

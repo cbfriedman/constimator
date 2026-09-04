@@ -3,7 +3,7 @@ import { ReconciliationShell } from "@/components/reconciliation/reconciliation-
 import { toReconciliationRow } from "@/lib/reconciliation-view"
 
 export default async function ReconciliationPage() {
-  const { bidRows, itemRows, estimateLineRows, project } =
+  const { bidRows, itemRows, estimateLineRows, project, pendingExtractions } =
     await getReconciliationData()
 
   const rows = itemRows
@@ -26,6 +26,7 @@ export default async function ReconciliationPage() {
       }
       initialBidRows={bidRows}
       initialRows={rows}
+      pendingExtractions={pendingExtractions}
     />
   )
 }

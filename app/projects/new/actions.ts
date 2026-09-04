@@ -3,6 +3,7 @@
 import { z } from "zod"
 
 import { captureEvent } from "@/lib/analytics"
+import { persistCurrentProjectId } from "@/lib/current-project"
 import { getScopedDb } from "@/lib/db/scoped"
 import { parseInput } from "@/lib/validation"
 
@@ -42,6 +43,8 @@ export async function createProject(rawInput: CreateProjectInput) {
     projectType: input.projectType || null,
     status: "draft",
   })
+
+  await persistCurrentProjectId(project.id)
 
   await captureEvent("project_created", {
     userId: scopedDb.userId,

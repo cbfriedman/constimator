@@ -12,9 +12,9 @@ const faqs = [
       "Constimator queues it for AI extraction, run by a background worker — usually done within a minute or two. Check the AI Processing page for status; if a document fails, you can retry it without re-uploading.",
   },
   {
-    question: "Why does Bid Reconciliation say a project isn't wired up yet?",
+    question: "How do I switch between projects?",
     answer:
-      "Cost Setup, Estimate, Bid Reconciliation, Reports, and Schedules currently all operate on your organization's most recently created project — not whichever one you click on the dashboard. This is a known, temporary limitation while multi-project support is still being built.",
+      "Open a project from the Dashboard or Projects list, or use the Current Project switcher in the sidebar. Estimate, Bid Reconciliation, Reports, Intelligence, and the other job tools follow the project you selected.",
   },
   {
     question: "How is my AI usage cost controlled?",

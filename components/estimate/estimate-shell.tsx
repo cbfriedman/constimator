@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { AlertTriangle, Plus } from "lucide-react"
+import { AlertTriangle, FileDown, Plus } from "lucide-react"
 import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
@@ -29,6 +29,7 @@ import {
 import {
   addEstimateLineAction,
   deleteEstimateLineAction,
+  importFromBidScheduleAction,
   setEstimateMarkupAction,
   updateEstimateLineAction,
 } from "@/app/estimate/actions"
@@ -58,6 +59,7 @@ export function EstimateShell({
   markupPct,
   bidTotal,
   vsEngineersEstimatePct,
+  bidLineCount,
 }: {
   projectId: string
   projectName: string
@@ -67,6 +69,7 @@ export function EstimateShell({
   markupPct: number
   bidTotal: string
   vsEngineersEstimatePct: number | null
+  bidLineCount: number
 }) {
   const router = useRouter()
   const { costSetupComplete } = useProjectState()
@@ -75,6 +78,12 @@ export function EstimateShell({
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<EstimateLineFormValue | undefined>(undefined)
   const [filter, setFilter] = useState("all")
+  const [markupMode, setMarkupMode] = useState(
+    markupPct === 10 || markupPct === 12 || markupPct === 15
+      ? String(Math.round(markupPct))
+      : "custom",
+  )
+  const [importing, setImporting] = useState(false)
 
   if (initialRows !== prevInitialRows) {
     setPrevInitialRows(initialRows)
@@ -91,13 +100,38 @@ export function EstimateShell({
   ]
 
   function handleMarkupChange(value: string | null) {
-    if (!value || value === "custom") return
+    if (!value) return
+    setMarkupMode(value)
+    if (value === "custom") {
+      toast.message("Custom markup is per line — edit a line to set its own %.")
+      return
+    }
     const pct = Number(value)
     if (!Number.isFinite(pct)) return
     setRows((prev) => prev.map((row) => ({ ...row, mu: value })))
     setEstimateMarkupAction(projectId, pct)
       .then(() => router.refresh())
       .catch(() => toast.error("Couldn't update markup — try again."))
+  }
+
+  async function handleImportFromBidSchedule() {
+    if (!projectId) return
+    setImporting(true)
+    try {
+      const result = await importFromBidScheduleAction(projectId)
+      if (result.added === 0) {
+        toast.message("Every bid-form item already has an estimate line.")
+      } else {
+        toast.success(
+          `Imported ${result.added} item${result.added === 1 ? "" : "s"} at $0 — price them next.`,
+        )
+      }
+      router.refresh()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't import — try again.")
+    } finally {
+      setImporting(false)
+    }
   }
 
   function openAdd() {
@@ -232,7 +266,16 @@ export function EstimateShell({
             <Plus data-icon="inline-start" />
             Add Line Item
           </Button>
-          <Select defaultValue="10" onValueChange={handleMarkupChange}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleImportFromBidSchedule}
+            disabled={!projectId || bidLineCount === 0 || importing}
+          >
+            <FileDown data-icon="inline-start" />
+            {importing ? "Importing…" : "Import from Bid Schedule"}
+          </Button>
+          <Select value={markupMode} onValueChange={handleMarkupChange}>
             <SelectTrigger size="sm" className="w-52">
               <SelectValue>{(value) => markupLabels[value as string]}</SelectValue>
             </SelectTrigger>
@@ -261,7 +304,7 @@ export function EstimateShell({
           <Button
             size="sm"
             className="ml-auto"
-            onClick={() => router.push("/reconciliation")}
+            onClick={() => router.push(`/reconciliation?project=${projectId}`)}
           >
             Reconcile Against Bid Form
           </Button>
