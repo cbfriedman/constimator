@@ -2,7 +2,14 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { AlertTriangle, Check, Circle, Loader2, RotateCcw } from "lucide-react"
+import {
+  AlertTriangle,
+  Check,
+  Circle,
+  Loader2,
+  RotateCcw,
+  Sparkles,
+} from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -80,6 +87,12 @@ export function ProcessingShell({
 
   const allTerminal = items.length > 0 && items.every((item) => isTerminal(item.status))
   const anyFailed = items.some((item) => item.status === "failed")
+  // A finished bid form is the one result with somewhere specific to go next:
+  // its items are the official schedule waiting to be imported on
+  // /reconciliation, and nothing on this page said so.
+  const hasExtractedBidForm = items.some(
+    (item) => item.status === "complete" && item.kind === "bid_form",
+  )
   const doneCount = items.filter((item) => isTerminal(item.status)).length
   const progress = items.length === 0 ? 0 : Math.round((doneCount / items.length) * 100)
 
@@ -219,6 +232,22 @@ export function ProcessingShell({
                       : "All documents processed."
                     : `${doneCount} of ${items.length} document(s) done.`}
               </p>
+              {allTerminal && hasExtractedBidForm ? (
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2.5">
+                  <Sparkles className="size-4 shrink-0 text-primary" />
+                  <p className="flex-1 text-sm">
+                    Bid form extracted — open Bid Reconciliation to import.
+                  </p>
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      router.push(`/reconciliation?project=${projectId}`)
+                    }
+                  >
+                    Bid Reconciliation
+                  </Button>
+                </div>
+              ) : null}
             </div>
           ) : null}
         </CardContent>

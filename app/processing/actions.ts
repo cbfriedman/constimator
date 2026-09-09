@@ -25,6 +25,13 @@ export type ProcessingItem = {
   fileName: string
   status: ProcessingItemStatus
   error: string | null
+  /**
+   * Which extractor produced this job's result — the only part of
+   * `job.result` the client is given, so the page can say what finished
+   * rather than only that something did. Null when there is no job yet or
+   * the row predates the field (see db/schema.ts: absent means plan takeoff).
+   */
+  kind: string | null
 }
 
 // A retry inserts a new takeoff_job row rather than resetting the failed
@@ -99,6 +106,7 @@ export async function getProcessingStatus(
       fileName: doc.fileName,
       status: job?.status ?? "not_queued",
       error: job?.error ?? null,
+      kind: job?.result?.kind ?? null,
     }
   })
 }

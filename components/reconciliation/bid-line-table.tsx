@@ -21,6 +21,8 @@ import {
   deleteBidLineAction,
   updateBidLineAction,
 } from "@/app/reconciliation/actions"
+import { LOW_CONFIDENCE } from "@/lib/bid-form-import"
+import { cn } from "@/lib/utils"
 import type { bids } from "@/db/schema"
 
 type BidRow = typeof bids.$inferSelect
@@ -95,6 +97,7 @@ export function BidLineTable({
                 <TableHead>Description</TableHead>
                 <TableHead>Unit</TableHead>
                 <TableHead className="text-right">Official Qty</TableHead>
+                <TableHead className="w-16 text-right">AI conf</TableHead>
                 <TableHead>Spec</TableHead>
                 <TableHead className="w-0 text-right">
                   <span className="sr-only">Actions</span>
@@ -109,6 +112,21 @@ export function BidLineTable({
                   <TableCell className="text-muted-foreground">{row.unit}</TableCell>
                   <TableCell className="text-right tabular-nums">
                     {row.officialQuantity}
+                  </TableCell>
+                  {/* numeric comes back from Drizzle as a string, and a
+                      hand-typed row has no confidence at all. */}
+                  <TableCell
+                    className={cn(
+                      "text-right tabular-nums",
+                      row.extractionConfidence != null &&
+                        Number(row.extractionConfidence) < LOW_CONFIDENCE
+                        ? "text-warning"
+                        : "text-muted-foreground",
+                    )}
+                  >
+                    {row.extractionConfidence == null
+                      ? "—"
+                      : Number(row.extractionConfidence)}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {row.specSection ?? "—"}

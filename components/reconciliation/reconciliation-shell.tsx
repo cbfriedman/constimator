@@ -2,7 +2,14 @@
 
 import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { AlertTriangle, FileBarChart, FilePlus, UserCheck } from "lucide-react"
+import {
+  AlertTriangle,
+  FileBarChart,
+  FilePlus,
+  Sparkles,
+  Upload,
+  UserCheck,
+} from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -10,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import {
   Empty,
+  EmptyContent,
   EmptyDescription,
   EmptyHeader,
   EmptyMedia,
@@ -23,6 +31,7 @@ import { cn } from "@/lib/utils"
 import { type FilterKey, type StatusColor, filterChips } from "@/lib/reconciliation-data"
 import type { ReconciliationRowView } from "@/lib/reconciliation-view"
 import { addMissingItemToEstimateAction } from "@/app/reconciliation/actions"
+import { importFromBidScheduleAction } from "@/app/estimate/actions"
 import { BidFormImportCard } from "@/components/reconciliation/bid-form-import-card"
 import type { PendingBidFormExtraction } from "@/lib/bid-form-import"
 import type { bids } from "@/db/schema"
@@ -62,6 +71,12 @@ export function ReconciliationShell({
   const [sheetOpen, setSheetOpen] = useState(false)
   const [prevInitialBidRows, setPrevInitialBidRows] = useState(initialBidRows)
   const [prevInitialRows, setPrevInitialRows] = useState(initialRows)
+  // Held here rather than in BidFormImportCard: a successful import gives the
+  // document bid rows, which is exactly what drops it out of
+  // pendingExtractions — the card unmounts on the refresh it triggers itself,
+  // so an offer rendered inside it would never survive to be clicked.
+  const [importedCount, setImportedCount] = useState<number | null>(null)
+  const [seeding, setSeeding] = useState(false)
 
   // Server props change after router.refresh() (e.g. once a bid line edit
   // has been recomputed server-side) — sync local state to match.
@@ -97,6 +112,28 @@ export function ReconciliationShell({
   // local state to match what the server-side diff would now produce.
   function handleBidLinesChanged() {
     router.refresh()
+  }
+
+  async function handleSeedEstimate() {
+    setSeeding(true)
+    try {
+      const result = await importFromBidScheduleAction(projectId)
+      if (result.added > 0) {
+        toast.success(
+          `Added ${result.added} estimate lines at $0 — price them in Estimate Workspace.`,
+        )
+      } else {
+        toast.message("Estimate already has those items.")
+      }
+      setImportedCount(null)
+      router.refresh()
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Couldn't do that — try again.",
+      )
+    } finally {
+      setSeeding(false)
+    }
   }
 
   async function handleAddToEstimate(row: ReconciliationRowView) {
@@ -153,22 +190,82 @@ export function ReconciliationShell({
                 projectId={projectId}
                 hasExistingBidForm={hasBidForm}
                 extractions={pendingExtractions}
+                onImported={(result) => setImportedCount(result.imported)}
               />
+            ) : null}
+            {importedCount !== null ? (
+              <Card className="border-primary/30">
+                <CardContent className="flex flex-wrap items-center gap-x-4 gap-y-3">
+                  <p className="flex-1 text-sm">
+                    <span className="font-medium">
+                      Imported {importedCount} bid-form items.
+                    </span>{" "}
+                    <span className="text-muted-foreground">
+                      Want a starting estimate? Each item becomes a line at $0
+                      for you to price.
+                    </span>
+                  </p>
+                  <Button
+                    variant="outline"
+                    disabled={seeding}
+                    onClick={handleSeedEstimate}
+                  >
+                    {seeding
+                      ? "Creating…"
+                      : "Create estimate lines from this schedule"}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    disabled={seeding}
+                    onClick={() => setImportedCount(null)}
+                  >
+                    Not now
+                  </Button>
+                </CardContent>
+              </Card>
             ) : null}
             {!hasBidForm ? (
           <div className="flex flex-col gap-6">
-            <Empty className="border">
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <FilePlus />
-                </EmptyMedia>
-                <EmptyTitle>No official bid form entered yet</EmptyTitle>
-                <EmptyDescription>
-                  Enter the official bid form&apos;s line items below to
-                  reconcile them against your estimate.
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
+            {/* An extraction that is sitting right above this, waiting to be
+                imported, is the answer to "there is no bid form yet" — so say
+                that instead of sending the contractor off to type the rows
+                the extractor has already read. */}
+            {pendingExtractions.length > 0 ? (
+              <Empty className="border">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <Sparkles />
+                  </EmptyMedia>
+                  <EmptyTitle>Extracted bid form ready to import</EmptyTitle>
+                  <EmptyDescription>
+                    Review the table above, then import. You can edit any row
+                    after.
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            ) : (
+              <Empty className="border">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <FilePlus />
+                  </EmptyMedia>
+                  <EmptyTitle>No official bid form yet</EmptyTitle>
+                  <EmptyDescription>
+                    Upload the official bid form under Upload Documents (type
+                    Official Bid Form). When extraction finishes, import it
+                    here. Typing rows is only a fallback.
+                  </EmptyDescription>
+                </EmptyHeader>
+                <EmptyContent>
+                  <Button
+                    onClick={() => router.push(`/upload?project=${projectId}`)}
+                  >
+                    <Upload data-icon="inline-start" />
+                    Upload bid form
+                  </Button>
+                </EmptyContent>
+              </Empty>
+            )}
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Official Bid Form</CardTitle>

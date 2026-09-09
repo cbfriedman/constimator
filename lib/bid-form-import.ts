@@ -112,3 +112,55 @@ export function bidRowsFromExtractedItems(
       item.confidence == null ? null : String(item.confidence),
   }))
 }
+
+// Below this, the extractor is telling us it had to squint. Same threshold
+// and the same idea as components/plan-holders/holder-row.tsx: flag the rows
+// worth a human's attention instead of letting every row look equally settled.
+export const LOW_CONFIDENCE = 90
+
+function naturalKey(item: PendingBidFormItem): string {
+  return `${item.itemNumber}::${item.description}`
+}
+
+/**
+ * Stable identity for one preview row. Item number plus description is what a
+ * reader would use to tell two lines apart, but extractors do emit the same
+ * pair twice — so callers that have the whole list pass the set of keys that
+ * repeat, and those rows fall back to their position instead. Without that
+ * fallback a skip checkbox would silently take two rows out at once.
+ */
+export function itemKey(
+  item: PendingBidFormItem,
+  index: number,
+  duplicatedKeys?: ReadonlySet<string>,
+): string {
+  const key = naturalKey(item)
+  return duplicatedKeys?.has(key) ? String(index) : key
+}
+
+/** Keys for a whole list, computed together so collisions are detectable. */
+export function itemKeys(items: PendingBidFormItem[]): string[] {
+  const counts = new Map<string, number>()
+  for (const item of items) {
+    const key = naturalKey(item)
+    counts.set(key, (counts.get(key) ?? 0) + 1)
+  }
+  const duplicated = new Set(
+    [...counts].filter(([, count]) => count > 1).map(([key]) => key),
+  )
+  return items.map((item, index) => itemKey(item, index, duplicated))
+}
+
+/**
+ * The rows the contractor left checked. Lives here rather than in the preview
+ * component so the payload the Server Action receives is derived by the same
+ * code the tests exercise.
+ */
+export function filterSkipped(
+  items: PendingBidFormItem[],
+  skippedKeys: ReadonlySet<string>,
+): PendingBidFormItem[] {
+  if (skippedKeys.size === 0) return items
+  const keys = itemKeys(items)
+  return items.filter((_, index) => !skippedKeys.has(keys[index]!))
+}
