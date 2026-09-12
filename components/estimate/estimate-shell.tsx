@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { AlertTriangle, FileDown, Plus } from "lucide-react"
+import { AlertTriangle, FileDown, FileSpreadsheet, Plus } from "lucide-react"
 import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
@@ -22,6 +22,7 @@ import {
   EstimateLineDialog,
   type EstimateLineFormValue,
 } from "@/components/estimate/estimate-line-dialog"
+import { EstimateImportDialog } from "@/components/estimate/estimate-import-dialog"
 import {
   RateDriftBanner,
   RateSnapshotChip,
@@ -84,6 +85,7 @@ export function EstimateShell({
       : "custom",
   )
   const [importing, setImporting] = useState(false)
+  const [importDialogOpen, setImportDialogOpen] = useState(false)
 
   if (initialRows !== prevInitialRows) {
     setPrevInitialRows(initialRows)
@@ -132,6 +134,20 @@ export function EstimateShell({
     } finally {
       setImporting(false)
     }
+  }
+
+  function handleSpreadsheetImported(result: {
+    imported: number
+    linked: number
+    replaced: boolean
+  }) {
+    const lines = `${result.imported} line${result.imported === 1 ? "" : "s"}`
+    toast.success(
+      result.linked > 0
+        ? `Imported ${lines} — ${result.linked} matched to bid items. Reconcile when you're ready.`
+        : `Imported ${lines}. None matched a bid item yet — reconciliation will show them as missing from the bid form.`,
+    )
+    router.refresh()
   }
 
   function openAdd() {
@@ -275,6 +291,15 @@ export function EstimateShell({
             <FileDown data-icon="inline-start" />
             {importing ? "Importing…" : "Import from Bid Schedule"}
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setImportDialogOpen(true)}
+            disabled={!projectId}
+          >
+            <FileSpreadsheet data-icon="inline-start" />
+            Import from Excel
+          </Button>
           <Select value={markupMode} onValueChange={handleMarkupChange}>
             <SelectTrigger size="sm" className="w-52">
               <SelectValue>{(value) => markupLabels[value as string]}</SelectValue>
@@ -322,6 +347,14 @@ export function EstimateShell({
           All changes saved
         </p>
       </div>
+
+      <EstimateImportDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        projectId={projectId}
+        existingLineCount={rows.length}
+        onImported={handleSpreadsheetImported}
+      />
 
       <EstimateLineDialog
         open={dialogOpen}

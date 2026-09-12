@@ -45,6 +45,11 @@ type AnalyticsEvent =
   // unanswerable.
   | "plan_holder_list_uploaded"
   | "bid_form_imported"
+  // A contractor's own estimate brought in from a spreadsheet export.
+  // Distinct from bid_form_imported (the agency's schedule) because the
+  // question is the one the pilot keeps raising: how many contractors
+  // already had an estimate elsewhere and refused to retype it?
+  | "estimate_imported"
 
 /**
  * Fires a product analytics event tied to a real user, grouped by org

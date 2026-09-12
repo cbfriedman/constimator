@@ -5,6 +5,7 @@ import { and, eq } from "drizzle-orm"
 import { z } from "zod"
 
 import { estimateLines, estimates, projects } from "@/db/schema"
+import { captureEvent } from "@/lib/analytics"
 import { generateEstimateLines } from "@/lib/cost-engine/generate-estimate"
 import { getScopedDb } from "@/lib/db/scoped"
 import { getCurrentProject, getBidsForProject, getOrCreateCurrentEstimate } from "@/lib/current-project"
@@ -305,4 +306,115 @@ export async function importFromBidScheduleAction(rawProjectId: string) {
   }
 
   return { added, bidLineCount: bidRows.length }
+}
+
+// The rows a contractor confirmed in the import dialog. They were parsed
+// from a spreadsheet in the browser (lib/estimate-import.ts), which is why
+// every number arrives as a string the way the estimate_line numeric
+// columns want it — and why this is validated as user input rather than
+// trusted: the mapping step lets the contractor point any column at any
+// field.
+const importedEstimateLineSchema = z.object({
+  itemNumber: z.string().trim().max(40).nullable(),
+  description: z.string().trim().min(1, "Description is required").max(500),
+  quantity: numericString(),
+  unit: z.string().trim().min(1, "Unit is required").max(20),
+  unitPrice: numericString(),
+  markupPct: numericString().nullable(),
+  note: z.string().trim().max(1000).nullable(),
+})
+
+const importEstimateSchema = z.object({
+  projectId: uuidSchema,
+  replaceExisting: z.boolean(),
+  lines: z
+    .array(importedEstimateLineSchema)
+    .min(1, "Nothing to import")
+    // Well under the Server Action body cap, and no bid schedule is longer.
+    .max(2000, "That's more than 2,000 lines — split the sheet"),
+})
+
+export type ImportEstimateInput = z.infer<typeof importEstimateSchema>
+
+function normalizeDescription(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, " ")
+}
+
+/**
+ * "Import from Excel": replaces (or seeds) the project's estimate with the
+ * contractor's own lines. Each line is linked to a bid item when the sheet
+ * makes that unambiguous — same item number, or a description that matches
+ * exactly one bid item — so reconciliation can compare them the moment the
+ * import lands. Lines it can't place are still imported, just unlinked;
+ * reconciliation reports those as items missing from the bid form, which
+ * is the honest reading of "we couldn't find this on the schedule".
+ *
+ * Source is "manual" on purpose: these are the contractor's numbers keyed
+ * by the contractor, only via a spreadsheet instead of the dialog.
+ */
+export async function importEstimateFromSpreadsheetAction(rawInput: {
+  projectId: string
+  replaceExisting: boolean
+  lines: unknown[]
+}) {
+  const input = parseInput(importEstimateSchema, rawInput)
+  const scopedDb = await getScopedDb()
+  const estimate = await getOrCreateCurrentEstimate(scopedDb, input.projectId)
+  const [existingLines, bidRows] = await Promise.all([
+    scopedDb.estimateLines.findMany(eq(estimateLines.estimateId, estimate.id)),
+    getBidsForProject(scopedDb, input.projectId),
+  ])
+
+  if (existingLines.length > 0 && !input.replaceExisting) {
+    throw new Error(
+      `This estimate already has ${existingLines.length} lines. Confirm replace to overwrite them.`,
+    )
+  }
+  if (existingLines.length > 0) {
+    await scopedDb.estimateLines.delete(eq(estimateLines.estimateId, estimate.id))
+  }
+
+  const bidsByItemNumber = new Map(bidRows.map((bid) => [bid.itemNumber.trim(), bid]))
+  const bidsByDescription = new Map<string, typeof bidRows>()
+  for (const bid of bidRows) {
+    const key = normalizeDescription(bid.description)
+    bidsByDescription.set(key, [...(bidsByDescription.get(key) ?? []), bid])
+  }
+  const defaultMarkup = existingLines[0]?.markupPct ?? "10"
+
+  let linked = 0
+  const rows = input.lines.map((line, index) => {
+    const byNumber = line.itemNumber ? bidsByItemNumber.get(line.itemNumber) : undefined
+    const byDescription = bidsByDescription.get(normalizeDescription(line.description))
+    const bid = byNumber ?? (byDescription?.length === 1 ? byDescription[0] : undefined)
+    if (bid) linked += 1
+    return {
+      estimateId: estimate.id,
+      bidId: bid?.id ?? null,
+      lineNumber: index + 1,
+      description: line.description,
+      note: line.note,
+      quantity: line.quantity,
+      unit: line.unit,
+      unitPrice: line.unitPrice,
+      markupPct: line.markupPct ?? defaultMarkup,
+      total: computeTotal(line.quantity, line.unitPrice),
+      source: "manual" as const,
+    }
+  })
+
+  await scopedDb.estimateLines.insertMany(rows)
+
+  await captureEvent("estimate_imported", {
+    userId: scopedDb.userId,
+    orgId: scopedDb.orgId,
+    properties: {
+      projectId: input.projectId,
+      lineCount: rows.length,
+      linkedCount: linked,
+      replaced: existingLines.length > 0,
+    },
+  })
+
+  return { imported: rows.length, linked, replaced: existingLines.length > 0 }
 }
