@@ -14,6 +14,7 @@ import {
   invites,
   orgs,
   planHolderContacts,
+  planCallouts,
   planHolderLists,
   projects,
   quoteConditions,
@@ -243,5 +244,6 @@ export const getScopedDb = cache(async function getScopedDb() {
       planHolderContacts.orgId,
       orgId,
     ),
+    planCallouts: orgScoped(planCallouts, planCallouts.orgId, orgId),
   }
 })

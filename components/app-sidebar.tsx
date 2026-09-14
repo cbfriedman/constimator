@@ -15,6 +15,7 @@ import {
   FileCheck2,
   FileUp,
   GitCompareArrows,
+  Grid3x3,
   UserCheck,
   BarChart3,
   HardHat,
@@ -66,6 +67,7 @@ const mainNav = [
     icon: GitCompareArrows,
     attentionBadge: true,
   },
+  { title: "Sheet Reconciliation", href: "/reconciliation/sheets", icon: Grid3x3 },
   {
     title: "Human Review",
     href: "/review",

@@ -22,6 +22,7 @@ import type {
   ExtractedPlanHolder,
   ExtractedQuoteCondition,
   ExtractedSpecLink,
+  ExtractedPlanCallout,
   ExtractedTakeoffItem,
 } from "@/lib/cost-engine/types"
 
@@ -207,6 +208,17 @@ export const reconciliationStatusColorEnum = pgEnum(
   "reconciliation_status_color",
   ["green", "amber", "yellow", "red"],
 )
+
+// How a plan_callout row came to point at (or away from) its bid item.
+// "ai": the extractor's bidItemNumber hint checked out against a real bid
+// row. "description": lib/plan-callout-match.ts matched it on unit +
+// description. "manual": a human linked or unlinked it in the matrix — the
+// one value the automatic re-match on read never overrides.
+export const planCalloutMatchSourceEnum = pgEnum("plan_callout_match_source", [
+  "ai",
+  "description",
+  "manual",
+])
 
 export const reconciliationFilterEnum = pgEnum("reconciliation_filter", [
   "matched",
@@ -459,6 +471,7 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   subQuotes: many(subQuotes),
   estimates: many(estimates),
   reconciliationItems: many(reconciliationItems),
+  planCallouts: many(planCallouts),
 }))
 
 // ---------------------------------------------------------------------------
@@ -545,6 +558,13 @@ export const takeoffJobs = pgTable(
     result: jsonb("result").$type<{
       kind?: "plan_takeoff" | "bid_form" | "sub_quote" | "plan_holders" | "specifications"
       items?: ExtractedTakeoffItem[]
+      // Set alongside `items` for kind "plan_takeoff": the quantities
+      // printed on the sheets themselves, read by a second call
+      // (worker/src/extract-plan-callouts.ts). Materialized into
+      // plan_callout rows on first read of the sheet matrix
+      // (app/reconciliation/sheets/actions.ts), same terms as conditions
+      // and planHolders below. Absent on jobs that ran before it existed.
+      callouts?: ExtractedPlanCallout[]
       bidItems?: ExtractedBidItem[]
       // Step 41 — set only for kind "sub_quote". Stays raw here until a
       // human confirms it in the review UI, which is what materializes it
@@ -1336,6 +1356,95 @@ export const reconciliationItemsRelations = relations(
     }),
   }),
 )
+
+// ---------------------------------------------------------------------------
+// plan_callout (app/reconciliation/sheets/actions.ts, lib/sheet-matrix.ts)
+// One quantity printed on one plan sheet, as read by
+// worker/src/extract-plan-callouts.ts. The sheet-by-sheet matrix is one row
+// per (sheet × bid item) — this table is that grain, joined to `bid` through
+// bid_id.
+//
+// Materialized from takeoff_job.result.callouts on first read of the matrix,
+// on the same terms as plan_holder_contact: once rows exist for a document
+// they're never re-synced from the jsonb, because bid_id / dismissed carry
+// human decisions the AI's original reading must not silently undo.
+//
+// bid_id is nullable and set-null on delete on purpose. A callout for
+// something the bid form doesn't list is the most valuable row on the
+// matrix (missing scope), not an orphan — and replacing the bid form
+// (importExtractedBidFormAction deletes and re-inserts `bid`) nulls every
+// link, after which the automatic re-match restores the ones it can.
+// ---------------------------------------------------------------------------
+
+export const planCallouts = pgTable(
+  "plan_callout",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orgId: uuid("org_id")
+      .notNull()
+      .references(() => orgs.id, { onDelete: "cascade" }),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    documentId: uuid("document_id")
+      .notNull()
+      .references(() => documents.id, { onDelete: "cascade" }),
+    bidId: uuid("bid_id").references(() => bids.id, { onDelete: "set null" }),
+    // As printed in the title block ("C-301"), or "Page N" when the sheet
+    // has none — never normalized, so it matches what the contractor will
+    // write in the RFI.
+    sheetNumber: text("sheet_number").notNull(),
+    sheetTitle: text("sheet_title"),
+    pageNumber: integer("page_number"),
+    description: text("description").notNull(),
+    quantity: numeric("quantity", { precision: 14, scale: 2 }).notNull(),
+    unit: text("unit").notNull(),
+    // Verbatim from the sheet — the schedule row, note, or callout text.
+    sourceText: text("source_text").notNull(),
+    // "schedule" | "summary" | "note" | "callout" | "profile" | "other" as
+    // the extractor reports it. Plain text rather than an enum: it's a
+    // reading of the drawing, not a value the DB vouches for.
+    sourceKind: text("source_kind").notNull(),
+    // The extractor's own guess at the bid item number, kept even after a
+    // match so a wrong guess can be seen and so a replaced bid form can be
+    // re-matched. Null when the bid form wasn't imported yet at extraction.
+    aiBidItemNumber: text("ai_bid_item_number"),
+    matchSource: planCalloutMatchSourceEnum("match_source"),
+    // 0-100, same scale as bid.extraction_confidence.
+    confidence: numeric("confidence", { precision: 5, scale: 2 }),
+    notes: text("notes"),
+    // Hidden from the matrix by a human ("that's a detail callout, not a
+    // quantity"). Kept rather than deleted so re-materialization can't
+    // resurrect it.
+    dismissed: boolean("dismissed").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index("plan_callout_org_id_idx").on(table.orgId),
+    index("plan_callout_project_id_idx").on(table.projectId),
+    index("plan_callout_document_id_idx").on(table.documentId),
+    index("plan_callout_bid_id_idx").on(table.bidId),
+    orgIsolationPolicy("plan_callout", table.orgId),
+  ],
+).enableRLS()
+
+export const planCalloutsRelations = relations(planCallouts, ({ one }) => ({
+  org: one(orgs, { fields: [planCallouts.orgId], references: [orgs.id] }),
+  project: one(projects, {
+    fields: [planCallouts.projectId],
+    references: [projects.id],
+  }),
+  document: one(documents, {
+    fields: [planCallouts.documentId],
+    references: [documents.id],
+  }),
+  bid: one(bids, { fields: [planCallouts.bidId], references: [bids.id] }),
+}))
 
 // ---------------------------------------------------------------------------
 // review_request — "Request Human Review" (components/review). Just the

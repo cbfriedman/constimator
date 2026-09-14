@@ -1,11 +1,13 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
   AlertTriangle,
   FileBarChart,
   FilePlus,
+  Grid3x3,
   Sparkles,
   Upload,
   UserCheck,
@@ -361,6 +363,10 @@ export function ReconciliationShell({
             </Card>
 
             <div className="flex items-center justify-end gap-3 border-t pt-4">
+              <Button variant="outline" render={<Link href="/reconciliation/sheets" />}>
+                <Grid3x3 data-icon="inline-start" />
+                Sheet-by-Sheet
+              </Button>
               <Button variant="outline" onClick={() => router.push("/review")}>
                 <UserCheck data-icon="inline-start" />
                 Request Human Review

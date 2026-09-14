@@ -117,6 +117,33 @@ export type ExtractedSpecLink = {
   sourcePage?: number
 }
 
+// One quantity printed on a plan sheet — a drainage or sign schedule row, a
+// summary-of-quantities table row, a general note, a profile callout.
+// Mirrors lib/cost-engine/types.ts's ExtractedPlanCallout — same hand-sync
+// rule as the types above.
+//
+// Deliberately NOT an ExtractedTakeoffItem: a takeoff item is a quantity
+// the AI *measured* off the drawings, one number for the whole set; a
+// callout is a number the agency *printed* on one specific sheet. Only the
+// second can be traced back to a sheet for an RFI. See
+// extract-plan-callouts.ts for why the two run as separate calls.
+//
+// sourceText is required and verbatim, for the same reason rawText is on
+// ExtractedQuoteCondition: the matrix shows it beside the parsed quantity.
+export type ExtractedPlanCallout = {
+  sheetNumber: string
+  sheetTitle?: string
+  pageNumber: number
+  description: string
+  quantity: number
+  unit: string
+  sourceText: string
+  sourceKind: string
+  bidItemNumber?: string
+  confidence?: number
+  notes?: string
+}
+
 // Shape written into takeoff_job.result on success. `kind` says which
 // extractor ran, and only one of items/bidItems/conditions is ever populated
 // — app/processing/actions.ts keys off that to decide whether a result should
@@ -130,6 +157,11 @@ export type ExtractedSpecLink = {
 export type TakeoffResult = {
   kind?: "plan_takeoff" | "bid_form" | "sub_quote" | "plan_holders" | "specifications"
   items?: ExtractedTakeoffItem[]
+  // Set alongside `items` for kind "plan_takeoff" — the quantities printed
+  // on the same sheets, read by a second call. Optional because jobs that
+  // ran before the callout extractor existed have no such field; the
+  // matrix simply shows nothing for those documents.
+  callouts?: ExtractedPlanCallout[]
   bidItems?: ExtractedBidItem[]
   conditions?: ExtractedQuoteCondition[]
   planHolders?: ExtractedPlanHolder[]

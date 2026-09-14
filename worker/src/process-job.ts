@@ -3,6 +3,7 @@ import { downloadDocument } from "./download-document.js"
 import { rasterizePdf } from "./rasterize.js"
 import { extractQuantities } from "./extract.js"
 import { extractBidForm } from "./extract-bid-form.js"
+import { extractPlanCallouts, type BidItemHint } from "./extract-plan-callouts.js"
 import { extractQuoteConditions } from "./extract-quote-conditions.js"
 import { extractPlanHolders } from "./extract-plan-holders.js"
 import { extractParticipationGoals } from "./extract-participation-goals.js"
@@ -58,7 +59,7 @@ export async function processJob(job: ClaimedJob) {
 
   try {
     const [document] = await sql`
-      select storage_bucket, storage_path, file_name, type, mime_type
+      select storage_bucket, storage_path, file_name, type, mime_type, project_id
       from document
       where id = ${job.document_id} and org_id = ${job.org_id}
     `
@@ -221,11 +222,48 @@ export async function processJob(job: ClaimedJob) {
       }
     } else {
       const pages = await rasterizePdf(fileBytes)
-      const extracted = await extractQuantities(pages)
-      result = { kind: "plan_takeoff", items: extracted.items }
+
+      // Two reads of the same sheets. The takeoff measures one quantity per
+      // item for the whole set; the callout pass transcribes what each
+      // sheet prints, for the sheet-by-sheet matrix. They're one job (one
+      // upload, one status, one failure) but two lines of AI spend, so the
+      // callout usage is recorded separately below under its own kind.
+      //
+      // The bid form's items go into the callout prompt when the
+      // contractor imported it before uploading the plans — the model
+      // links a printed quantity to an item number far more reliably with
+      // the sheet in front of it than the app can from text afterwards.
+      // Scoped to this document's own project and org like every other
+      // query in this file; an empty list is the normal case for a plan
+      // set uploaded first, and the app-side matcher covers it.
+      const bidRows = await sql<BidItemHint[]>`
+        select item_number as "itemNumber", description, unit,
+               official_quantity::float as quantity
+        from bid
+        where project_id = ${document.project_id} and org_id = ${job.org_id}
+        order by created_at
+      `
+      const [extracted, callouts] = await Promise.all([
+        extractQuantities(pages),
+        extractPlanCallouts(pages, bidRows),
+      ])
+      result = { kind: "plan_takeoff", items: extracted.items, callouts: callouts.callouts }
       usage = extracted.usage
       itemCount = extracted.items.length
       usageKind = "takeoff_extraction"
+      await recordAiUsage(
+        job.org_id,
+        "plan_callouts_extraction",
+        callouts.usage.model,
+        callouts.usage.inputTokens,
+        callouts.usage.outputTokens,
+      )
+      logger.info("Plan callouts extracted", {
+        jobId: job.id,
+        documentId: job.document_id,
+        calloutCount: callouts.callouts.length,
+        bidItemsProvided: bidRows.length,
+      })
     }
 
     await recordAiUsage(job.org_id, usageKind, usage.model, usage.inputTokens, usage.outputTokens)

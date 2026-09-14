@@ -135,6 +135,43 @@ export type ExtractedSpecLink = {
   sourcePage?: number
 }
 
+/**
+ * One quantity printed on a plan sheet — a row in a drainage or sign
+ * schedule, a summary-of-quantities table, a general note, a profile
+ * callout. Mirrors worker/src/types.ts's ExtractedPlanCallout — same
+ * hand-sync rule as the types above.
+ *
+ * This is deliberately NOT an ExtractedTakeoffItem. A takeoff item is a
+ * quantity the AI measured off the drawings and is one number for the whole
+ * set; a callout is a number the agency printed on one specific sheet. The
+ * sheet-by-sheet matrix (lib/sheet-matrix.ts) compares callouts to the bid
+ * form so a discrepancy can be traced to the sheet that states it — which is
+ * what makes it RFI-able. Aggregated or measured numbers can't do that.
+ *
+ * `sourceText` is required and verbatim, for the same reason `rawText` is on
+ * ExtractedQuoteCondition: the matrix shows it beside the parsed quantity, and
+ * a number nobody can check against the sheet is a number nobody RFIs.
+ *
+ * `bidItemNumber` is the extractor's own guess at which official bid item the
+ * callout belongs to, made only when the bid form had already been imported
+ * when the plan set was processed. It is a guess about a *different*
+ * document, so lib/plan-callout-match.ts treats it as a hint to verify
+ * against the bid rows, never as a foreign key.
+ */
+export type ExtractedPlanCallout = {
+  sheetNumber: string
+  sheetTitle?: string
+  pageNumber: number
+  description: string
+  quantity: number
+  unit: string
+  sourceText: string
+  sourceKind: string
+  bidItemNumber?: string
+  confidence?: number
+  notes?: string
+}
+
 export type GeneratedEstimateLine = {
   description: string
   quantity: string

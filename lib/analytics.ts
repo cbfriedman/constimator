@@ -50,6 +50,11 @@ type AnalyticsEvent =
   // question is the one the pilot keeps raising: how many contractors
   // already had an estimate elsewhere and refused to retype it?
   | "estimate_imported"
+  // A contractor drafted an RFI off the sheet-by-sheet matrix. The matrix
+  // is the first place the product turns a discrepancy into something sent
+  // to the agency, and "did anyone actually send one?" is the question that
+  // decides whether the callout extraction earns its AI spend.
+  | "sheet_rfi_drafted"
 
 /**
  * Fires a product analytics event tied to a real user, grouped by org

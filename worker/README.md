@@ -13,6 +13,17 @@ validated standalone in `scripts/takeoff-validation/` (step 15). Needs
 `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `ANTHROPIC_API_KEY` set —
 see `.env.example`.
 
+**Sheet callouts.** The same plan-set job makes a second read of the same
+pages (`src/extract-plan-callouts.ts`), a few sheets per request: the
+quantities the agency *printed* on each sheet — schedules, summary tables,
+notes — keyed by the sheet number off the title block. The takeoff measures
+one number per item for the whole set; this transcribes what each sheet
+says, which is what the sheet-by-sheet matrix (`/reconciliation/sheets`)
+compares to the bid form and what a contractor can quote back in an RFI. If
+the bid form was already imported, its items go into the prompt so the model
+can link a row to an item number while the sheet is in front of it. Recorded
+as its own line of AI spend (`plan_callouts_extraction`).
+
 ## How it works
 
 1. `src/index.ts` runs an infinite loop: poll, sleep `POLL_INTERVAL_MS`,
