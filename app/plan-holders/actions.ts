@@ -12,6 +12,7 @@ import {
 } from "@/db/schema"
 import { removeDocument } from "@/app/upload/actions"
 import { captureEvent } from "@/lib/analytics"
+import { requireWrite } from "@/lib/authz"
 import { getScopedDb } from "@/lib/db/scoped"
 import {
   assertPathInOrg,
@@ -23,7 +24,7 @@ import {
 } from "@/lib/document-upload"
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server"
 import { queueTakeoffJob } from "@/lib/takeoff-queue"
-import { parseInput, uuidSchema } from "@/lib/validation"
+import { parseInput, storagePathSchema, uuidSchema } from "@/lib/validation"
 
 // A plan holders list is uploaded here rather than through
 // app/upload/actions.ts for the same reason a sub quote is: it needs a field
@@ -62,13 +63,14 @@ export async function requestPlanHolderUpload(rawInput: {
 }) {
   const input = parseInput(requestPlanHolderUploadSchema, rawInput)
   const scopedDb = await getScopedDb()
+  requireWrite(scopedDb)
 
   return createSignedDocumentUpload(scopedDb, input.projectId, input.fileName)
 }
 
 const confirmPlanHolderUploadSchema = z.object({
   projectId: uuidSchema,
-  path: z.string().trim().min(1, "Storage path is required"),
+  path: storagePathSchema,
   fileName: fileSchema.fileName,
   fileSizeBytes: fileSchema.fileSizeBytes,
   mimeType: fileSchema.mimeType,
@@ -85,12 +87,13 @@ export async function confirmPlanHolderUpload(rawInput: {
 }) {
   const input = parseInput(confirmPlanHolderUploadSchema, rawInput)
   const scopedDb = await getScopedDb()
+  requireWrite(scopedDb)
 
   // Re-checked here for the same reason the other uploaders re-check them:
   // this is its own separately-callable Server Action, reachable without
   // going through the request step at all. See lib/document-upload.ts.
   await assertProjectInOrg(scopedDb, input.projectId)
-  assertPathInOrg(scopedDb, input.path)
+  assertPathInOrg(scopedDb, input.path, input.projectId)
 
   const [document] = await scopedDb.documents.insert({
     projectId: input.projectId,
@@ -132,6 +135,7 @@ export async function confirmPlanHolderUpload(rawInput: {
 export async function removePlanHolderList(rawListId: string): Promise<void> {
   const listId = parseInput(uuidSchema, rawListId)
   const scopedDb = await getScopedDb()
+  requireWrite(scopedDb)
 
   const list = await scopedDb.planHolderLists.findFirst(
     eq(planHolderLists.id, listId),
@@ -394,6 +398,7 @@ async function refreshListStatus(
 export async function confirmPlanHolderAction(rawId: string): Promise<void> {
   const id = parseInput(uuidSchema, rawId)
   const scopedDb = await getScopedDb()
+  requireWrite(scopedDb)
 
   const [updated] = await scopedDb.planHolderContacts.update(
     eq(planHolderContacts.id, id),
@@ -413,6 +418,7 @@ export async function confirmPlanHolderAction(rawId: string): Promise<void> {
 export async function unconfirmPlanHolderAction(rawId: string): Promise<void> {
   const id = parseInput(uuidSchema, rawId)
   const scopedDb = await getScopedDb()
+  requireWrite(scopedDb)
 
   const [updated] = await scopedDb.planHolderContacts.update(
     eq(planHolderContacts.id, id),
@@ -457,6 +463,7 @@ export async function updatePlanHolderAction(rawInput: {
 }): Promise<void> {
   const input = parseInput(updatePlanHolderSchema, rawInput)
   const scopedDb = await getScopedDb()
+  requireWrite(scopedDb)
 
   const [updated] = await scopedDb.planHolderContacts.update(
     eq(planHolderContacts.id, input.id),

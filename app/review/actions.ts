@@ -5,6 +5,7 @@ import { z } from "zod"
 
 import { projects, reviewRequests } from "@/db/schema"
 import { getCurrentProject } from "@/lib/current-project"
+import { requireWrite } from "@/lib/authz"
 import { getScopedDb } from "@/lib/db/scoped"
 import { sendReviewRequestNotification } from "@/lib/email/review-request"
 import { parseInput } from "@/lib/validation"
@@ -41,6 +42,7 @@ export async function requestReviewAction(rawInput: {
 }) {
   const input = parseInput(requestReviewSchema, rawInput)
   const scopedDb = await getScopedDb()
+  requireWrite(scopedDb)
 
   // Found during a pre-launch audit: this used to insert with a raw
   // client-supplied projectId and no ownership check at all — worse than

@@ -4,7 +4,6 @@ import * as React from "react"
 
 import {
   dismissDriftAction,
-  recalculateAction,
   resetProjectStateAction,
   selectCurrentProjectAction,
   setCostSetupCompleteAction,
@@ -13,7 +12,6 @@ import {
   type WorkspaceNotification,
   type WorkspaceProjectOption,
 } from "@/lib/project-state-actions"
-import { formatDisplayDate, todayIsoDate } from "@/lib/format-date"
 
 type ProjectStateValue = {
   /** The org's current project id (see lib/current-project.ts), or null. */
@@ -40,13 +38,17 @@ type ProjectStateValue = {
   costSetupComplete: boolean
   setCostSetupComplete: (value: boolean) => void
   /**
-   * The date the current estimate's rate snapshot was captured. Editing a
-   * company rate never changes this; only a recalculation does.
+   * The date the current estimate's rate snapshot was captured. Nothing in
+   * the app changes it: an estimate keeps the rates it was built with, and
+   * re-pricing a line is a manual edit. (There used to be a "Recalculate
+   * with Current Rates" action that advanced this date and reported success
+   * without recomputing a single total — see lib/project-state-actions.ts.)
    */
   rateSnapshotDate: string
   /**
-   * Whether company-default rates have changed since the estimate's snapshot
-   * (set by editing a company rate on /cost-setup or the demo trigger).
+   * Whether company-default rates have changed since the estimate's
+   * snapshot. Set for real by lib/cost-engine/drift.ts on load, and
+   * optimistically by editing a company rate on /cost-setup.
    */
   rateDrift: boolean
   /** Flag company rates as changed since the snapshot. */
@@ -55,10 +57,6 @@ type ProjectStateValue = {
   driftDismissed: boolean
   /** Dismiss the drift banner without changing the snapshot. */
   dismissDrift: () => void
-  /** Whether the estimate has been recalculated against current rates. */
-  recalculated: boolean
-  /** Recalculate: advance the snapshot to today and clear drift. */
-  recalculate: () => void
   /**
    * Increments on every demo reset. Used as a React `key` on page content so
    * page-local state (review stage, applied recommendations, processing
@@ -108,9 +106,6 @@ export function ProjectStateProvider({
   const [driftDismissed, setDriftDismissed] = React.useState(
     initialProjectState?.estimate?.driftDismissed ?? false,
   )
-  const [recalculated, setRecalculated] = React.useState(
-    initialProjectState?.estimate?.recalculated ?? false,
-  )
 
   // Whether there's a real estimate row to persist against. Fields still
   // update locally without one (e.g. no projects yet) — they just don't
@@ -137,22 +132,11 @@ export function ProjectStateProvider({
     }
   }, [])
 
-  const recalculate = React.useCallback(() => {
-    setRateSnapshotDate(formatDisplayDate(todayIsoDate()))
-    setRateDrift(false)
-    setDriftDismissed(false)
-    setRecalculated(true)
-    if (estimateIdRef.current) {
-      recalculateAction(estimateIdRef.current).catch(() => {})
-    }
-  }, [])
-
   const reset = React.useCallback(() => {
     setCostSetupCompleteState(false)
     setRateSnapshotDate(FALLBACK_SNAPSHOT_DATE)
     setRateDrift(false)
     setDriftDismissed(false)
-    setRecalculated(false)
     setResetKey((k) => k + 1)
     resetProjectStateAction(estimateIdRef.current).catch(() => {})
   }, [])
@@ -181,8 +165,6 @@ export function ProjectStateProvider({
       triggerRateDrift,
       driftDismissed,
       dismissDrift,
-      recalculated,
-      recalculate,
       resetKey,
       reset,
       // Fails open (true) when there's no snapshot to read — a transient
@@ -205,8 +187,6 @@ export function ProjectStateProvider({
       triggerRateDrift,
       driftDismissed,
       dismissDrift,
-      recalculated,
-      recalculate,
       resetKey,
       reset,
       selectProject,

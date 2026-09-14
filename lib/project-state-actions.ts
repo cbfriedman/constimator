@@ -4,6 +4,7 @@ import { eq, inArray } from "drizzle-orm"
 
 import { getEstimateData } from "@/app/estimate/actions"
 import { documents, estimates, projects, reviewRequests, takeoffJobs, users } from "@/db/schema"
+import { requireWrite } from "@/lib/authz"
 import {
   getScopedDb,
   NoOrgMembershipError,
@@ -266,36 +267,44 @@ export async function getProjectStateSnapshot(): Promise<ProjectStateSnapshot | 
 
 export async function setCostSetupCompleteAction(value: boolean) {
   const scopedDb = await getScopedDb()
+  requireWrite(scopedDb)
   await scopedDb.org.update({ costSetupComplete: value })
 }
 
-export async function triggerRateDriftAction(estimateId: string) {
+export async function triggerRateDriftAction(rawEstimateId: string) {
+  const estimateId = parseInput(uuidSchema, rawEstimateId)
   const scopedDb = await getScopedDb()
+  requireWrite(scopedDb)
   await scopedDb.estimates.update(eq(estimates.id, estimateId), {
     rateDrift: true,
     driftDismissed: false,
   })
 }
 
-export async function dismissDriftAction(estimateId: string) {
+export async function dismissDriftAction(rawEstimateId: string) {
+  const estimateId = parseInput(uuidSchema, rawEstimateId)
   const scopedDb = await getScopedDb()
+  requireWrite(scopedDb)
   await scopedDb.estimates.update(eq(estimates.id, estimateId), {
     driftDismissed: true,
   })
 }
 
-export async function recalculateAction(estimateId: string) {
-  const scopedDb = await getScopedDb()
-  await scopedDb.estimates.update(eq(estimates.id, estimateId), {
-    rateSnapshotDate: todayIsoDate(),
-    rateDrift: false,
-    driftDismissed: false,
-    recalculated: true,
-  })
-}
+// recalculateAction used to live here. It set rateSnapshotDate to today,
+// cleared rateDrift/driftDismissed and set recalculated = true — and
+// recomputed nothing. The UI then toasted "Estimate recalculated — rate
+// snapshot updated". Removed rather than fixed: a real recalculation needs
+// per-line provenance (which cost_item each unit price came from) and rate
+// history to diff against, and the schema has neither. See
+// components/estimate/rate-snapshot.tsx.
+//
+// The estimate.recalculated column is left in place — migrations here are
+// additive (docs/DECISIONS.md) and resetProjectStateAction still clears it.
+// Nothing sets it true any more.
 
 export async function resetProjectStateAction(estimateId: string | null) {
   const scopedDb = await getScopedDb()
+  requireWrite(scopedDb)
   await scopedDb.org.update({ costSetupComplete: false })
   if (estimateId) {
     await scopedDb.estimates.update(eq(estimates.id, estimateId), {

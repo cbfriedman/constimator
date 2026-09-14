@@ -70,6 +70,21 @@ export function CostSetupShell({
     return () => observer.disconnect()
   }, [])
 
+  // Cost Setup seeds an editable scaffold with every rate left unset, which
+  // reads back as 0 (see app/cost-setup/actions.ts and lib/cost-setup-view.ts).
+  // It used to seed one contractor's real numbers instead, unlabelled, and
+  // those fed the cost engine and every exported report — so a contractor who
+  // never opened this page still exported a bid priced on someone else's
+  // markups. Now the page starts genuinely empty, which means it has to say
+  // so: $0.00 with no explanation looks like a bug, or worse, like a rate.
+  const nothingEnteredYet = React.useMemo(
+    () =>
+      initialLabor.every((rate) => rate.base === 0 && rate.fringe === 0) &&
+      initialEquipment.every((item) => item.rate === 0) &&
+      initialMargins.every((field) => field.value === 0),
+    [initialLabor, initialEquipment, initialMargins],
+  )
+
   const completeIds = React.useMemo(() => {
     const ids = new Set<CostSetupSectionId>(ALWAYS_COMPLETE)
     if (costSetupComplete) {
@@ -125,6 +140,18 @@ export function CostSetupShell({
           </Button>
         </div>
       </header>
+
+      {nothingEnteredYet ? (
+        <Alert className="mt-6 border-warning/40 bg-warning/10">
+          <AlertTitle>Enter your company&apos;s rates before you bid</AlertTitle>
+          <AlertDescription>
+            Every rate and markup below is still unset — the rows are a
+            starting list to edit, not numbers Constimator has any basis for.
+            Until you fill them in, estimate lines carry no markup and no rate
+            suggestions, and any report you export will say so.
+          </AlertDescription>
+        </Alert>
+      ) : null}
 
       <Alert className="mt-6 border-primary/30 bg-primary/5">
         <AlertTitle>Setup never blocks your workflow</AlertTitle>

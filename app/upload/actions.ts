@@ -6,6 +6,7 @@ import { z } from "zod"
 
 import { documentTypeEnum, documents } from "@/db/schema"
 import { captureEvent } from "@/lib/analytics"
+import { requireWrite } from "@/lib/authz"
 import { getScopedDb } from "@/lib/db/scoped"
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server"
 import {
@@ -17,7 +18,7 @@ import {
   PDF_MIME_TYPES,
 } from "@/lib/document-upload"
 import { queueTakeoffJob } from "@/lib/takeoff-queue"
-import { parseInput, uuidSchema } from "@/lib/validation"
+import { parseInput, storagePathSchema, uuidSchema } from "@/lib/validation"
 
 // The bucket name, size cap, and both org checks live in
 // lib/document-upload.ts — shared with the sub-quote uploader (step 41) so
@@ -60,13 +61,14 @@ export async function requestDocumentUpload(rawInput: {
 }) {
   const input = parseInput(requestUploadSchema, rawInput)
   const scopedDb = await getScopedDb()
+  requireWrite(scopedDb)
 
   return createSignedDocumentUpload(scopedDb, input.projectId, input.fileName)
 }
 
 const confirmUploadSchema = z.object({
   projectId: uuidSchema,
-  path: z.string().trim().min(1, "Storage path is required"),
+  path: storagePathSchema,
   fileName: z.string().trim().min(1, "File name is required"),
   mimeType: z.enum(ALLOWED_MIME_TYPES, "Only PDF files are allowed."),
   fileSizeBytes: z
@@ -87,13 +89,14 @@ export async function confirmDocumentUpload(rawInput: {
 }) {
   const input = parseInput(confirmUploadSchema, rawInput)
   const scopedDb = await getScopedDb()
+  requireWrite(scopedDb)
 
   // Both re-checked here even though requestDocumentUpload already checked
   // them: this is its own separately-callable Server Action, reachable
   // without ever going through the request step. See lib/document-upload.ts
   // for what each one prevents.
   await assertProjectInOrg(scopedDb, input.projectId)
-  assertPathInOrg(scopedDb, input.path)
+  assertPathInOrg(scopedDb, input.path, input.projectId)
 
   const [document] = await scopedDb.documents.insert({
     projectId: input.projectId,
@@ -129,6 +132,7 @@ export async function updateDocumentType(documentId: string, type: UploadableDoc
   const validDocumentId = parseInput(uuidSchema, documentId)
   const validType = parseInput(docTypeSchema, type)
   const scopedDb = await getScopedDb()
+  requireWrite(scopedDb)
   await scopedDb.documents.update(eq(documents.id, validDocumentId), { type: validType })
 }
 
@@ -155,6 +159,7 @@ export async function getDocumentViewUrlAction(documentId: string): Promise<stri
 export async function removeDocument(documentId: string) {
   const validDocumentId = parseInput(uuidSchema, documentId)
   const scopedDb = await getScopedDb()
+  requireWrite(scopedDb)
   const document = await scopedDb.documents.findFirst(
     eq(documents.id, validDocumentId),
   )

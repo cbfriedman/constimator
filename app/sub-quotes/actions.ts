@@ -14,6 +14,7 @@ import {
 } from "@/db/schema"
 import { removeDocument } from "@/app/upload/actions"
 import { captureEvent } from "@/lib/analytics"
+import { requireWrite } from "@/lib/authz"
 import { getScopedDb } from "@/lib/db/scoped"
 import {
   CONDITION_CATEGORY_LABELS,
@@ -39,7 +40,7 @@ import {
 } from "@/lib/document-upload"
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server"
 import { queueTakeoffJob } from "@/lib/takeoff-queue"
-import { parseInput, uuidSchema } from "@/lib/validation"
+import { parseInput, storagePathSchema, uuidSchema } from "@/lib/validation"
 
 // Step 41. A sub quote is uploaded here rather than through
 // app/upload/actions.ts because it needs the sub's name and trade recorded
@@ -76,13 +77,14 @@ export async function requestSubQuoteUpload(rawInput: {
 }) {
   const input = parseInput(requestSubQuoteUploadSchema, rawInput)
   const scopedDb = await getScopedDb()
+  requireWrite(scopedDb)
 
   return createSignedDocumentUpload(scopedDb, input.projectId, input.fileName)
 }
 
 const confirmSubQuoteUploadSchema = z.object({
   projectId: uuidSchema,
-  path: z.string().trim().min(1, "Storage path is required"),
+  path: storagePathSchema,
   fileName: fileSchema.fileName,
   fileSizeBytes: fileSchema.fileSizeBytes,
   mimeType: fileSchema.mimeType,
@@ -101,12 +103,13 @@ export async function confirmSubQuoteUpload(rawInput: {
 }) {
   const input = parseInput(confirmSubQuoteUploadSchema, rawInput)
   const scopedDb = await getScopedDb()
+  requireWrite(scopedDb)
 
   // Re-checked here for the same reason the general uploader re-checks them:
   // this is its own separately-callable Server Action, reachable without
   // going through the request step at all. See lib/document-upload.ts.
   await assertProjectInOrg(scopedDb, input.projectId)
-  assertPathInOrg(scopedDb, input.path)
+  assertPathInOrg(scopedDb, input.path, input.projectId)
 
   const [document] = await scopedDb.documents.insert({
     projectId: input.projectId,
@@ -157,6 +160,7 @@ export async function listSubQuotes(rawProjectId: string) {
 export async function removeSubQuote(rawSubQuoteId: string): Promise<void> {
   const subQuoteId = parseInput(uuidSchema, rawSubQuoteId)
   const scopedDb = await getScopedDb()
+  requireWrite(scopedDb)
 
   const subQuote = await scopedDb.subQuotes.findFirst(eq(subQuotes.id, subQuoteId))
   if (!subQuote) {
@@ -366,6 +370,7 @@ async function resolvePendingReason(
 export async function confirmConditionAction(rawId: string): Promise<void> {
   const id = parseInput(uuidSchema, rawId)
   const scopedDb = await getScopedDb()
+  requireWrite(scopedDb)
 
   const [updated] = await scopedDb.quoteConditions.update(eq(quoteConditions.id, id), {
     isConfirmed: true,
@@ -382,6 +387,7 @@ export async function confirmConditionAction(rawId: string): Promise<void> {
 export async function unconfirmConditionAction(rawId: string): Promise<void> {
   const id = parseInput(uuidSchema, rawId)
   const scopedDb = await getScopedDb()
+  requireWrite(scopedDb)
 
   const [updated] = await scopedDb.quoteConditions.update(eq(quoteConditions.id, id), {
     isConfirmed: false,
@@ -418,6 +424,7 @@ export async function updateConditionAction(rawInput: {
 }): Promise<void> {
   const input = parseInput(updateConditionSchema, rawInput)
   const scopedDb = await getScopedDb()
+  requireWrite(scopedDb)
 
   const [updated] = await scopedDb.quoteConditions.update(eq(quoteConditions.id, input.id), {
     category: input.category,
@@ -436,6 +443,7 @@ export async function updateConditionAction(rawInput: {
 export async function confirmQuoteTotalAction(rawSubQuoteId: string): Promise<void> {
   const subQuoteId = parseInput(uuidSchema, rawSubQuoteId)
   const scopedDb = await getScopedDb()
+  requireWrite(scopedDb)
 
   const [updated] = await scopedDb.subQuotes.update(eq(subQuotes.id, subQuoteId), {
     totalAmountConfirmed: true,
@@ -644,6 +652,7 @@ export async function setPrimeCostAction(rawInput: {
 }): Promise<void> {
   const input = parseInput(primeCostSchema, rawInput)
   const scopedDb = await getScopedDb()
+  requireWrite(scopedDb)
 
   const [updated] = await scopedDb.quoteConditions.update(
     eq(quoteConditions.id, input.conditionId),

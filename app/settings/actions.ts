@@ -4,17 +4,12 @@ import { eq } from "drizzle-orm"
 import { z } from "zod"
 
 import { users } from "@/db/schema"
+import { requireAdmin } from "@/lib/authz"
 import { getScopedDb } from "@/lib/db/scoped"
 import { DOCUMENTS_BUCKET } from "@/lib/document-upload"
 import { logger } from "@/lib/logger"
 import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import { parseInput } from "@/lib/validation"
-
-function requireAdmin(scopedDb: Awaited<ReturnType<typeof getScopedDb>>) {
-  if (scopedDb.role !== "admin") {
-    throw new Error("Only an org admin can change company settings.")
-  }
-}
 
 export async function getSettingsData() {
   const scopedDb = await getScopedDb()

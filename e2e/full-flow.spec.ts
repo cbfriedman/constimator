@@ -65,6 +65,27 @@ test("sign in, create a project, upload a plan, wait for takeoff, view the estim
     })
   })
 
+  await test.step("confirm the extracted quantities into the estimate", async () => {
+    // Measured quantities no longer reach the estimate on their own
+    // (migration 0016 — plan takeoff goes through the same human confirm as
+    // every other extractor). Clicking through it is now part of the golden
+    // path.
+    //
+    // This is also the assertion this test was missing. It previously
+    // checked only that "Processing complete" appeared and that the estimate
+    // page had a heading, so it would have passed just as happily if the
+    // extraction had returned zero items. The confirm button only renders
+    // when a finished plan takeoff actually produced quantities, so waiting
+    // for it asserts the pipeline produced output — not merely that it
+    // finished.
+    const confirm = page.getByRole("button", { name: "Add to estimate" })
+    await expect(confirm).toBeVisible({ timeout: 30_000 })
+    await confirm.click()
+    await expect(
+      page.getByText("Quantities added to your estimate", { exact: false }),
+    ).toBeVisible({ timeout: 30_000 })
+  })
+
   await test.step("view estimate", async () => {
     await page.goto("/estimate")
     await expect(page.getByRole("heading", { name: "Estimate Workspace" })).toBeVisible()

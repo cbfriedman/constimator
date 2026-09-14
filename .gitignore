@@ -25,6 +25,12 @@
 .DS_Store
 *.pem
 
+# editor-local config that has historically carried credentials.
+# .vscode/sftp.json held a plaintext production SFTP password in git
+# history — keep deploy credentials out of the repo entirely.
+.vscode/sftp.json
+.vscode/*.local.json
+
 # debug
 npm-debug.log*
 yarn-debug.log*

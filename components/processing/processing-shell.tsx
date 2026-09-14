@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import {
+  confirmTakeoffItemsAction,
   getProcessingStatus,
   retryTakeoffJobAction,
   type ProcessingItem,
@@ -83,6 +84,7 @@ export function ProcessingShell({
   const [items, setItems] = useState<ProcessingItem[]>(initialItems)
   const [gaveUp, setGaveUp] = useState(false)
   const [retryingId, setRetryingId] = useState<string | null>(null)
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const pollCount = useRef(0)
 
   const allTerminal = items.length > 0 && items.every((item) => isTerminal(item.status))
@@ -93,6 +95,9 @@ export function ProcessingShell({
   const hasExtractedBidForm = items.some(
     (item) => item.status === "complete" && item.kind === "bid_form",
   )
+  // Measured quantities that nobody has accepted yet. Until migration 0016
+  // these went into the estimate by themselves on this very page load.
+  const awaitingConfirmation = items.filter((item) => item.awaitingConfirmation)
   const doneCount = items.filter((item) => isTerminal(item.status)).length
   const progress = items.length === 0 ? 0 : Math.round((doneCount / items.length) * 100)
 
@@ -120,6 +125,19 @@ export function ProcessingShell({
       toast.error(err instanceof Error ? err.message : "Couldn't retry — try again.")
     } finally {
       setRetryingId(null)
+    }
+  }
+
+  async function handleConfirmTakeoff(documentId: string) {
+    setConfirmingId(documentId)
+    try {
+      await confirmTakeoffItemsAction(documentId)
+      setItems(await getProcessingStatus(projectId))
+      toast.success("Quantities added to your estimate — unpriced, ready for you to price.")
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't confirm — try again.")
+    } finally {
+      setConfirmingId(null)
     }
   }
 
@@ -214,6 +232,37 @@ export function ProcessingShell({
                     {failed && item.error ? (
                       <p className="pl-8 text-xs text-destructive">{item.error}</p>
                     ) : null}
+                    {item.pageCount != null &&
+                    item.pagesRead != null &&
+                    item.pagesRead < item.pageCount ? (
+                      <p className="pl-8 text-xs text-warning">
+                        Read {item.pagesRead} of {item.pageCount} sheets — this
+                        document is longer than Constimator reads in one pass,
+                        so any quantity below covers only the first{" "}
+                        {item.pagesRead} sheets.
+                      </p>
+                    ) : null}
+                    {item.awaitingConfirmation ? (
+                      <div className="ml-8 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md border border-warning/40 bg-warning/10 px-3 py-2.5">
+                        <AlertTriangle className="size-4 shrink-0 text-warning" />
+                        <p className="flex-1 text-xs">
+                          {item.pendingItemCount === 1
+                            ? "1 quantity was measured"
+                            : `${item.pendingItemCount} quantities were measured`}{" "}
+                          off these drawings. Check them before they go into
+                          your estimate — nothing is added until you do.
+                        </p>
+                        <Button
+                          size="sm"
+                          disabled={confirmingId === item.documentId}
+                          onClick={() => handleConfirmTakeoff(item.documentId)}
+                        >
+                          {confirmingId === item.documentId
+                            ? "Adding…"
+                            : "Add to estimate"}
+                        </Button>
+                      </div>
+                    ) : null}
                   </li>
                 )
               })}
@@ -232,6 +281,13 @@ export function ProcessingShell({
                       : "All documents processed."
                     : `${doneCount} of ${items.length} document(s) done.`}
               </p>
+              {awaitingConfirmation.length > 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  {awaitingConfirmation.length} document(s) have measured
+                  quantities waiting for you to check. They are not in your
+                  estimate yet.
+                </p>
+              ) : null}
               {allTerminal && hasExtractedBidForm ? (
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2.5">
                   <Sparkles className="size-4 shrink-0 text-primary" />

@@ -5,6 +5,7 @@ import { z } from "zod"
 
 import { invites, userRoleEnum, users } from "@/db/schema"
 import { getAppOrigin } from "@/lib/app-url"
+import { requireAdmin } from "@/lib/authz"
 import { getScopedDb } from "@/lib/db/scoped"
 import { getSystemDb } from "@/lib/db/system"
 import { logger } from "@/lib/logger"
@@ -15,16 +16,10 @@ import { parseInput, uuidSchema } from "@/lib/validation"
 const roleSchema = z.enum(userRoleEnum.enumValues)
 export type Role = z.infer<typeof roleSchema>
 
-function requireAdmin(scopedDb: Awaited<ReturnType<typeof getScopedDb>>) {
-  if (scopedDb.role !== "admin") {
-    throw new Error("Only an org admin can manage the team.")
-  }
-}
-
 export async function getTeamData() {
   const scopedDb = await getScopedDb()
 
-  // An invited teammate joins the org inside migration 0008's
+  // An invited teammate joins the org inside migration 0015's
   // handle_new_user() signup trigger, so the app runs no code at the moment
   // headcount actually changes. Reconciling here means the seat count is
   // corrected the next time an admin looks at the team — which is also the
@@ -48,9 +43,15 @@ const inviteSchema = z.object({
  * Invites a new teammate by email with a role (step 32). Sending is
  * Supabase Auth's own admin.inviteUserByEmail — it creates the auth.users
  * row and emails the link itself; there's no separate email
- * provider/service to configure. The invite/role/org gets carried through
- * to that new auth.users row's metadata so migration 0008's signup
- * trigger can join the right org instead of provisioning a new solo one.
+ * provider/service to configure.
+ *
+ * The invite row below is written BEFORE inviteUserByEmail is called, and
+ * that ordering is load-bearing: migration 0015's signup trigger joins the
+ * new user to an org by looking this row up by email, so it has to exist by
+ * the time the auth.users insert fires. The orgId/role/inviteId still passed
+ * in `data` are for debugging only — the trigger deliberately ignores
+ * raw_user_meta_data, because it is attacker-controlled on a plain
+ * /auth/v1/signup request. See migration 0015 for the full reasoning.
  *
  * Scoped to genuinely new people only: this app models one org per user
  * (users.orgId is a single required FK, not a join table), so someone

@@ -370,11 +370,20 @@ export const usersRelations = relations(users, ({ one }) => ({
 // app/team/actions.ts) — it creates the auth.users row and emails the
 // link; this table exists for the admin-facing bookkeeping
 // (list/revoke pending invites, prevent duplicate outstanding invites)
-// and to carry orgId/role through to the signup trigger. The actual
-// org-join decision on signup reads orgId/role/inviteId out of the new
-// auth.users row's raw_user_meta_data (set via inviteUserByEmail's `data`
-// option), not by querying this table — see migration 0008's updated
-// handle_new_user(). "expired" isn't a stored status: Supabase's own
+// and as the authoritative record the signup trigger reads from. The
+// org-join decision on signup queries THIS TABLE for the newest pending
+// invite matching the new user's email, and takes org_id and role from
+// that row — see migration 0015's handle_new_user().
+//
+// It used to read orgId/role out of the new auth.users row's
+// raw_user_meta_data instead. That was a critical hole: raw_user_meta_data
+// comes verbatim from the signup request, so anyone with the public anon
+// key could name any org and any role and the trigger would write it.
+// Nothing security-relevant reads that metadata any more; migration 0015
+// has the full reasoning. inviteTeammateAction still sets it, because it's
+// useful when debugging a signup, but it is not trusted.
+//
+// "expired" isn't a stored status: Supabase's own
 // invite link expires on its own (dashboard-configurable), and the UI
 // just treats an old-enough pending row as stale rather than this app
 // tracking a second expiry independently.
@@ -589,7 +598,25 @@ export const takeoffJobs = pgTable(
       specLinks?: ExtractedSpecLink[]
       quoteTotalAmount?: number
       documentNotes?: string
+      // Set for kind "plan_takeoff". worker/src/rasterize.ts caps a plan set
+      // at 20 pages; these record how much of the document the measurement
+      // actually saw, so /processing can say "read 20 of 180 sheets" instead
+      // of reporting an unqualified success. Absent on jobs that ran before
+      // the cap was surfaced.
+      pageCount?: number
+      pagesRead?: number
     }>(),
+    // When a human confirmed this job's extracted `items` into the estimate.
+    // Null = extracted, not yet confirmed, and NOT in estimate_line.
+    //
+    // Migration 0016. Plan takeoff used to be the one extractor that skipped
+    // the confirm click the house rule requires (see
+    // docs/Constimator-Client-Requirements-Todo.md): /processing pulled every
+    // complete job's measured quantities into the estimate on page load. Sub
+    // quotes and plan-holder lists have always gone to needs_review first;
+    // this is the same gate for the extractor that needs it most, since its
+    // quantities are measured off drawings and capped at 20 pages.
+    itemsConfirmedAt: timestamp("items_confirmed_at", { withTimezone: true }),
     error: text("error"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

@@ -7,6 +7,7 @@ import { eq } from "drizzle-orm"
 import { projects } from "@/db/schema"
 import type { ScopedDb } from "@/lib/current-project"
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server"
+import { parseStoragePath } from "@/lib/validation"
 
 // Shared by app/upload/actions.ts (the general project-documents uploader)
 // and app/sub-quotes/actions.ts (step 41). Both need the identical
@@ -72,12 +73,40 @@ export async function assertProjectInOrg(
  * combination would let an attacker get the worker to download and
  * AI-extract another org's document and read the result back through their
  * own account. Requiring the org prefix closes this at the one point that
- * actually creates the row, rather than trying to re-derive trust in the
- * worker (which has no session for RLS to check against anyway).
+ * actually creates the row.
+ *
+ * The first version of this check was `path.startsWith(`${orgId}/`)`, which
+ * was not enough: `{myOrg}/../{victimOrg}/{project}/{uuid}-plans.pdf` starts
+ * with the caller's own org id, and no code anywhere rejected the `..`
+ * segment, so the whole attack above was still reachable. It now parses the
+ * path against the exact shape createSignedDocumentUpload generates (see
+ * parseStoragePath) and compares the org segment as a segment. Passing the
+ * projectId too binds the path to the project the caller claims to be
+ * uploading to, which closes the same trick played across two projects
+ * inside one org.
+ *
+ * Note this is no longer the only layer: worker/src/download-document.ts
+ * percent-encodes each segment when it builds the Storage URL, so a `..`
+ * that somehow reached a document row could not be resolved by the URL
+ * parser on the way out. That is a different mechanism from this string
+ * check on purpose — the previous "defense in depth" was this same
+ * `startsWith` predicate copied into the worker, so a single bug disabled
+ * both copies at once.
  */
-export function assertPathInOrg(scopedDb: ScopedDb, path: string): void {
-  if (!path.startsWith(`${scopedDb.orgId}/`)) {
+export function assertPathInOrg(
+  scopedDb: ScopedDb,
+  path: string,
+  projectId: string,
+): void {
+  const parsed = parseStoragePath(path)
+  if (!parsed) {
+    throw new Error("Storage path is not valid.")
+  }
+  if (parsed.orgId !== scopedDb.orgId) {
     throw new Error("Storage path does not belong to your organization.")
+  }
+  if (parsed.projectId !== projectId) {
+    throw new Error("Storage path does not belong to this project.")
   }
 }
 

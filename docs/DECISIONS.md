@@ -8,12 +8,23 @@
 
 **Decision: Phase 1 is document extraction + manual estimating + bid-form reconciliation** — not AI takeoff off drawings, and not a pure manual-entry tool with AI deferred entirely. It's a hybrid, scoped narrowly:
 
-- **Upload bid documents** (plans, specs, addenda, official bid form). AI reads and extracts: project summary, bid requirements/deadlines/bonds, schedules/tables, and — most important — the official bid form's line items and quantities. This is document/data extraction, explicitly **not** measuring quantities off drawings.
+- **Upload bid documents** (plans, specs, addenda, official bid form). AI reads and extracts: project summary, bid requirements/deadlines/bonds, schedules/tables, and — most important — the official bid form's line items and quantities. This is document/data extraction. It was originally scoped as explicitly **not** measuring quantities off drawings — see the retraction below.
 - **Manual estimate workspace** — contractor enters their own quantities, unit prices, labor/material/equipment/sub, and markup. Spreadsheet-familiar, no auto-takeoff.
 - **Bid-form reconciliation** — compare the contractor's estimate against the official bid form; flag missing items, quantity discrepancies, unit mismatches. This is the core differentiator.
 - **Reports** — export estimate summary + reconciliation report (PDF/Excel).
 
-**Explicitly out of Phase 1** (Phase 2+): automatic quantity takeoff off drawings (out of scope entirely for now, not just deferred), cost database connections (leave UI hooks, don't build the feeds), human review workflow, company cost setup/rate snapshots/overrides, API integrations.
+**Explicitly out of Phase 1** (Phase 2+): ~~automatic quantity takeoff off drawings (out of scope entirely for now, not just deferred)~~ — **retracted, see below**; cost database connections (leave UI hooks, don't build the feeds), human review workflow, company cost setup/rate snapshots/overrides, API integrations.
+
+> **RETRACTION (Sep 2026) — AI takeoff off drawings shipped.** This exclusion was stale text, not a live constraint, and it stayed in the present tense long after the code contradicted it. The reality: `worker/src/process-job.ts`'s `else` branch rasterizes a plan set and `worker/src/extract.ts` prompts Claude for "your best measured/counted quantity" per bid item. That is computer-vision measurement off drawings. Three later sections of this same document already reasoned about the shipped feature — the *Sheet-by-sheet reconciliation* decision cites "the AI takeoff's measured total" as a column and explains why it "stays one total per item, deliberately", and the *Billing model* decision names "AI takeoff extraction calls" as the product's metered cost. So the exclusion was contradicted inside this file.
+>
+> This mattered beyond bookkeeping: anyone reading the line above would believe no drawing-measurement code existed, when in fact a 20-page-capped, previously auto-writing takeoff pipeline was sitting behind that `else`.
+>
+> Two guardrails were added rather than removing the feature, because the original *Why* below is still correct about the risk:
+>
+> 1. **A human confirm click** (migration 0016). Measured quantities stay on the job row until someone accepts them on `/processing`. Previously `syncEstimateFromCompleteJobs()` wrote them into `estimate_line` on page load, making plan takeoff the only extractor that skipped the confirm click `Constimator-Client-Requirements-Todo.md` requires of everything the AI extracts.
+> 2. **The page cap is visible.** `worker/src/rasterize.ts` caps a set at 20 sheets and used to say so only in a worker log line, so a 180-sheet plan set produced a "Processing complete" built from 11% of the drawings. The job now records `pageCount`/`pagesRead` and the UI states the coverage next to the confirm button.
+>
+> Still true, and still the reason pricing is not automated: `lib/cost-engine/generate-estimate.ts` deliberately refuses to derive a unit price from a measured quantity, because the schema has no production rates. Lines land at $0 marked "needs pricing". A wrong quantity is still a wrong bid, which is what the confirm click is for.
 
 **Why:** Full AI takeoff off drawings is a measurement/computer-vision problem with high accuracy risk and long tail effort. Pulling structured line items off an official bid form is a document/table-extraction problem — a meaningfully easier, more tractable problem for an LLM — and pairing it with reconciliation against manually-entered numbers is a real, sellable differentiator that doesn't require the estimate accuracy to be perfect (the contractor's own numbers are the estimate; AI just extracts and checks against the source). This ships faster and de-risks trust: if the AI extraction step is ever wrong, the contractor is entering their own numbers anyway and reconciliation surfaces the mismatch instead of silently propagating an error.
 

@@ -4,6 +4,7 @@ import { z } from "zod"
 
 import { captureEvent } from "@/lib/analytics"
 import { persistCurrentProjectId } from "@/lib/current-project"
+import { requireWrite } from "@/lib/authz"
 import { getScopedDb } from "@/lib/db/scoped"
 import { parseInput } from "@/lib/validation"
 
@@ -33,6 +34,7 @@ export async function createProject(rawInput: CreateProjectInput) {
   const engineersEstimate = input.engineersEstimate.replace(/[^0-9.]/g, "")
 
   const scopedDb = await getScopedDb()
+  requireWrite(scopedDb)
   const [project] = await scopedDb.projects.insert({
     name,
     owner: input.owner.trim(),

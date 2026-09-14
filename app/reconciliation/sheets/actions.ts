@@ -12,6 +12,7 @@ import {
   getCurrentProject,
   getOrCreateCurrentEstimate,
 } from "@/lib/current-project"
+import { requireWrite } from "@/lib/authz"
 import { getScopedDb } from "@/lib/db/scoped"
 import { matchBidItem } from "@/lib/plan-callout-match"
 import { buildSheetMatrix, type SheetMatrix } from "@/lib/sheet-matrix"
@@ -258,6 +259,7 @@ const estimatorQuantitySchema = z.object({
 export async function setEstimatorQuantityAction(rawInput: { bidId: string; quantity: string }) {
   const input = parseInput(estimatorQuantitySchema, rawInput)
   const scopedDb = await getScopedDb()
+  requireWrite(scopedDb)
   const project = await getCurrentProject(scopedDb)
   const bid = await scopedDb.bids.findFirst(eq(bids.id, input.bidId))
   // Same cross-project splice check as app/reconciliation/actions.ts's
@@ -315,6 +317,7 @@ const linkCalloutSchema = z.object({
 export async function linkCalloutAction(rawInput: { calloutId: string; bidId: string | null }) {
   const input = parseInput(linkCalloutSchema, rawInput)
   const scopedDb = await getScopedDb()
+  requireWrite(scopedDb)
   const project = await getCurrentProject(scopedDb)
   const callout = await scopedDb.planCallouts.findFirst(eq(planCallouts.id, input.calloutId))
   if (!project || !callout || callout.projectId !== project.id) {
@@ -341,6 +344,7 @@ const dismissCalloutSchema = z.object({
 export async function dismissCalloutAction(rawInput: { calloutId: string; dismissed: boolean }) {
   const input = parseInput(dismissCalloutSchema, rawInput)
   const scopedDb = await getScopedDb()
+  requireWrite(scopedDb)
   const project = await getCurrentProject(scopedDb)
   const callout = await scopedDb.planCallouts.findFirst(eq(planCallouts.id, input.calloutId))
   if (!project || !callout || callout.projectId !== project.id) {

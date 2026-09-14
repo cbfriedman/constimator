@@ -88,7 +88,7 @@ export function IntelligenceShell({
                 <BidRequirementsTab project={project} />
               </TabsContent>
               <TabsContent value="risks">
-                <RisksTab project={project} />
+                <RisksTab />
               </TabsContent>
               <TabsContent value="documents">
                 <DocumentsTab documents={documents} projectId={project.id} />

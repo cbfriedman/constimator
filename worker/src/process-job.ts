@@ -71,14 +71,26 @@ export async function processJob(job: ClaimedJob) {
     // which bypasses Supabase Storage's own RLS entirely — this worker has
     // no session for Storage to check against, that's the whole reason it
     // needs the service-role key in the first place. app/upload/actions.ts's
-    // confirmDocumentUpload now guarantees a document's storage_path always
-    // starts with its own org_id, but this is the one place that actually
-    // performs the RLS-bypassing download, so it gets its own check too
-    // rather than trusting that guarantee was never violated upstream (by a
-    // bug, or a future code path that writes a document row some other way).
-    if (!document.storage_path.startsWith(`${job.org_id}/`)) {
+    // confirmDocumentUpload validates the path's full shape before writing
+    // the row, but this is the one place that actually performs the
+    // RLS-bypassing download, so it gets its own check too rather than
+    // trusting that guarantee was never violated upstream (by a bug, or a
+    // future code path that writes a document row some other way).
+    //
+    // Compared as a SEGMENT, not with startsWith. The old startsWith test
+    // accepted `{thisOrg}/../{otherOrg}/...` — it genuinely does start with
+    // the right org id — and the URL parser in downloadDocument then
+    // resolved the `..` before the request left the process. Splitting first
+    // means the org id has to be the actual first path segment.
+    const pathSegments = document.storage_path.split("/")
+    if (pathSegments[0] !== job.org_id) {
       throw new Error(
         `Document ${job.document_id}'s storage path doesn't match its own org — refusing to download.`,
+      )
+    }
+    if (pathSegments.some((segment) => segment === "" || segment === "." || segment === "..")) {
+      throw new Error(
+        `Document ${job.document_id}'s storage path contains a relative segment — refusing to download.`,
       )
     }
 
@@ -221,7 +233,8 @@ export async function processJob(job: ClaimedJob) {
         })
       }
     } else {
-      const pages = await rasterizePdf(fileBytes)
+      const rasterized = await rasterizePdf(fileBytes)
+      const pages = rasterized.pages
 
       // Two reads of the same sheets. The takeoff measures one quantity per
       // item for the whole set; the callout pass transcribes what each
@@ -247,10 +260,28 @@ export async function processJob(job: ClaimedJob) {
         extractQuantities(pages),
         extractPlanCallouts(pages, bidRows),
       ])
-      result = { kind: "plan_takeoff", items: extracted.items, callouts: callouts.callouts }
+      result = {
+        kind: "plan_takeoff",
+        items: extracted.items,
+        callouts: callouts.callouts,
+        // Persisted so the app can tell the contractor how much of the plan
+        // set was actually read. Silently capping a 180-sheet set at 20 and
+        // reporting "Processing complete" is how someone bids off 11% of the
+        // drawings — see worker/src/rasterize.ts.
+        pageCount: rasterized.pageCount,
+        pagesRead: rasterized.pagesRead,
+      }
       usage = extracted.usage
       itemCount = extracted.items.length
       usageKind = "takeoff_extraction"
+      if (rasterized.truncated) {
+        logger.warn("Plan takeoff truncated to the page cap", {
+          jobId: job.id,
+          documentId: job.document_id,
+          pageCount: rasterized.pageCount,
+          pagesRead: rasterized.pagesRead,
+        })
+      }
       await recordAiUsage(
         job.org_id,
         "plan_callouts_extraction",

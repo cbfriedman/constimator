@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation"
 
 import { getAppOrigin } from "@/lib/app-url"
+import { requireAdmin } from "@/lib/authz"
 import { getScopedDb } from "@/lib/db/scoped"
 import { CHECKOUT_PAYMENT_METHOD_TYPES, getSeatPriceId, getStripe } from "@/lib/stripe"
 
@@ -43,6 +44,7 @@ async function getOrCreateStripeCustomer(
  */
 export async function createCheckoutSessionAction() {
   const scopedDb = await getScopedDb()
+  requireAdmin(scopedDb)
   const [customerId, users, origin] = await Promise.all([
     getOrCreateStripeCustomer(scopedDb),
     scopedDb.users.findMany(),
@@ -75,6 +77,7 @@ export async function createCheckoutSessionAction() {
  */
 export async function createBillingPortalSessionAction() {
   const scopedDb = await getScopedDb()
+  requireAdmin(scopedDb)
   const org = await scopedDb.org.get()
   if (!org?.stripeCustomerId) {
     throw new Error("No billing account yet — subscribe first.")

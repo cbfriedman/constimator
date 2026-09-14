@@ -17,6 +17,7 @@ import {
   getCurrentProject,
   getOrCreateCurrentEstimate,
 } from "@/lib/current-project"
+import { requireWrite } from "@/lib/authz"
 import { getScopedDb } from "@/lib/db/scoped"
 import { diffBidAgainstEstimate } from "@/lib/reconciliation-diff"
 import { numericString, parseInput, uuidSchema } from "@/lib/validation"
@@ -35,6 +36,7 @@ export async function addBidLineAction(rawProjectId: string, rawInput: BidLineIn
   const projectId = parseInput(uuidSchema, rawProjectId)
   const input = parseInput(bidLineInputSchema, rawInput)
   const scopedDb = await getScopedDb()
+  requireWrite(scopedDb)
 
   // Found during the step 30 security review — same class of bug as
   // confirmDocumentUpload and getOrCreateCurrentEstimate: without this,
@@ -55,6 +57,7 @@ export async function updateBidLineAction(rawId: string, rawInput: BidLineInput)
   const id = parseInput(uuidSchema, rawId)
   const input = parseInput(bidLineInputSchema, rawInput)
   const scopedDb = await getScopedDb()
+  requireWrite(scopedDb)
   const [bid] = await scopedDb.bids.update(eq(bids.id, id), input)
   return bid
 }
@@ -62,6 +65,7 @@ export async function updateBidLineAction(rawId: string, rawInput: BidLineInput)
 export async function deleteBidLineAction(rawId: string) {
   const id = parseInput(uuidSchema, rawId)
   const scopedDb = await getScopedDb()
+  requireWrite(scopedDb)
   await scopedDb.bids.delete(eq(bids.id, id))
 }
 
@@ -173,6 +177,7 @@ export async function importExtractedBidFormAction(rawInput: {
 }) {
   const input = parseInput(importBidFormSchema, rawInput)
   const scopedDb = await getScopedDb()
+  requireWrite(scopedDb)
   const project = await scopedDb.projects.findFirst(eq(projects.id, input.projectId))
   if (!project) {
     throw new Error("Project not found.")
@@ -210,6 +215,7 @@ export async function importExtractedBidFormAction(rawInput: {
 export async function addMissingItemToEstimateAction(rawBidId: string) {
   const bidId = parseInput(uuidSchema, rawBidId)
   const scopedDb = await getScopedDb()
+  requireWrite(scopedDb)
   const bid = await scopedDb.bids.findFirst(eq(bids.id, bidId))
   const project = await getCurrentProject(scopedDb)
   if (!bid || !project) return
@@ -257,6 +263,7 @@ export async function acceptOfficialQuantityAction(
   const estimateLineId = parseInput(uuidSchema, rawEstimateLineId)
   const bidId = parseInput(uuidSchema, rawBidId)
   const scopedDb = await getScopedDb()
+  requireWrite(scopedDb)
   const [bid, line] = await Promise.all([
     scopedDb.bids.findFirst(eq(bids.id, bidId)),
     scopedDb.estimateLines.findFirst(eq(estimateLines.id, estimateLineId)),
