@@ -1,4 +1,10 @@
-import { FileText, ListChecks, Scale, FileOutput, CheckCircle2 } from "lucide-react"
+import {
+  FileText,
+  ListChecks,
+  Scale,
+  FileOutput,
+  CheckCircle2,
+} from "lucide-react"
 
 // Document reading (the first two cards) is real — the extraction worker ships
 // and runs — but docs/PILOT_CHECKLIST.md keeps it out of scope for the pilot
@@ -25,7 +31,7 @@ export function Features() {
     <section id="what-it-does" className="scroll-mt-16 bg-muted/40">
       <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-widest text-primary">
+          <p className="text-sm font-semibold tracking-widest text-primary uppercase">
             What it does
           </p>
           <h2 className="mt-3 font-display text-3xl font-bold tracking-tight text-balance sm:text-4xl">
@@ -40,15 +46,19 @@ export function Features() {
             </span>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h3 className="font-display text-lg font-semibold">Reads your bid documents</h3>
+                <h3 className="font-display text-lg font-semibold">
+                  Reads your bid documents
+                </h3>
                 <EarlyAccessBadge />
               </div>
               <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                Upload the plans, specs, addenda, and official bid form. Constimator reads them
-                and pulls out what matters — project summary, scope items, schedules, and
-                requirements — so you&apos;re not hunting through hundreds of pages. This is the
-                newest part of the product and still being validated against real plan sets:
-                treat it as a head start, not a replacement for your own takeoff.
+                Upload the plans, specs, addenda, and official bid form.
+                Constimator reads them and pulls out what matters — project
+                summary, scope items, schedules, and requirements — so
+                you&apos;re not hunting through hundreds of pages. This is the
+                newest part of the product and still being validated against
+                real plan sets: treat it as a head start, not a replacement for
+                your own takeoff.
               </p>
             </div>
           </div>
@@ -59,22 +69,25 @@ export function Features() {
             </span>
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h3 className="font-display text-lg font-semibold">Bid requirements in one summary</h3>
+                <h3 className="font-display text-lg font-semibold">
+                  Bid requirements in one summary
+                </h3>
                 <EarlyAccessBadge />
               </div>
               <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                Constimator reads the DBE/DVBE participation goal off the specs — the
-                percentage, which certification it calls for, and the link the specs print for
-                obtaining the documents — tied back to the page it came from. The
-                engineer&apos;s estimate and bid deadline you enter when you create the project
-                sit alongside it. Goal extraction is new and still being validated against real
-                spec books.
+                Constimator reads the DBE/DVBE participation goal off the specs
+                — the percentage, which certification it calls for, and the link
+                the specs print for obtaining the documents — tied back to the
+                page it came from. The engineer&apos;s estimate and bid deadline
+                you enter when you create the project sit alongside it. Goal
+                extraction is new and still being validated against real spec
+                books.
               </p>
             </div>
           </div>
 
           <div
-            id="reconciliation"
+            id="reconciliation-details"
             className="scroll-mt-24 rounded-2xl border border-primary bg-card p-8 shadow-sm"
           >
             <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
@@ -96,14 +109,21 @@ export function Features() {
                       two-way compare — the official bid item against your
                       estimate line — so the three-way version described a
                       product that doesn't exist. */}
-                  This is what nothing else does. Constimator compares your estimate against the
-                  official bid form, line by line — every official bid item against every line of
-                  your estimate — and flags each mismatch:
+                  This is what nothing else does. Constimator compares your
+                  estimate against the official bid form, line by line — every
+                  official bid item against every line of your estimate — and
+                  flags each mismatch:
                 </p>
                 <ul className="mt-4 grid gap-2.5 sm:grid-cols-2">
                   {flags.map((flag) => (
-                    <li key={flag} className="flex items-start gap-2 text-sm text-foreground">
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                    <li
+                      key={flag}
+                      className="flex items-start gap-2 text-sm text-foreground"
+                    >
+                      <CheckCircle2
+                        className="mt-0.5 h-4 w-4 shrink-0 text-primary"
+                        aria-hidden="true"
+                      />
                       {flag}
                     </li>
                   ))}
@@ -117,10 +137,13 @@ export function Features() {
               <FileOutput className="h-5 w-5" aria-hidden="true" />
             </span>
             <div>
-              <h3 className="font-display text-lg font-semibold">Exports clean reports</h3>
+              <h3 className="font-display text-lg font-semibold">
+                Exports clean reports
+              </h3>
               <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                Estimate summary and a full reconciliation report, in PDF or Excel, with every
-                number&apos;s source clearly marked — official, AI-extracted, or your own entry.
+                Estimate summary and a full reconciliation report, in PDF or
+                Excel, with every number&apos;s source clearly marked —
+                official, AI-extracted, or your own entry.
               </p>
             </div>
           </div>

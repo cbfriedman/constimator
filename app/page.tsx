@@ -1,4 +1,3 @@
-import { SiteHeader } from "@/components/site-header"
 import { Hero } from "@/components/hero"
 import { Problem } from "@/components/problem"
 import { ReconciliationShowcase } from "@/components/reconciliation-showcase"
@@ -11,6 +10,7 @@ import { Pricing } from "@/components/pricing"
 import { Faq } from "@/components/faq"
 import { Cta } from "@/components/cta"
 import { SiteFooter } from "@/components/site-footer"
+import styles from "@/components/home/landing.module.css"
 
 // Order matters here, so it's worth writing down:
 //
@@ -29,8 +29,7 @@ import { SiteFooter } from "@/components/site-footer"
 // <WhyDifferent /> is gone: its copy is the first FAQ entry now.
 export default function HomePage() {
   return (
-    <div className="flex min-h-screen flex-col">
-      <SiteHeader />
+    <div className={`${styles.page} flex min-h-screen flex-col`}>
       <main className="flex-1">
         <Hero />
         <Problem />

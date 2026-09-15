@@ -1,7 +1,10 @@
 import { AlertTriangle, ArrowLeftRight, Check, XCircle } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
-import { reconciliationRows, statusColorClasses } from "@/lib/reconciliation-data"
+import {
+  reconciliationRows,
+  statusColorClasses,
+} from "@/lib/reconciliation-data"
 import { cn } from "@/lib/utils"
 
 // The visual centerpiece of the homepage: the reconciliation table, blown up
@@ -41,8 +44,7 @@ const annotations: Annotation[] = [
     icon: XCircle,
     kicker: "Missing bid item",
     headline: "Minor Concrete is on the bid form and nowhere in your estimate.",
-    body:
-      "2,150 LF of curb and gutter the owner will judge your bid against. Leave it out and you are either non-responsive or you eat the scope at your own cost.",
+    body: "2,150 LF of curb and gutter the owner will judge your bid against. Leave it out and you are either non-responsive or you eat the scope at your own cost.",
     impact: "$124,700",
     impactLabel: "2,150 LF x $58.00 — 6.7% of a $1.85M job",
   },
@@ -52,8 +54,7 @@ const annotations: Annotation[] = [
     icon: AlertTriangle,
     kicker: "Quantity discrepancy",
     headline: "Your plan takeoff and the bid form disagree by 15 LF.",
-    body:
-      "The plan profile totals 655 LF including inlet connections; the bid form lists 640 LF. You bid the bid form quantity — but you build the plan quantity.",
+    body: "The plan profile totals 655 LF including inlet connections; the bid form lists 640 LF. You bid the bid form quantity — but you build the plan quantity.",
     impact: "$2,220",
     impactLabel: "15 LF x $148.00 of pipe you install unpaid",
   },
@@ -63,15 +64,29 @@ const annotations: Annotation[] = [
     icon: ArrowLeftRight,
     kicker: "Caught before it bit",
     headline: "The plans said SF. The bid form said SY.",
-    body:
-      "110,700 SF and 12,300 SY are the same quantity — but carry 12,300 against an SF bid item and you have underbid it nine to one. Constimator converted and matched it, so nobody had to catch it at 1:45 on bid day.",
+    body: "110,700 SF and 12,300 SY are the same quantity — but carry 12,300 against an SF bid item and you have underbid it nine to one. Constimator converted and matched it, so nobody had to catch it at 1:45 on bid day.",
   },
 ]
 
-const toneStyles: Record<Annotation["tone"], { border: string; icon: string; impact: string }> = {
-  save: { border: "border-l-primary", icon: "text-primary", impact: "text-primary" },
-  warning: { border: "border-l-warning", icon: "text-warning", impact: "text-warning" },
-  error: { border: "border-l-destructive", icon: "text-destructive", impact: "text-destructive" },
+const toneStyles: Record<
+  Annotation["tone"],
+  { border: string; icon: string; impact: string }
+> = {
+  save: {
+    border: "border-l-primary",
+    icon: "text-primary",
+    impact: "text-primary",
+  },
+  warning: {
+    border: "border-l-warning",
+    icon: "text-warning",
+    impact: "text-warning",
+  },
+  error: {
+    border: "border-l-destructive",
+    icon: "text-destructive",
+    impact: "text-destructive",
+  },
 }
 
 // Rows the annotations point at get a tint so the eye lands on them first.
@@ -84,26 +99,38 @@ const rowHighlight: Record<number, string> = {
 
 export function ReconciliationShowcase() {
   return (
-    <section id="reconciliation" className="scroll-mt-16 border-y border-border bg-muted/40">
+    <section
+      id="reconciliation"
+      className="scroll-mt-16 border-y border-border bg-muted/40"
+    >
       <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-widest text-primary">
+          <p className="text-sm font-semibold tracking-widest text-primary uppercase">
             Bid form reconciliation
           </p>
           <h2 className="mt-3 font-display text-3xl font-bold tracking-tight text-balance sm:text-4xl">
             See every mismatch before you submit
           </h2>
-          <p className="mt-5 text-lg leading-relaxed text-muted-foreground text-pretty">
-            Every official bid item, against every line of your estimate. Here is the sample
-            project, exactly as Constimator reports it.
+          <p className="mt-5 text-lg leading-relaxed text-pretty text-muted-foreground">
+            Every official bid item, against every line of your estimate. Here
+            is the sample project, exactly as Constimator reports it.
           </p>
         </div>
 
-        <div className="mt-14 overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+        <div className="mt-14 overflow-hidden rounded-2xl bg-card glow-panel">
           <div className="flex items-center gap-1.5 border-b border-border bg-muted px-4 py-3 sm:px-6">
-            <span className="h-3 w-3 rounded-full bg-border" aria-hidden="true" />
-            <span className="h-3 w-3 rounded-full bg-border" aria-hidden="true" />
-            <span className="h-3 w-3 rounded-full bg-border" aria-hidden="true" />
+            <span
+              className="h-3 w-3 rounded-full bg-border"
+              aria-hidden="true"
+            />
+            <span
+              className="h-3 w-3 rounded-full bg-border"
+              aria-hidden="true"
+            />
+            <span
+              className="h-3 w-3 rounded-full bg-border"
+              aria-hidden="true"
+            />
             <span className="ml-3 truncate text-xs font-medium text-muted-foreground sm:text-sm">
               Shasta County Roadway Improvements — Bid Form Reconciliation
             </span>
@@ -112,18 +139,25 @@ export function ReconciliationShowcase() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[38rem] border-collapse text-left">
               <caption className="sr-only">
-                Four bid items from the Shasta County sample project, comparing the official bid
-                form quantity against the quantity in the estimate.
+                Four bid items from the Shasta County sample project, comparing
+                the official bid form quantity against the quantity in the
+                estimate.
               </caption>
               <thead>
-                <tr className="border-b border-border bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
+                <tr className="border-b border-border bg-muted/50 text-xs tracking-wide text-muted-foreground uppercase">
                   <th scope="col" className="px-4 py-3 font-semibold sm:px-6">
                     Bid item
                   </th>
-                  <th scope="col" className="px-3 py-3 text-right font-semibold">
+                  <th
+                    scope="col"
+                    className="px-3 py-3 text-right font-semibold"
+                  >
                     Official
                   </th>
-                  <th scope="col" className="px-3 py-3 text-right font-semibold">
+                  <th
+                    scope="col"
+                    className="px-3 py-3 text-right font-semibold"
+                  >
                     Your estimate
                   </th>
                   <th scope="col" className="px-4 py-3 font-semibold sm:px-6">
@@ -135,7 +169,10 @@ export function ReconciliationShowcase() {
                 {showcaseRows.map((row) => (
                   <tr
                     key={row.id}
-                    className={cn("border-b border-border last:border-0", rowHighlight[row.id])}
+                    className={cn(
+                      "border-b border-border last:border-0",
+                      rowHighlight[row.id]
+                    )}
                   >
                     <th
                       scope="row"
@@ -146,13 +183,15 @@ export function ReconciliationShowcase() {
                         {row.unit}
                       </span>
                     </th>
-                    <td className="px-3 py-4 text-right font-semibold tabular-nums text-foreground">
+                    <td className="px-3 py-4 text-right font-semibold text-foreground tabular-nums">
                       {row.officialQty}
                     </td>
                     <td
                       className={cn(
                         "px-3 py-4 text-right font-semibold tabular-nums",
-                        row.estimateQty === "—" ? "text-destructive" : "text-foreground",
+                        row.estimateQty === "—"
+                          ? "text-destructive"
+                          : "text-foreground"
                       )}
                     >
                       {row.estimateQty}
@@ -160,12 +199,15 @@ export function ReconciliationShowcase() {
                     <td className="px-4 py-4 sm:px-6">
                       <span
                         className={cn(
-                          "inline-flex items-center whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-semibold",
-                          statusColorClasses[row.statusColor],
+                          "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold whitespace-nowrap",
+                          statusColorClasses[row.statusColor]
                         )}
                       >
                         {row.statusColor === "green" && (
-                          <Check className="mr-1 h-3.5 w-3.5" aria-hidden="true" />
+                          <Check
+                            className="mr-1 h-3.5 w-3.5"
+                            aria-hidden="true"
+                          />
                         )}
                         {row.statusLabel}
                       </span>
@@ -186,15 +228,18 @@ export function ReconciliationShowcase() {
                   key={annotation.rowId}
                   className={cn(
                     "flex flex-col rounded-lg border border-l-4 border-border bg-card p-5",
-                    tone.border,
+                    tone.border
                   )}
                 >
-                  <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest">
-                    <Icon className={cn("h-4 w-4 shrink-0", tone.icon)} aria-hidden="true" />
+                  <p className="flex items-center gap-2 text-xs font-bold tracking-widest uppercase">
+                    <Icon
+                      className={cn("h-4 w-4 shrink-0", tone.icon)}
+                      aria-hidden="true"
+                    />
                     <span className={tone.icon}>{annotation.kicker}</span>
                   </p>
 
-                  <h3 className="mt-3 font-display text-base font-semibold leading-snug text-balance">
+                  <h3 className="mt-3 font-display text-base leading-snug font-semibold text-balance">
                     {annotation.headline}
                   </h3>
 
@@ -204,7 +249,12 @@ export function ReconciliationShowcase() {
 
                   {annotation.impact && (
                     <div className="mt-4 border-t border-border pt-4">
-                      <p className={cn("font-display text-2xl font-bold tabular-nums", tone.impact)}>
+                      <p
+                        className={cn(
+                          "font-display text-2xl font-bold tabular-nums",
+                          tone.impact
+                        )}
+                      >
                         {annotation.impact}
                       </p>
                       <p className="mt-0.5 text-xs text-muted-foreground">
@@ -219,8 +269,9 @@ export function ReconciliationShowcase() {
         </div>
 
         <p className="mx-auto mt-6 max-w-2xl text-center text-sm text-muted-foreground">
-          Sample project shown for demonstration. The quantities, unit prices, and dollar impacts
-          above are the real numbers from that sample estimate, not illustrations.
+          Sample project shown for demonstration. The quantities, unit prices,
+          and dollar impacts above are the real numbers from that sample
+          estimate, not illustrations.
         </p>
       </div>
     </section>
