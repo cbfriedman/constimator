@@ -70,7 +70,7 @@ export function Hero() {
               alt=""
               fill
               preload
-              sizes="(max-width: 1440px) 100vw, 1376px"
+              sizes="100vw"
             />
           </div>
           <SiteHeader />

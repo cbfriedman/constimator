@@ -25,6 +25,7 @@
   outline-offset: 5px;
 }
 .hero {
+  --page-gutter: clamp(24px, 4.5vw, 112px);
   position: relative;
   isolation: isolate;
   background: #050d17;
@@ -38,30 +39,26 @@
     radial-gradient(ellipse at 100% 62%, #fe772414, transparent 35%), #050d17;
 }
 .stage {
-  max-width: 1440px;
-  margin: 0 auto;
-  padding: 24px 32px 18px;
+  width: 100%;
+  padding: 0;
 }
 .marketingPanel {
   position: relative;
   isolation: isolate;
-  border: 1px solid #829dbb33;
-  border-radius: 24px;
   background: #060f18;
-  box-shadow: 0 16px 70px #0003;
 }
 .photo {
   position: absolute;
   z-index: -1;
-  top: 96px;
+  top: 88px;
   right: 0;
   left: 0;
-  height: 750px;
+  height: clamp(740px, calc(100svh - 60px), 920px);
   overflow: hidden;
 }
 .photo img {
   object-fit: cover;
-  object-position: center 58%;
+  object-position: center 60%;
 }
 .photo::after {
   content: "";
@@ -70,28 +67,29 @@
   background:
     linear-gradient(
       180deg,
-      #060f18 0%,
-      #060f1810 22%,
+      #060f187a 0%,
+      #060f1800 22%,
       #060f1800 64%,
       #060f18 100%
     ),
-    linear-gradient(90deg, #060f1870, #060f1815 55%, transparent 80%);
+    linear-gradient(90deg, #060f18b3, #060f1833 48%, transparent 75%);
 }
 .header {
-  min-height: 96px;
+  min-height: 88px;
   position: relative;
   display: flex;
   align-items: center;
   gap: 30px;
-  padding: 22px 52px;
-  border-bottom: 1px solid #ffffff0d;
+  padding: 20px var(--page-gutter);
+  border-bottom: 1px solid #a4c7ec17;
+  background: linear-gradient(100deg, #081421, #060f18 75%);
   z-index: 5;
 }
 .brand {
   display: inline-flex;
   align-items: center;
   gap: 11px;
-  font-size: 25px;
+  font-size: 27px;
   font-weight: 700;
   letter-spacing: -0.9px;
   flex-shrink: 0;
@@ -116,7 +114,7 @@
 }
 .desktopNav a {
   color: #c4cede;
-  font-size: 13px;
+  font-size: 14px;
   transition: color 0.2s;
 }
 .desktopNav a:hover,
@@ -127,7 +125,7 @@
   display: flex;
   align-items: center;
   gap: 22px;
-  font-size: 13px;
+  font-size: 14px;
   white-space: nowrap;
 }
 .headerCta {
@@ -172,10 +170,10 @@
 }
 .panelContent {
   position: relative;
-  padding: 52px 56px 40px;
+  padding: clamp(44px, 5.5vh, 68px) var(--page-gutter) 36px;
 }
 .heroCopy {
-  min-height: 510px;
+  min-height: clamp(510px, 57svh, 660px);
 }
 .eyebrow {
   width: fit-content;
@@ -203,10 +201,10 @@
   position: relative;
   z-index: 1;
   margin: 25px 0 0;
-  font-size: clamp(56px, 5.3vw, 76px);
-  line-height: 1.045;
+  font-size: clamp(60px, 5vw, 96px);
+  line-height: 1.025;
   font-weight: 750;
-  letter-spacing: -3px;
+  letter-spacing: -0.045em;
 }
 .title > span {
   color: #ff8b26;
@@ -215,20 +213,20 @@
   -webkit-text-fill-color: transparent;
 }
 .description {
-  max-width: 535px;
-  margin: 25px 0 0;
-  font-size: 17px;
+  max-width: 580px;
+  margin: 27px 0 0;
+  font-size: 18px;
   line-height: 1.75;
   color: #d1ddeb;
   text-shadow: 0 1px 8px #00101d;
 }
 .riskNote {
   position: absolute;
-  top: 110px;
-  right: 76px;
+  top: 100px;
+  right: calc(var(--page-gutter) + 1vw);
   transform: rotate(-10deg);
   font-family: var(--font-script), cursive;
-  font-size: 46px;
+  font-size: clamp(42px, 3vw, 62px);
   line-height: 0.93;
   text-shadow: 0 2px 9px #0007;
 }
@@ -255,8 +253,8 @@
   justify-content: center;
   gap: 12px;
   border-radius: 9px;
-  padding: 17px 23px;
-  font-size: 14px;
+  padding: 18px 26px;
+  font-size: 15px;
   font-weight: 650;
   transition:
     transform 0.2s,
@@ -303,23 +301,24 @@
 .featureGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
-  margin-top: 64px;
+  gap: 18px;
+  margin-top: 44px;
 }
 .featureCard {
-  display: flex;
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  column-gap: 17px;
   align-items: center;
-  flex-direction: column;
-  padding: 22px 12px;
-  border: 1px solid #809bbe26;
-  border-radius: 13px;
-  background: linear-gradient(140deg, #111b29e6, #07131de6);
+  padding: 24px;
+  border: 1px solid #809bbe33;
+  border-radius: 12px;
+  background: linear-gradient(125deg, #152335ee, #0a1522e6);
   backdrop-filter: blur(12px);
   box-shadow: 0 6px 18px #0002;
   transition:
     transform 0.2s,
     border-color 0.2s;
-  text-align: center;
+  text-align: left;
 }
 .featureCard:hover {
   border-color: #73a6ef6b;
@@ -328,10 +327,10 @@
 .featureIcon {
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 54px;
   border-radius: 12px;
-  margin-bottom: 13px;
+  grid-row: span 2;
   border: 1px solid #ffffff0a;
 }
 .purple {
@@ -353,17 +352,21 @@
   background: linear-gradient(135deg, #0c553866, #082e22);
 }
 .featureCard strong {
-  font-size: 14px;
+  align-self: end;
+  font-size: 16px;
   font-weight: 600;
   letter-spacing: -0.2px;
 }
 .featureCard > span:last-child {
+  align-self: start;
   margin-top: 6px;
-  font-size: 12px;
+  font-size: 13px;
   color: #b1c0d3;
 }
 .trust {
-  margin-top: 32px;
+  margin-top: 30px;
+  padding-top: 24px;
+  border-top: 1px solid #90b2d41c;
 }
 .trust > p {
   color: #bdcadb;
@@ -395,8 +398,9 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 28px;
-  padding: 36px 20px 20px;
-  margin-top: 18px;
+  padding: 32px var(--page-gutter);
+  border-block: 1px solid #90b2d414;
+  background: linear-gradient(110deg, #0c1929, #09131f 65%, #19160f70);
 }
 .benefits > li {
   display: flex;
@@ -438,16 +442,33 @@
   color: #7e94ae;
   font-size: 11px;
   letter-spacing: 0.3px;
-  padding: 18px 0 3px;
+  padding: 22px 0 26px;
+}
+@media (min-width: 1101px) and (max-width: 1250px) {
+  .featureCard {
+    grid-template-columns: 44px minmax(0, 1fr);
+    column-gap: 11px;
+    padding: 20px 14px;
+  }
+  .featureIcon {
+    width: 44px;
+    height: 48px;
+  }
+  .featureCard strong {
+    font-size: 14px;
+  }
+  .featureCard > span:last-child {
+    font-size: 11px;
+  }
 }
 @media (max-width: 1100px) {
-  .stage {
-    padding: 20px 24px 16px;
+  .hero {
+    --page-gutter: 32px;
   }
   .header {
     min-height: 88px;
     gap: 20px;
-    padding: 20px 30px;
+    padding: 20px var(--page-gutter);
   }
   .brand {
     font-size: 22px;
@@ -459,7 +480,7 @@
     gap: 16px;
   }
   .panelContent {
-    padding: 42px 38px 34px;
+    padding: 42px var(--page-gutter) 34px;
   }
   .heroCopy {
     min-height: 485px;
@@ -492,7 +513,23 @@
     gap: 12px;
   }
   .featureCard {
-    padding: 20px 8px;
+    display: flex;
+    flex-direction: column;
+    padding: 20px 10px;
+    text-align: center;
+  }
+  .featureIcon {
+    margin-bottom: 12px;
+  }
+  .featureCard strong,
+  .featureCard > span:last-child {
+    align-self: auto;
+  }
+  .featureCard strong {
+    font-size: 14px;
+  }
+  .featureCard > span:last-child {
+    font-size: 12px;
   }
   .trustGrid dt {
     font-size: 26px;
@@ -500,7 +537,7 @@
   .benefits {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 28px;
-    padding: 28px 30px 18px;
+    padding: 28px var(--page-gutter);
   }
 }
 @media (max-width: 980px) {
@@ -515,11 +552,11 @@
   }
 }
 @media (max-width: 760px) {
-  .stage {
-    padding: 12px 14px;
+  .hero {
+    --page-gutter: 24px;
   }
   .header {
-    padding: 16px 24px;
+    padding: 16px var(--page-gutter);
     min-height: 80px;
     gap: 12px;
   }
@@ -529,11 +566,8 @@
   .headerActions {
     font-size: 12px;
   }
-  .marketingPanel {
-    border-radius: 18px;
-  }
   .panelContent {
-    padding: 32px 28px;
+    padding: 32px var(--page-gutter);
   }
   .heroCopy {
     min-height: 0;
@@ -603,7 +637,7 @@
     font-size: 11px;
   }
   .benefits {
-    padding: 22px 6px 14px;
+    padding: 26px var(--page-gutter);
     gap: 24px 14px;
   }
   .benefits > li {
@@ -626,8 +660,11 @@
   }
 }
 @media (max-width: 470px) {
+  .hero {
+    --page-gutter: 20px;
+  }
   .header {
-    padding: 15px 17px;
+    padding: 15px var(--page-gutter);
   }
   .brand {
     font-size: 20px;
@@ -644,10 +681,10 @@
     font-size: 11px;
   }
   .panelContent {
-    padding: 28px 21px;
+    padding: 30px var(--page-gutter);
   }
   .title {
-    font-size: clamp(31px, 8.55vw, 40px);
+    font-size: clamp(31px, 8.9vw, 41px);
     letter-spacing: -1.35px;
     line-height: 1.09;
   }
@@ -706,7 +743,7 @@
   }
   .benefits {
     grid-template-columns: 1fr;
-    padding-left: 20px;
+    padding-left: var(--page-gutter);
   }
   .benefits h2 {
     font-size: 15px;
