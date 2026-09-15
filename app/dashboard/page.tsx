@@ -5,6 +5,7 @@ import { DashboardShell } from "@/components/dashboard/dashboard-shell"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { getRecentActivity } from "@/lib/activity"
+import { getReconciliationSummary, type ReconciliationSummary } from "@/lib/dashboard-summary"
 import { pickCurrentProject } from "@/lib/current-project"
 import { getScopedDb, UnauthenticatedError } from "@/lib/db/scoped"
 import { logger } from "@/lib/logger"
@@ -26,15 +27,19 @@ export default async function DashboardPage({
     projects: ReturnType<typeof toDashboardProject>[]
     currentProjectId: string | null
     activity: Awaited<ReturnType<typeof getRecentActivity>>
+    /** The overview block's numbers for the current project; null with no project. */
+    summary: ReconciliationSummary | null
   } | null = null
 
   try {
     const scopedDb = await getScopedDb()
     const rows = await scopedDb.projects.findMany()
+    const current = forceEmpty ? null : (pickCurrentProject(rows) ?? null)
     data = {
       projects: forceEmpty ? [] : sortByBidDate(rows).map(toDashboardProject),
-      currentProjectId: forceEmpty ? null : (pickCurrentProject(rows)?.id ?? null),
+      currentProjectId: current?.id ?? null,
       activity: forceEmpty ? [] : await getRecentActivity(scopedDb),
+      summary: current ? await getReconciliationSummary(scopedDb, current) : null,
     }
   } catch (error) {
     // redirect() signals by throwing, so this has to run outside the try that
@@ -65,6 +70,7 @@ export default async function DashboardPage({
       projects={data.projects}
       currentProjectId={data.currentProjectId}
       activity={data.activity}
+      summary={data.summary}
     />
   )
 }

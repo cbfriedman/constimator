@@ -12,12 +12,14 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty"
+import { ProjectOverview } from "@/components/dashboard/project-overview"
 import { SummaryCards } from "@/components/dashboard/summary-cards"
 import { ProjectsTable } from "@/components/dashboard/projects-table"
 import { BidDeadlines } from "@/components/dashboard/bid-deadlines"
 import { RecentActivity } from "@/components/dashboard/recent-activity"
 import { useProjectState } from "@/components/project-state-provider"
 import type { ActivityItem } from "@/lib/activity"
+import type { ReconciliationSummary } from "@/lib/dashboard-summary"
 import type { DashboardProject } from "@/lib/mock-data"
 
 // engineersEstimate/deadlineDate arrive pre-formatted (lib/projects.ts) —
@@ -55,10 +57,12 @@ function DashboardContent({
   projects,
   currentProjectId,
   activity,
+  summary,
 }: {
   projects: DashboardProject[]
   currentProjectId: string | null
   activity: ActivityItem[]
+  summary: ReconciliationSummary | null
 }) {
   const router = useRouter()
   const { attentionCount, selectProject } = useProjectState()
@@ -143,9 +147,21 @@ function DashboardContent({
     },
   ]
 
+  // The Sep 2026 design leads with the current project — its reconciliation
+  // numbers, the donut, the status breakdown — and only then the rest of the
+  // bid list. statusLabel comes from the same row the table renders, so the
+  // two never disagree.
+  const currentProject = summary
+    ? projects.find((p) => p.id === summary.project.id) ?? null
+    : null
+
   return (
     <div className="flex flex-col gap-6 p-6">
       <DashboardHeader />
+
+      {summary && currentProject ? (
+        <ProjectOverview summary={summary} statusLabel={currentProject.statusLabel} />
+      ) : null}
 
       <SummaryCards
         cards={summaryCards}
@@ -174,16 +190,19 @@ export function DashboardShell({
   projects,
   currentProjectId,
   activity,
+  summary,
 }: {
   projects: DashboardProject[]
   currentProjectId: string | null
   activity: ActivityItem[]
+  summary: ReconciliationSummary | null
 }) {
   return (
     <DashboardContent
       projects={projects}
       currentProjectId={currentProjectId}
       activity={activity}
+      summary={summary}
     />
   )
 }

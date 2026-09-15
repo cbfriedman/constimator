@@ -54,6 +54,12 @@
     --color-review-foreground: var(--review-foreground);
     --color-caution: var(--caution);
     --color-caution-foreground: var(--caution-foreground);
+    /* Blue secondary accent from the Sep 2026 visual design — panel borders,
+       glows, the "Catch missing items" callout. Distinct from --primary
+       (orange), which stays the action colour. */
+    --color-glow: var(--glow);
+    --color-glow-foreground: var(--glow-foreground);
+    --font-script: var(--font-script);
 }
 
 :root {
@@ -97,48 +103,65 @@
     --sidebar-accent-foreground: oklch(0.205 0 0);
     --sidebar-border: oklch(0.922 0 0);
     --sidebar-ring: oklch(0.708 0 0);
+    --glow: oklch(0.62 0.19 260);
+    --glow-foreground: oklch(0.985 0 0);
 }
 
+/*
+ * Dark theme — retuned Sep 2026 to the visual design (deep navy surfaces, orange
+ * primary, blue glow accent) instead of neutral grey. It is now the DEFAULT
+ * theme (components/theme-provider.tsx); light stays available on the "d"
+ * hotkey and via next-themes.
+ *
+ * Status colours are the validated dark-surface trio, kept as hex on purpose
+ * so they match what was checked: #34D399 / #FBBF24 / #F87171 pass the
+ * dataviz palette validator's CVD-separation (ΔE 10.6 worst pair), normal-
+ * vision and contrast checks against surface #0B1220. The reconciliation
+ * donut on /dashboard is drawn from these, with a legend and counts so state
+ * is never colour-alone.
+ */
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.7 0.19 48);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --success: oklch(0.68 0.15 150);
-    --success-foreground: oklch(0.145 0 0);
-    --warning: oklch(0.75 0.15 70);
-    --warning-foreground: oklch(0.145 0 0);
+    --background: #0B1220;
+    --foreground: oklch(0.97 0.01 260);
+    --card: #111A2E;
+    --card-foreground: oklch(0.97 0.01 260);
+    --popover: #111A2E;
+    --popover-foreground: oklch(0.97 0.01 260);
+    --primary: oklch(0.72 0.19 48);
+    --primary-foreground: oklch(0.13 0.02 48);
+    --secondary: oklch(0.26 0.04 260);
+    --secondary-foreground: oklch(0.97 0.01 260);
+    --muted: oklch(0.24 0.035 260);
+    --muted-foreground: oklch(0.72 0.02 260);
+    --accent: oklch(0.26 0.04 260);
+    --accent-foreground: oklch(0.97 0.01 260);
+    --destructive: #F87171;
+    --success: #34D399;
+    --success-foreground: #0B1220;
+    --warning: #FBBF24;
+    --warning-foreground: #0B1220;
     --caution: oklch(0.85 0.16 95);
-    --caution-foreground: oklch(0.145 0 0);
-    --review: oklch(0.65 0.18 295);
-    --review-foreground: oklch(0.145 0 0);
+    --caution-foreground: #0B1220;
+    --review: oklch(0.72 0.16 295);
+    --review-foreground: #0B1220;
+    --glow: oklch(0.66 0.19 260);
+    --glow-foreground: oklch(0.985 0 0);
     --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.7 0.19 48);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.7 0.19 48);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    --input: oklch(1 0 0 / 14%);
+    --ring: oklch(0.72 0.19 48);
+    --chart-1: oklch(0.66 0.19 260);
+    --chart-2: oklch(0.72 0.19 48);
+    --chart-3: oklch(0.72 0.16 295);
+    --chart-4: oklch(0.79 0.15 165);
+    --chart-5: oklch(0.55 0.05 260);
+    --sidebar: #0D1526;
+    --sidebar-foreground: oklch(0.97 0.01 260);
+    --sidebar-primary: oklch(0.72 0.19 48);
+    --sidebar-primary-foreground: oklch(0.13 0.02 48);
+    --sidebar-accent: oklch(0.24 0.035 260);
+    --sidebar-accent-foreground: oklch(0.97 0.01 260);
+    --sidebar-border: oklch(1 0 0 / 8%);
+    --sidebar-ring: oklch(0.66 0.19 260);
 }
 
 @layer base {
@@ -152,3 +175,23 @@
     @apply font-sans;
     }
 }
+
+@utility glow-panel {
+  /* The edge-lit panel treatment from the visual design. Only meaningful on
+     the dark theme; on light it degrades to a plain border. */
+  border: 1px solid color-mix(in oklab, var(--glow) 35%, var(--border));
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--glow) 12%, transparent),
+    0 0 24px color-mix(in oklab, var(--glow) 18%, transparent),
+    0 18px 48px -24px color-mix(in oklab, var(--glow) 45%, transparent);
+}
+
+@utility glow-primary {
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--primary) 30%, transparent),
+    0 0 28px color-mix(in oklab, var(--primary) 28%, transparent);
+}
+
+/* `font-script` itself is generated by Tailwind from the --font-script theme
+   key above (same mechanism as font-sans); the face is loaded with next/font
+   in app/layout.tsx, which also supplies the fallback stack. */

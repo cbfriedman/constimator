@@ -23,11 +23,16 @@ function ThemeProvider({
   children,
   ...props
 }: React.ComponentProps<typeof NextThemesProvider>) {
+  // Dark is the product's designed theme (Sep 2026 visual design: navy
+  // surfaces, orange primary, blue glow — see app/globals.css). It used to
+  // follow the OS setting, which meant most visitors saw the light theme
+  // that nothing was designed for. Light is still there on the "d" hotkey
+  // below and through next-themes' setTheme.
   return (
     <NextThemesProvider
       attribute="class"
-      defaultTheme="system"
-      enableSystem
+      defaultTheme="dark"
+      enableSystem={false}
       disableTransitionOnChange
       {...props}
     >

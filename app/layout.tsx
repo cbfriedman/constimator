@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
+import { Caveat, Geist, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 
 import "./globals.css"
@@ -14,6 +14,17 @@ const geist = Geist({ subsets: ["latin"], variable: "--font-sans" })
 const fontMono = Geist_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
+})
+
+// The handwritten accent lines from the Sep 2026 visual design ("Less Risk.
+// More Wins.", "Every Item. Every Detail. No Surprises."). Exposed to
+// Tailwind as `font-script` via --font-script in globals.css. Marketing pages
+// only; nothing in the app shell uses it.
+const fontScript = Caveat({
+  subsets: ["latin"],
+  weight: ["600", "700"],
+  variable: "--font-script",
+  fallback: ["Segoe Script", "Bradley Hand", "cursive"],
 })
 
 export const metadata: Metadata = {
@@ -40,6 +51,7 @@ export default async function RootLayout({
       className={cn(
         "scroll-smooth bg-background antialiased",
         fontMono.variable,
+        fontScript.variable,
         "font-sans",
         geist.variable,
       )}
