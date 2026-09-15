@@ -1,0 +1,395 @@
+.workspace {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+/* Keep the workspace palette local, including its portaled menus. */
+:global(.dark) .workspace,
+:global(.dark) .sidebarBody,
+:global(.dark) .popup {
+  --background: #080f16;
+  --foreground: #edf3f8;
+  --card: #0e1922;
+  --card-foreground: #edf3f8;
+  --popover: #0e1922;
+  --popover-foreground: #edf3f8;
+  --primary: #ff851b;
+  --primary-foreground: #1d1005;
+  --secondary: #172530;
+  --secondary-foreground: #edf3f8;
+  --muted: #14212b;
+  --muted-foreground: #9aabba;
+  --accent: #172b3b;
+  --accent-foreground: #edf3f8;
+  --border: #1c2935;
+  --input: #293744;
+  --ring: #43b3ff;
+  --sidebar: #0b141c;
+  --sidebar-foreground: #c4d0db;
+  --sidebar-primary: #ff851b;
+  --sidebar-primary-foreground: #1d1005;
+  --sidebar-accent: #163047;
+  --sidebar-accent-foreground: #f0f7ff;
+  --sidebar-border: #1c2935;
+  --sidebar-ring: #43b3ff;
+}
+
+.inset {
+  min-width: 0;
+  background: var(--background);
+}
+
+.sidebar {
+  border-color: var(--sidebar-border);
+}
+
+.sidebarBody {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+  background: var(--sidebar);
+  color: var(--sidebar-foreground);
+}
+
+.sidebarHeader {
+  height: 4.25rem;
+  flex-shrink: 0;
+  justify-content: center;
+  padding: 0 1rem;
+  border-bottom: 1px solid var(--sidebar-border);
+}
+
+.brand {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: 0.6rem;
+  border-radius: 0.5rem;
+  outline-offset: 5px;
+}
+
+.brand:focus-visible {
+  outline: 2px solid var(--sidebar-ring);
+}
+
+.brandIcon {
+  display: grid;
+  width: 2.1rem;
+  height: 2.1rem;
+  flex-shrink: 0;
+  place-items: center;
+  border: 1px solid #ffac51;
+  border-radius: 0.6rem;
+  background: linear-gradient(145deg, #ff981f, #ff7308);
+  color: #fff;
+  box-shadow: 0 3px 18px #ff851b15;
+}
+
+.brandName {
+  color: var(--foreground);
+  font-size: 1.08rem;
+  font-weight: 750;
+  letter-spacing: -0.045em;
+}
+
+.sidebarContent {
+  padding-top: 0.8rem;
+}
+
+.navGroup {
+  padding: 0 0.75rem;
+}
+
+.groupLabel {
+  height: 2rem;
+  padding: 0 0.6rem;
+  color: var(--muted-foreground);
+  font-size: 0.625rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.navMenu {
+  gap: 0.2rem;
+}
+
+.navButton {
+  height: 2rem;
+  gap: 0.65rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid transparent;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 450;
+  transition:
+    background-color 150ms,
+    color 150ms,
+    border-color 150ms;
+}
+
+.navButton > svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  color: var(--muted-foreground);
+}
+
+.navButton[data-active] {
+  border-color: color-mix(in srgb, var(--sidebar-ring) 12%, transparent);
+  background: var(--sidebar-accent);
+  color: var(--sidebar-accent-foreground);
+  font-weight: 600;
+}
+
+.navButton[data-active] > svg {
+  color: var(--sidebar-accent-foreground);
+}
+
+.navButton:has(+ [data-slot="sidebar-menu-badge"]) {
+  padding-right: 2.25rem;
+}
+
+.projectGroup {
+  margin-top: 1rem;
+  padding: 0 0.75rem 1rem;
+}
+
+.projectSelect {
+  width: 100%;
+  min-width: 0;
+  height: 2rem;
+  background: var(--muted);
+}
+
+.projectSelect [data-slot="select-value"] {
+  min-width: 0;
+}
+
+.currentProject {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--sidebar-border);
+  border-radius: 0.375rem;
+  background: var(--muted);
+  color: var(--sidebar-foreground);
+  font-size: 0.7rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.sidebarFooter {
+  flex-shrink: 0;
+  padding: 0.6rem 0.75rem;
+  border-top: 1px solid var(--sidebar-border);
+}
+
+.sidebarFooter .navButton {
+  height: 1.9rem;
+}
+
+.topBar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  height: 4.25rem;
+  min-width: 0;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--background);
+}
+
+:global(.dark) .topBar {
+  background: linear-gradient(100deg, #0b151e, #0a1219);
+  box-shadow: inset 0 1px 0 #43b3ff16;
+}
+
+.sidebarTrigger {
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+}
+
+.toolbarSeparator {
+  height: 1.5rem;
+  flex-shrink: 0;
+}
+
+.search {
+  position: relative;
+  width: 100%;
+  max-width: 23rem;
+  min-width: 0;
+  flex: 1 1 10rem;
+}
+
+.searchInput {
+  height: 2.2rem;
+  padding-left: 2rem;
+  border-color: var(--border);
+  border-radius: 0.45rem;
+  background: var(--card);
+  font-size: 0.75rem;
+}
+
+.searchResults {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 50;
+  width: max(100%, 15rem);
+  max-width: calc(100vw - 5rem);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--popover);
+  color: var(--popover-foreground);
+  box-shadow: 0 12px 32px #0003;
+}
+
+.toolbarActions {
+  display: flex;
+  min-width: 0;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.8rem;
+  margin-left: auto;
+}
+
+.newProject {
+  height: 2.2rem;
+  gap: 0.4rem;
+  padding: 0 0.85rem;
+  border: 1px solid #ffa449;
+  border-radius: 0.45rem;
+  background: linear-gradient(115deg, #ff981f, #ff7914);
+  color: #211204;
+  font-size: 0.75rem;
+  font-weight: 650;
+  box-shadow: 0 3px 16px #ff851b15;
+}
+
+.newProject:hover {
+  background: linear-gradient(115deg, #ffab41, #ff8d2e);
+}
+
+.notifications {
+  position: relative;
+  color: var(--muted-foreground);
+}
+
+.notificationPopup {
+  width: min(20rem, calc(100vw - 1.5rem));
+}
+
+.accountButton {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.3rem;
+  border-radius: 0.5rem;
+  outline: none;
+}
+
+.accountButton:hover {
+  background: var(--muted);
+}
+
+.accountButton:focus-visible {
+  outline: 2px solid var(--ring);
+}
+
+.avatar {
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--border);
+}
+
+.accountDetails {
+  display: flex;
+  min-width: 0;
+  max-width: 10rem;
+  flex-direction: column;
+  gap: 0.2rem;
+  text-align: left;
+}
+
+.accountName,
+.accountOrg {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.accountName {
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.accountOrg {
+  color: var(--muted-foreground);
+  font-size: 0.625rem;
+  line-height: 1.2;
+}
+
+.accountChevron {
+  width: 0.85rem;
+  height: 0.85rem;
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+}
+
+@media (max-width: 1100px) {
+  .topBar {
+    gap: 0.6rem;
+    padding: 0 1rem;
+  }
+
+  .toolbarActions {
+    gap: 0.5rem;
+  }
+
+  .accountDetails {
+    display: none;
+  }
+}
+
+@media (max-width: 639px) {
+  .topBar {
+    height: 3.75rem;
+    gap: 0.4rem;
+    padding: 0 0.75rem;
+  }
+
+  .toolbarActions {
+    gap: 0.25rem;
+  }
+
+  .toolbarSeparator,
+  .newProject > span,
+  .accountChevron {
+    display: none;
+  }
+
+  .newProject {
+    width: 2.1rem;
+    padding: 0;
+  }
+
+  .searchInput {
+    font-size: 1rem;
+  }
+
+  .searchInput::placeholder {
+    font-size: 0.75rem;
+  }
+
+  .accountButton {
+    padding: 0.2rem;
+  }
+}

@@ -13,6 +13,7 @@ import {
 import { TopBar } from "@/components/top-bar"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import type { ProjectStateSnapshot } from "@/lib/project-state-actions"
+import styles from "@/components/workspace.module.css"
 
 // Routes rendered without the dashboard sidebar: public marketing pages
 // plus the auth pages, which unauthenticated visitors must be able to reach.
@@ -51,12 +52,15 @@ export function AppShell({
           {children}
         </div>
       ) : (
-        <SidebarProvider>
+        <SidebarProvider
+          className={styles.workspace}
+          style={{ "--sidebar-width": "14.5rem" } as React.CSSProperties}
+        >
           <AppSidebar />
-          <SidebarInset>
+          <SidebarInset className={styles.inset}>
             <PrototypeBanner />
             <TopBar />
-            <ResettableMain className="flex flex-1 flex-col overflow-auto">
+            <ResettableMain className="flex min-w-0 flex-1 flex-col overflow-auto">
               <BillingGate>{children}</BillingGate>
             </ResettableMain>
           </SidebarInset>

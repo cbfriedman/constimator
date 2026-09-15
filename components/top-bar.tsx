@@ -21,6 +21,7 @@ import { useProjectState } from "@/components/project-state-provider"
 import { searchWorkspaceAction, type SearchHit } from "@/app/search/actions"
 import { createClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
+import styles from "@/components/workspace.module.css"
 
 const KIND_LABEL: Record<SearchHit["kind"], string> = {
   project: "Project",
@@ -69,7 +70,9 @@ export function TopBar() {
   }
 
   function handleHit(hit: SearchHit) {
-    const projectParam = new URL(hit.href, "http://local").searchParams.get("project")
+    const projectParam = new URL(hit.href, "http://local").searchParams.get(
+      "project"
+    )
     if (projectParam) {
       selectProject(projectParam).catch(() => {})
     }
@@ -79,15 +82,15 @@ export function TopBar() {
   }
 
   return (
-    <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-4 border-b bg-background px-4">
-      <SidebarTrigger />
-      <Separator orientation="vertical" className="h-6" />
-      <div className="relative w-full max-w-sm">
-        <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+    <header className={styles.topBar}>
+      <SidebarTrigger className={styles.sidebarTrigger} />
+      <Separator orientation="vertical" className={styles.toolbarSeparator} />
+      <div className={styles.search}>
+        <Search className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           type="search"
           placeholder="Search projects, documents, line items..."
-          className="h-9 pl-8"
+          className={styles.searchInput}
           aria-label="Search"
           value={query}
           onChange={(event) => {
@@ -102,11 +105,15 @@ export function TopBar() {
           }}
         />
         {open && trimmed.length >= 2 ? (
-          <div className="absolute top-[calc(100%+4px)] z-50 w-full overflow-hidden rounded-lg border bg-popover text-popover-foreground shadow-md">
+          <div className={styles.searchResults}>
             {searching && visibleHits.length === 0 ? (
-              <p className="px-3 py-2 text-xs text-muted-foreground">Searching…</p>
+              <p className="px-3 py-2 text-xs text-muted-foreground">
+                Searching…
+              </p>
             ) : visibleHits.length === 0 ? (
-              <p className="px-3 py-2 text-xs text-muted-foreground">No matches</p>
+              <p className="px-3 py-2 text-xs text-muted-foreground">
+                No matches
+              </p>
             ) : (
               <ul className="max-h-80 overflow-auto py-1">
                 {visibleHits.map((hit) => (
@@ -129,29 +136,37 @@ export function TopBar() {
           </div>
         ) : null}
       </div>
-      <div className="ml-auto flex items-center gap-3">
-        <Button render={<Link href="/new-project" />}>
+      <div className={styles.toolbarActions}>
+        <Button
+          render={<Link href="/new-project" />}
+          nativeButton={false}
+          className={styles.newProject}
+          aria-label="New Project"
+        >
           <Plus data-icon="inline-start" />
-          New Project
+          <span>New Project</span>
         </Button>
-        <Separator orientation="vertical" className="h-6" />
+        <Separator orientation="vertical" className={styles.toolbarSeparator} />
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
               <Button
                 variant="ghost"
                 size="icon"
-                className="relative"
+                className={styles.notifications}
                 aria-label="Notifications"
               />
             }
           >
             <Bell />
             {notifications.length > 0 ? (
-              <span className="absolute right-1.5 top-1.5 size-2 rounded-full bg-destructive" />
+              <span className="absolute top-1.5 right-1.5 size-2 rounded-full bg-destructive" />
             ) : null}
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80">
+          <DropdownMenuContent
+            align="end"
+            className={cn(styles.popup, styles.notificationPopup)}
+          >
             {notifications.length === 0 ? (
               <p className="px-2 py-3 text-sm text-muted-foreground">
                 No notifications right now.
@@ -167,44 +182,42 @@ export function TopBar() {
                     className={cn(
                       "text-sm font-medium",
                       item.tone === "danger" && "text-destructive",
-                      item.tone === "warning" && "text-warning",
+                      item.tone === "warning" && "text-warning"
                     )}
                   >
                     {item.title}
                   </span>
-                  <span className="text-xs text-muted-foreground">{item.body}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {item.body}
+                  </span>
                 </DropdownMenuItem>
               ))
             )}
           </DropdownMenuContent>
         </DropdownMenu>
-        <Separator orientation="vertical" className="h-6" />
+        <Separator orientation="vertical" className={styles.toolbarSeparator} />
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
               <button
                 type="button"
-                className="flex items-center gap-2 rounded-md px-1 py-1 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+                className={styles.accountButton}
                 aria-label="Account menu"
               />
             }
           >
-            <Avatar className="size-8">
+            <Avatar className={styles.avatar}>
               <AvatarFallback className="text-xs">
                 {user.initials}
               </AvatarFallback>
             </Avatar>
-            <div className="hidden flex-col text-left sm:flex">
-              <span className="text-sm font-medium leading-tight">
-                {user.name}
-              </span>
-              <span className="text-xs leading-tight text-muted-foreground">
-                {orgName}
-              </span>
+            <div className={styles.accountDetails}>
+              <span className={styles.accountName}>{user.name}</span>
+              <span className={styles.accountOrg}>{orgName}</span>
             </div>
-            <ChevronDown className="size-4 text-muted-foreground" />
+            <ChevronDown className={styles.accountChevron} />
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuContent align="end" className={cn(styles.popup, "w-56")}>
             <div className="px-2 py-1.5">
               <p className="text-sm font-medium">{user.name}</p>
               <p className="text-xs text-muted-foreground">{user.email}</p>

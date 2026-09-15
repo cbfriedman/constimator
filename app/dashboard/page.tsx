@@ -5,8 +5,11 @@ import { DashboardShell } from "@/components/dashboard/dashboard-shell"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { getRecentActivity } from "@/lib/activity"
-import { getReconciliationSummary, type ReconciliationSummary } from "@/lib/dashboard-summary"
-import { pickCurrentProject } from "@/lib/current-project"
+import {
+  getReconciliationSummary,
+  type ReconciliationSummary,
+} from "@/lib/dashboard-summary"
+import { getCurrentProject } from "@/lib/current-project"
 import { getScopedDb, UnauthenticatedError } from "@/lib/db/scoped"
 import { logger } from "@/lib/logger"
 import { sortByBidDate, toDashboardProject } from "@/lib/projects"
@@ -34,12 +37,14 @@ export default async function DashboardPage({
   try {
     const scopedDb = await getScopedDb()
     const rows = await scopedDb.projects.findMany()
-    const current = forceEmpty ? null : (pickCurrentProject(rows) ?? null)
+    const current = forceEmpty ? null : await getCurrentProject(scopedDb)
     data = {
       projects: forceEmpty ? [] : sortByBidDate(rows).map(toDashboardProject),
       currentProjectId: current?.id ?? null,
       activity: forceEmpty ? [] : await getRecentActivity(scopedDb),
-      summary: current ? await getReconciliationSummary(scopedDb, current) : null,
+      summary: current
+        ? await getReconciliationSummary(scopedDb, current)
+        : null,
     }
   } catch (error) {
     // redirect() signals by throwing, so this has to run outside the try that

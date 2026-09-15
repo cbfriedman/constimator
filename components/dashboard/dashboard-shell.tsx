@@ -1,7 +1,14 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { FileBarChart, Flag, FolderKanban, Plus, Timer } from "lucide-react"
+import {
+  FileBarChart,
+  Flag,
+  FolderKanban,
+  Plus,
+  ShieldCheck,
+  Timer,
+} from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -21,6 +28,7 @@ import { useProjectState } from "@/components/project-state-provider"
 import type { ActivityItem } from "@/lib/activity"
 import type { ReconciliationSummary } from "@/lib/dashboard-summary"
 import type { DashboardProject } from "@/lib/mock-data"
+import styles from "./dashboard.module.css"
 
 // engineersEstimate/deadlineDate arrive pre-formatted (lib/projects.ts) —
 // parse back out just enough to total and sort them here.
@@ -35,7 +43,9 @@ function totalBidsLabel(projects: DashboardProject[]): string {
     : `$${total.toLocaleString("en-US")} in bids`
 }
 
-function nearestDeadline(projects: DashboardProject[]): DashboardProject | null {
+function nearestDeadline(
+  projects: DashboardProject[]
+): DashboardProject | null {
   const withDates = projects.filter((p) => p.deadlineDate !== "— —")
   if (withDates.length === 0) return null
   return [...withDates].sort((a, b) => a.daysOut - b.daysOut)[0]
@@ -46,8 +56,8 @@ function DashboardHeader() {
     <div className="flex flex-col gap-1">
       <h1 className="text-2xl font-semibold tracking-tight">Your bids</h1>
       <p className="text-sm text-muted-foreground">
-        Every project you&apos;re working, and what needs your attention
-        before bid day.
+        Every project you&apos;re working, and what needs your attention before
+        bid day.
       </p>
     </div>
   )
@@ -77,17 +87,17 @@ function DashboardContent({
 
   if (isEmpty) {
     return (
-      <div className="flex flex-col gap-6 p-6">
+      <div className={styles.shell}>
         <DashboardHeader />
-        <Empty className="min-h-[60vh] border">
+        <Empty className="min-h-[60vh] border bg-card">
           <EmptyHeader>
             <EmptyMedia variant="icon">
               <FolderKanban />
             </EmptyMedia>
             <EmptyTitle>No projects yet</EmptyTitle>
             <EmptyDescription>
-              Upload your first plan set and bid form, and Constimator will
-              read them and help you reconcile your estimate before bid day.
+              Upload your first plan set and bid form, and Constimator will read
+              them and help you reconcile your estimate before bid day.
             </EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
@@ -152,36 +162,58 @@ function DashboardContent({
   // bid list. statusLabel comes from the same row the table renders, so the
   // two never disagree.
   const currentProject = summary
-    ? projects.find((p) => p.id === summary.project.id) ?? null
+    ? (projects.find((p) => p.id === summary.project.id) ?? null)
     : null
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <DashboardHeader />
-
+    <div className={styles.shell}>
       {summary && currentProject ? (
-        <ProjectOverview summary={summary} statusLabel={currentProject.statusLabel} />
-      ) : null}
+        <ProjectOverview
+          summary={summary}
+          statusLabel={currentProject.statusLabel}
+        />
+      ) : (
+        <DashboardHeader />
+      )}
 
-      <SummaryCards
-        cards={summaryCards}
-        onNavigate={(href) => router.push(href)}
-      />
+      <RecentActivity items={activity} />
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="flex flex-col gap-6 lg:col-span-2">
-          <ProjectsTable
-            projects={projects}
-            currentProjectId={currentProjectId}
-            onProjectClick={handleProjectClick}
-            onNewProject={() => router.push("/new-project")}
-          />
-          <RecentActivity items={activity} />
-        </div>
-        <div className="flex flex-col gap-6 lg:col-span-1">
-          <BidDeadlines projects={projects} />
-        </div>
+      <div className={styles.workspaceNote}>
+        <ShieldCheck size={14} aria-hidden="true" />
+        Every item. Every detail. No surprises.
       </div>
+
+      <section
+        className={styles.pipeline}
+        aria-labelledby="bid-pipeline-heading"
+      >
+        <div className={styles.pipelineHeading}>
+          <div>
+            <p className={styles.eyebrow}>Across your workspace</p>
+            <h2 id="bid-pipeline-heading">Your bid pipeline</h2>
+          </div>
+          <p>Keep your next deadline in sight.</p>
+        </div>
+
+        <SummaryCards
+          cards={summaryCards}
+          onNavigate={(href) => router.push(href)}
+        />
+
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="flex min-w-0 flex-col gap-6 lg:col-span-2">
+            <ProjectsTable
+              projects={projects}
+              currentProjectId={currentProjectId}
+              onProjectClick={handleProjectClick}
+              onNewProject={() => router.push("/new-project")}
+            />
+          </div>
+          <div className="flex flex-col gap-6 lg:col-span-1">
+            <BidDeadlines projects={projects} />
+          </div>
+        </div>
+      </section>
     </div>
   )
 }

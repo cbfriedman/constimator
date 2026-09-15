@@ -3,7 +3,13 @@
 import { Plus } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import {
   Table,
@@ -37,7 +43,7 @@ export function ProjectsTable({
   onNewProject: () => void
 }) {
   return (
-    <Card>
+    <Card className="min-w-0">
       <CardHeader>
         <CardTitle>Active Projects</CardTitle>
         <CardAction>
@@ -47,14 +53,16 @@ export function ProjectsTable({
           </Button>
         </CardAction>
       </CardHeader>
-      <CardContent className="px-0">
-        <Table className="table-fixed">
+      <CardContent className="min-w-0 px-0">
+        <Table className="min-w-[44rem] table-fixed">
           <TableHeader>
             <TableRow>
               <TableHead className="w-[26%]">Project</TableHead>
               <TableHead className="w-[20%]">Owner</TableHead>
               <TableHead className="w-[14%]">Bid Date</TableHead>
-              <TableHead className="w-[16%] text-right">Engineer&apos;s Est.</TableHead>
+              <TableHead className="w-[16%] text-right">
+                Engineer&apos;s Est.
+              </TableHead>
               <TableHead className="w-[24%]">Status</TableHead>
             </TableRow>
           </TableHeader>
@@ -68,7 +76,7 @@ export function ProjectsTable({
                 <TableCell className="whitespace-normal">
                   <div className="flex flex-col gap-0.5">
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <span className="font-medium leading-tight">
+                      <span className="leading-tight font-medium">
                         {project.name}
                       </span>
                       {project.id === currentProjectId ? (
@@ -97,8 +105,8 @@ export function ProjectsTable({
                 <TableCell className="whitespace-normal">
                   <Badge
                     className={cn(
-                      "h-auto items-start whitespace-normal py-1 text-left font-normal leading-tight",
-                      statusStyles[project.status],
+                      "h-auto items-start py-1 text-left leading-tight font-normal whitespace-normal",
+                      statusStyles[project.status]
                     )}
                   >
                     {project.statusLabel}

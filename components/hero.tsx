@@ -14,7 +14,6 @@ import {
   TriangleAlert,
   Zap,
 } from "lucide-react"
-import { DashboardPreview } from "@/components/home/dashboard-preview"
 import { SiteHeader } from "@/components/site-header"
 import styles from "@/components/home/landing.module.css"
 
@@ -64,19 +63,19 @@ export function Hero() {
     <section className={styles.hero} aria-labelledby="hero-title">
       <div className={styles.atmosphere} aria-hidden="true" />
       <div className={styles.stage}>
-        <div className={styles.composition}>
-          <div className={styles.marketingPanel}>
-            <div className={styles.photo} aria-hidden="true">
-              <Image
-                src="/images/construction-sunset.webp"
-                alt=""
-                fill
-                preload
-                sizes="(max-width: 760px) 100vw, (max-width: 1100px) 85vw, 760px"
-              />
-            </div>
-            <SiteHeader />
-            <div className={styles.panelContent}>
+        <div className={styles.marketingPanel}>
+          <div className={styles.photo} aria-hidden="true">
+            <Image
+              src="/images/construction-sunset.webp"
+              alt=""
+              fill
+              preload
+              sizes="(max-width: 1440px) 100vw, 1376px"
+            />
+          </div>
+          <SiteHeader />
+          <div className={styles.panelContent}>
+            <div className={styles.heroCopy}>
               <div className={styles.eyebrow}>
                 <span />
                 Built for public works contractors
@@ -88,14 +87,6 @@ export function Hero() {
                 <br />
                 into <span>winning results.</span>
               </h1>
-              <div className={styles.riskNote} aria-hidden="true">
-                Less Risk.
-                <br />
-                <span>More Wins.</span>
-                <svg viewBox="0 0 180 20">
-                  <path d="M3 16Q82 0 176 4L31 17 159 1" />
-                </svg>
-              </div>
               <p className={styles.description}>
                 Constimator reconciles your estimate against the official bid
                 form, line by line — catching missing items, quantity busts, and
@@ -114,82 +105,53 @@ export function Hero() {
                 <Check size={13} aria-hidden="true" /> No credit card required{" "}
                 <span>·</span> 30 days free
               </p>
-              <div className={styles.featureGrid}>
-                {features.map(({ icon: Icon, ...feature }) => (
-                  <a
-                    href={feature.href}
-                    key={feature.title}
-                    className={styles.featureCard}
-                  >
-                    <span
-                      className={`${styles.featureIcon} ${styles[feature.tone]}`}
-                    >
-                      <Icon size={24} strokeWidth={1.7} aria-hidden="true" />
-                    </span>
-                    <strong>{feature.title}</strong>
-                    <span>{feature.subtitle}</span>
-                  </a>
-                ))}
-              </div>
-              <div className={styles.trust}>
-                <p>Built by a contractor. For contractors who build America.</p>
-                <dl className={styles.trustGrid}>
-                  <div>
-                    <dt>30 days</dt>
-                    <dd>Free to try</dd>
-                  </div>
-                  <div>
-                    <dt>Line by line</dt>
-                    <dd>Check every bid item</dd>
-                  </div>
-                  <div>
-                    <dt>Your tools</dt>
-                    <dd>Keep your workflow</dd>
-                  </div>
-                  <div>
-                    <dt>One place</dt>
-                    <dd>All your bid documents</dd>
-                  </div>
-                </dl>
-              </div>
-            </div>
-          </div>
-          <div className={styles.productColumn}>
-            <div className={styles.productAnnotations}>
-              <div className={styles.detailNote}>
-                Every Item.
+              <div className={styles.riskNote} aria-hidden="true">
+                Less Risk.
                 <br />
-                <span>Every Detail.</span>
-                <br />
-                <span>No Surprises.</span>
-                <svg viewBox="0 0 180 20" aria-hidden="true">
-                  <path d="M3 17Q92 0 176 3L35 17 160 1" />
+                <span>More Wins.</span>
+                <svg viewBox="0 0 180 20">
+                  <path d="M3 16Q82 0 176 4L31 17 159 1" />
                 </svg>
               </div>
-              <div className={styles.catchCallout}>
-                <ShieldCheck size={37} strokeWidth={1.7} aria-hidden="true" />
-                <span>
-                  Catch Missing Items
-                  <br />
-                  Before You Bid
-                </span>
-              </div>
-              <svg
-                className={styles.drawnArrow}
-                viewBox="0 0 95 95"
-                fill="none"
-                aria-hidden="true"
-              >
-                <path d="M85 10C30-5 7 29 20 76m-12-9 13 13 8-17" />
-              </svg>
             </div>
-            <div className={styles.dashboardFrame}>
-              <DashboardPreview />
+            <div className={styles.featureGrid}>
+              {features.map(({ icon: Icon, ...feature }) => (
+                <a
+                  href={feature.href}
+                  key={feature.title}
+                  className={styles.featureCard}
+                >
+                  <span
+                    className={`${styles.featureIcon} ${styles[feature.tone]}`}
+                  >
+                    <Icon size={24} strokeWidth={1.7} aria-hidden="true" />
+                  </span>
+                  <strong>{feature.title}</strong>
+                  <span>{feature.subtitle}</span>
+                </a>
+              ))}
             </div>
-            <Link href="/demo-guide" className={styles.previewCaption}>
-              <span /> Explore the sample workspace{" "}
-              <ArrowRight size={12} aria-hidden="true" />
-            </Link>
+            <div className={styles.trust}>
+              <p>Built by a contractor. For contractors who build America.</p>
+              <dl className={styles.trustGrid}>
+                <div>
+                  <dt>30 days</dt>
+                  <dd>Free to try</dd>
+                </div>
+                <div>
+                  <dt>Line by line</dt>
+                  <dd>Check every bid item</dd>
+                </div>
+                <div>
+                  <dt>Your tools</dt>
+                  <dd>Keep your workflow</dd>
+                </div>
+                <div>
+                  <dt>One place</dt>
+                  <dd>All your bid documents</dd>
+                </div>
+              </dl>
+            </div>
           </div>
         </div>
         <ul className={styles.benefits}>

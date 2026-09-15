@@ -8,11 +8,9 @@ import {
   type LucideIcon,
 } from "lucide-react"
 
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { ReconciliationSummary } from "@/lib/dashboard-summary"
 import { cn } from "@/lib/utils"
+import styles from "./dashboard.module.css"
 
 // The project overview block at the top of /dashboard (Sep 2026 visual
 // design): project header, four stat tiles, a reconciliation donut with its
@@ -38,9 +36,21 @@ type Tone = "neutral" | "success" | "danger" | "warning"
 
 const TONE = {
   neutral: { text: "text-glow", bg: "bg-glow/15", stroke: "stroke-glow" },
-  success: { text: "text-success", bg: "bg-success/15", stroke: "stroke-success" },
-  danger: { text: "text-destructive", bg: "bg-destructive/15", stroke: "stroke-destructive" },
-  warning: { text: "text-warning", bg: "bg-warning/15", stroke: "stroke-warning" },
+  success: {
+    text: "text-success",
+    bg: "bg-success/15",
+    stroke: "stroke-success",
+  },
+  danger: {
+    text: "text-destructive",
+    bg: "bg-destructive/15",
+    stroke: "stroke-destructive",
+  },
+  warning: {
+    text: "text-warning",
+    bg: "bg-warning/15",
+    stroke: "stroke-warning",
+  },
 } satisfies Record<Tone, { text: string; bg: string; stroke: string }>
 
 function StatTile({
@@ -59,24 +69,32 @@ function StatTile({
   href: string
 }) {
   return (
-    <Link
-      href={href}
-      className="glow-panel flex flex-col gap-3 rounded-2xl bg-card/80 p-5 transition-colors hover:bg-card"
-    >
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-medium text-muted-foreground">{label}</span>
+    <Link href={href} className={styles.statTile}>
+      <div className={styles.statHeading}>
         <span
           className={cn(
             "flex size-8 items-center justify-center rounded-lg",
             TONE[tone].bg,
-            TONE[tone].text,
+            TONE[tone].text
           )}
         >
           <Icon className="size-4" aria-hidden="true" />
         </span>
+        <span className="text-xs font-medium text-muted-foreground">
+          {label}
+        </span>
       </div>
-      <div className="text-3xl font-semibold tabular-nums tracking-tight">{value}</div>
-      <div className={cn("text-xs", tone === "neutral" ? "text-muted-foreground" : TONE[tone].text)}>
+      <div
+        className={cn(styles.statValue, tone !== "neutral" && TONE[tone].text)}
+      >
+        {value}
+      </div>
+      <div
+        className={cn(
+          "text-xs",
+          tone === "neutral" ? "text-muted-foreground" : TONE[tone].text
+        )}
+      >
         {detail}
       </div>
     </Link>
@@ -102,16 +120,16 @@ function Donut({
   // One segment needs no gap (it would cut a notch into a full ring).
   const gap = visible.length > 1 ? gapPx : 0
 
-  let offset = 0
-  const arcs = visible.map((segment) => {
+  const arcs = visible.map((segment, index) => {
     const length = (segment.value / total) * circumference
-    const arc = {
+    const precedingTotal = visible
+      .slice(0, index)
+      .reduce((sum, item) => sum + item.value, 0)
+    return {
       ...segment,
       dash: Math.max(length - gap, 0),
-      offset,
+      offset: (precedingTotal / total) * circumference,
     }
-    offset += length
-    return arc
   })
 
   return (
@@ -177,55 +195,105 @@ export function ProjectOverview({
   summary: ReconciliationSummary
   statusLabel: string
 }) {
-  const { project, hasBidForm, totalItems, matched, missing, mismatched } = summary
+  const { project, hasBidForm, totalItems, matched, missing, mismatched } =
+    summary
 
   const legend = [
-    { key: "matched", label: "Matched", value: matched, tone: "success" as const },
-    { key: "missing", label: "Missing", value: missing, tone: "danger" as const },
-    { key: "mismatched", label: "Mismatched", value: mismatched, tone: "warning" as const },
+    {
+      key: "matched",
+      label: "Matched",
+      value: matched,
+      tone: "success" as const,
+    },
+    {
+      key: "missing",
+      label: "Missing",
+      value: missing,
+      tone: "danger" as const,
+    },
+    {
+      key: "mismatched",
+      label: "Mismatched",
+      value: mismatched,
+      tone: "warning" as const,
+    },
   ]
 
   const breakdown = [
     { label: "Matched", value: matched, tone: "success" as const },
-    { label: "Quantity discrepancy", value: summary.quantityDiscrepancies, tone: "warning" as const },
-    { label: "Unit mismatch", value: summary.unitMismatches, tone: "warning" as const },
+    {
+      label: "Quantity discrepancy",
+      value: summary.quantityDiscrepancies,
+      tone: "warning" as const,
+    },
+    {
+      label: "Unit mismatch",
+      value: summary.unitMismatches,
+      tone: "warning" as const,
+    },
     { label: "Missing from estimate", value: missing, tone: "danger" as const },
-    { label: "Lump sum — verify scope", value: summary.lumpSum, tone: "neutral" as const },
+    {
+      label: "Lump sum — verify scope",
+      value: summary.lumpSum,
+      tone: "neutral" as const,
+    },
   ]
   const breakdownMax = Math.max(1, ...breakdown.map((row) => row.value))
 
   return (
-    <section className="flex flex-col gap-5" aria-labelledby="project-overview-heading">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <div className="flex flex-wrap items-center gap-3">
-            <h2
-              id="project-overview-heading"
-              className="text-xl font-semibold tracking-tight"
-            >
+    <section
+      className={styles.overview}
+      aria-labelledby="project-overview-heading"
+    >
+      <div className={styles.projectHeader}>
+        <div className={styles.projectIdentity}>
+          <p className={styles.eyebrow}>
+            <span />
+            Project workspace{" "}
+            <span className={styles.projectNumber}>#{project.number}</span>
+          </p>
+          <div className={styles.projectTitleRow}>
+            <h1 id="project-overview-heading" className={styles.projectTitle}>
               {project.name}
-            </h2>
-            <Badge variant="outline" className="border-primary/40 bg-primary/10 text-primary">
-              {statusLabel}
-            </Badge>
+            </h1>
+            <span className={styles.projectStatus}>{statusLabel}</span>
           </div>
-          <p className="text-sm text-muted-foreground">#{project.number}</p>
         </div>
-        <Button
-          variant="outline"
-          render={<Link href={`/reports?project=${project.id}`} />}
+        <Link
+          className={styles.exportButton}
+          href={`/reports?project=${project.id}`}
         >
-          <FileOutput data-icon="inline-start" />
+          <FileOutput size={15} aria-hidden="true" />
           Export Report
-        </Button>
+        </Link>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <nav className={styles.projectNav} aria-label="Current project">
+        <Link
+          href={`/dashboard?project=${project.id}`}
+          className={styles.activeTab}
+          aria-current="page"
+        >
+          Overview
+        </Link>
+        <Link href={`/reconciliation?project=${project.id}`}>
+          Bid Reconciliation
+        </Link>
+        <Link href={`/estimate?project=${project.id}`}>Line Items</Link>
+        <Link href={`/upload?project=${project.id}`}>Documents</Link>
+        <Link href={`/reports?project=${project.id}`}>Reports</Link>
+      </nav>
+
+      <div className={styles.statsGrid}>
         <StatTile
           icon={ListChecks}
           label="Total Items"
           value={formatCount(totalItems)}
-          detail={hasBidForm ? "On the official bid form" : "Import the bid form to begin"}
+          detail={
+            hasBidForm
+              ? "On the official bid form"
+              : "Import the bid form to begin"
+          }
           tone="neutral"
           href={`/reconciliation?project=${project.id}`}
         />
@@ -255,78 +323,78 @@ export function ProjectOverview({
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card className="glow-panel bg-card/80">
-          <CardHeader>
-            <CardTitle>Reconciliation Summary</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {!hasBidForm ? (
-              <p className="text-sm text-muted-foreground">
-                No official bid form imported yet. Upload it and Constimator
-                will reconcile your estimate against every line.
+      <div className={styles.chartsGrid}>
+        <div className={styles.panel}>
+          <div className={styles.panelHeading}>
+            <h2>Reconciliation Summary</h2>
+          </div>
+          {!hasBidForm ? (
+            <div className={styles.chartEmpty}>
+              <ListChecks size={30} aria-hidden="true" />
+              <p>
+                Import your official bid form to see how every line compares
+                with your estimate.
               </p>
-            ) : (
-              <div className="flex flex-wrap items-center gap-8">
-                <Donut segments={legend} total={totalItems} />
-                <ul className="flex flex-col gap-3 text-sm">
-                  {legend.map((row) => (
-                    <li key={row.key} className="flex items-center gap-3">
-                      <span
-                        aria-hidden="true"
-                        className={cn(
-                          "size-2.5 rounded-sm",
-                          row.tone === "success" && "bg-success",
-                          row.tone === "danger" && "bg-destructive",
-                          row.tone === "warning" && "bg-warning",
-                        )}
-                      />
-                      <span className="w-24 text-muted-foreground">{row.label}</span>
-                      <span className="tabular-nums">
-                        {formatCount(row.value)}{" "}
-                        <span className="text-muted-foreground">
-                          ({pct(row.value, totalItems)})
-                        </span>
+              <Link href={`/reconciliation?project=${project.id}`}>
+                Import bid form
+              </Link>
+            </div>
+          ) : (
+            <div className={styles.donutLayout}>
+              <Donut segments={legend} total={totalItems} />
+              <ul className={styles.legend}>
+                {legend.map((row) => (
+                  <li key={row.key}>
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        "size-2.5 rounded-sm",
+                        row.tone === "success" && "bg-success",
+                        row.tone === "danger" && "bg-destructive",
+                        row.tone === "warning" && "bg-warning"
+                      )}
+                    />
+                    <span className="text-muted-foreground">{row.label}</span>
+                    <span className={styles.legendValue}>
+                      {formatCount(row.value)}{" "}
+                      <span className={styles.legendPercent}>
+                        ({pct(row.value, totalItems)})
                       </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
 
-        <Card className="glow-panel bg-card/80">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Items by Status</CardTitle>
+        <div className={styles.panel}>
+          <div className={styles.panelHeading}>
+            <h2>Items by Status</h2>
             <Link
               href={`/reconciliation?project=${project.id}`}
               className="text-xs font-medium text-glow underline-offset-4 hover:underline"
             >
               View all
             </Link>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
+          </div>
+          <div className={styles.breakdown}>
             {breakdown.map((row) => (
-              <div key={row.label} className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1">
-                <span className="text-sm text-muted-foreground">{row.label}</span>
-                <span className="text-sm tabular-nums">{formatCount(row.value)}</span>
-                <div className="col-span-2 h-2 overflow-hidden rounded-full bg-muted">
+              <div key={row.label} className={styles.breakdownRow}>
+                <span>{row.label}</span>
+                <span className={styles.breakdownCount}>
+                  {formatCount(row.value)}
+                </span>
+                <div className={styles.barTrack}>
                   <div
-                    className={cn(
-                      "h-full rounded-full",
-                      row.tone === "success" && "bg-success",
-                      row.tone === "danger" && "bg-destructive",
-                      row.tone === "warning" && "bg-warning",
-                      row.tone === "neutral" && "bg-glow",
-                    )}
+                    className={styles.barFill}
                     style={{ width: `${(row.value / breakdownMax) * 100}%` }}
                   />
                 </div>
               </div>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </section>
   )
