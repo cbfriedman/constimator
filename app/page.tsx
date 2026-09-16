@@ -10,6 +10,7 @@ import { Pricing } from "@/components/pricing"
 import { Faq } from "@/components/faq"
 import { Cta } from "@/components/cta"
 import { SiteFooter } from "@/components/site-footer"
+import { SiteHeader } from "@/components/site-header"
 import styles from "@/components/home/landing.module.css"
 
 // Order matters here, so it's worth writing down:
@@ -28,8 +29,15 @@ import styles from "@/components/home/landing.module.css"
 //
 // <WhyDifferent /> is gone: its copy is the first FAQ entry now.
 export default function HomePage() {
+  // `theme-dark` pins this page to the dark palette whatever the app-level
+  // theme is set to (the "d" hotkey flips the app, not this page). The
+  // header sits outside <main> and outside the hero on purpose: it is
+  // sticky, and sticky elements only stick within their parent — inside the
+  // hero it scrolled away after the first screen. This also puts the
+  // <header> landmark where assistive tech expects it, beside <main>.
   return (
-    <div className={`${styles.page} flex min-h-screen flex-col`}>
+    <div className={`${styles.page} theme-dark flex min-h-screen flex-col`}>
+      <SiteHeader />
       <main className="flex-1">
         <Hero />
         <Problem />

@@ -14,7 +14,6 @@ import {
   TriangleAlert,
   Zap,
 } from "lucide-react"
-import { SiteHeader } from "@/components/site-header"
 import styles from "@/components/home/landing.module.css"
 
 const features = [
@@ -73,7 +72,6 @@ export function Hero() {
               sizes="100vw"
             />
           </div>
-          <SiteHeader />
           <div className={styles.panelContent}>
             <div className={styles.heroCopy}>
               <div className={styles.eyebrow}>

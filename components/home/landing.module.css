@@ -1,18 +1,33 @@
+/*
+ * Marketing page. Dark by design, and on purpose: the element carrying
+ * `.page` also carries `theme-dark` (see app/page.tsx), which app/globals.css
+ * maps to the same token values as the app's `.dark` theme. So this page no
+ * longer keeps its own copy of the palette — the navy, the orange and the
+ * text colours below are the app's, read through the same custom properties
+ * the dashboard uses. Change a token in globals.css and both move together.
+ *
+ * What stays as literals: the handful of tints that are design decisions
+ * rather than palette (the purple/green feature-tile washes, the photo
+ * vignette stops). Everything that used to be a hardcoded copy of a token is
+ * now derived from it with color-mix(), so it tracks.
+ */
 .page {
-  --background: #070e18;
-  --foreground: #f3f6fc;
-  --card: #0d1825;
-  --card-foreground: #f3f6fc;
-  --muted: #101c2c;
-  --muted-foreground: #aab9cb;
-  --secondary: #0b1623;
-  --secondary-foreground: #f3f6fc;
-  --primary: #ff8b28;
-  --primary-foreground: #15100a;
-  --border: #ffffff12;
+  --page-gutter: clamp(24px, 4.5vw, 112px);
+  /* Derived shades used throughout. Lighter/darker steps of the primary
+     for gradients and hover, and a "soft" text colour between foreground
+     and muted-foreground for supporting copy. */
+  --primary-light: color-mix(in oklab, var(--primary) 82%, white);
+  --primary-dark: color-mix(in oklab, var(--primary) 82%, black);
+  --text-soft: color-mix(in oklab, var(--foreground) 65%, var(--muted-foreground));
+  color-scheme: dark;
   color: var(--foreground);
   background: var(--background);
   overflow: clip;
+}
+/* The header is sticky now, so in-page anchors (#reconciliation, #pricing…)
+   must land below it rather than underneath it. */
+.page [id] {
+  scroll-margin-top: 104px;
 }
 .page a,
 .page button {
@@ -21,22 +36,22 @@
 .page a:focus-visible,
 .page button:focus-visible,
 .page summary:focus-visible {
-  outline: 2px solid #61b7ff;
+  outline: 2px solid color-mix(in oklab, var(--glow) 75%, white);
   outline-offset: 5px;
 }
 .hero {
-  --page-gutter: clamp(24px, 4.5vw, 112px);
   position: relative;
   isolation: isolate;
-  background: #050d17;
+  background: var(--background);
 }
 .atmosphere {
   position: absolute;
   z-index: -1;
   inset: 0;
   background:
-    radial-gradient(ellipse at 0% 25%, #1561aa20, transparent 45%),
-    radial-gradient(ellipse at 100% 62%, #fe772414, transparent 35%), #050d17;
+    radial-gradient(ellipse at 0% 25%, color-mix(in oklab, var(--glow) 14%, transparent), transparent 45%),
+    radial-gradient(ellipse at 100% 62%, color-mix(in oklab, var(--primary) 9%, transparent), transparent 35%),
+    var(--background);
 }
 .stage {
   width: 100%;
@@ -45,12 +60,12 @@
 .marketingPanel {
   position: relative;
   isolation: isolate;
-  background: #060f18;
+  background: var(--background);
 }
 .photo {
   position: absolute;
   z-index: -1;
-  top: 88px;
+  top: 0;
   right: 0;
   left: 0;
   height: clamp(740px, calc(100svh - 60px), 920px);
@@ -67,23 +82,38 @@
   background:
     linear-gradient(
       180deg,
-      #060f187a 0%,
-      #060f1800 22%,
-      #060f1800 64%,
-      #060f18 100%
+      color-mix(in oklab, var(--background) 48%, transparent) 0%,
+      transparent 22%,
+      transparent 64%,
+      var(--background) 100%
     ),
-    linear-gradient(90deg, #060f18b3, #060f1833 48%, transparent 75%);
+    linear-gradient(
+      90deg,
+      color-mix(in oklab, var(--background) 70%, transparent),
+      color-mix(in oklab, var(--background) 20%, transparent) 48%,
+      transparent 75%
+    );
 }
+/* Sticky, and a direct child of .page rather than of the hero: sticky
+   elements only stick within their parent, so inside the hero the nav
+   scrolled away after the first screen. `.page { overflow: clip }` is fine —
+   unlike `hidden`, `clip` does not create a scroll container and does not
+   defeat position: sticky. */
 .header {
   min-height: 88px;
-  position: relative;
+  position: sticky;
+  top: 0;
   display: flex;
   align-items: center;
   gap: 30px;
   padding: 20px var(--page-gutter);
-  border-bottom: 1px solid #a4c7ec17;
-  background: linear-gradient(100deg, #081421, #060f18 75%);
-  z-index: 5;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(
+    100deg,
+    color-mix(in oklab, var(--background) 94%, var(--glow)),
+    var(--background) 75%
+  );
+  z-index: 50;
 }
 .brand {
   display: inline-flex;
@@ -100,9 +130,9 @@
   display: grid;
   place-items: center;
   border-radius: 10px;
-  background: linear-gradient(135deg, #ff9709, #ff6403);
+  background: linear-gradient(135deg, var(--primary-light), var(--primary-dark));
   color: white;
-  box-shadow: 0 4px 18px #ff790322;
+  box-shadow: 0 4px 18px color-mix(in oklab, var(--primary) 13%, transparent);
 }
 .desktopNav {
   display: flex;
@@ -113,13 +143,13 @@
   white-space: nowrap;
 }
 .desktopNav a {
-  color: #c4cede;
+  color: var(--text-soft);
   font-size: 14px;
   transition: color 0.2s;
 }
 .desktopNav a:hover,
 .headerActions > a:first-child:hover {
-  color: #ff9b43;
+  color: var(--primary-light);
 }
 .headerActions {
   display: flex;
@@ -130,15 +160,15 @@
 }
 .headerCta {
   border-radius: 8px;
-  background: linear-gradient(120deg, #ff9c32, #ff7115);
-  color: #171008;
+  background: linear-gradient(120deg, var(--primary-light), var(--primary-dark));
+  color: var(--primary-foreground);
   padding: 13px 18px;
   font-weight: 700;
   box-shadow: inset 0 1px 0 #ffffff38;
   transition: box-shadow 0.2s;
 }
 .headerCta:hover {
-  box-shadow: 0 4px 20px #ff801c40;
+  box-shadow: 0 4px 20px color-mix(in oklab, var(--primary) 25%, transparent);
 }
 .menuButton {
   display: none;
@@ -146,7 +176,7 @@
   height: 42px;
   align-items: center;
   justify-content: center;
-  border: 1px solid #ffffff20;
+  border: 1px solid var(--border);
   border-radius: 8px;
   cursor: pointer;
 }
@@ -155,9 +185,9 @@
   top: calc(100% - 1px);
   left: 12px;
   right: 12px;
-  background: #0b1727f7;
+  background: color-mix(in oklab, var(--card) 97%, transparent);
   padding: 14px;
-  border: 1px solid #568cbe50;
+  border: 1px solid color-mix(in oklab, var(--glow) 35%, transparent);
   border-radius: 12px;
   box-shadow: 0 18px 35px #0008;
   backdrop-filter: blur(20px);
@@ -182,9 +212,9 @@
   gap: 9px;
   padding: 9px 14px;
   border-radius: 30px;
-  border: 1px solid #e8982438;
-  background: #291e1385;
-  color: #ffc069;
+  border: 1px solid color-mix(in oklab, var(--primary) 22%, transparent);
+  background: color-mix(in oklab, var(--primary) 10%, transparent);
+  color: color-mix(in oklab, var(--primary) 70%, white);
   font-size: 11px;
   letter-spacing: 1px;
   font-weight: 600;
@@ -194,8 +224,8 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: #ff9a25;
-  box-shadow: 0 0 9px #ff9a2577;
+  background: var(--primary);
+  box-shadow: 0 0 9px color-mix(in oklab, var(--primary) 47%, transparent);
 }
 .title {
   position: relative;
@@ -207,8 +237,8 @@
   letter-spacing: -0.045em;
 }
 .title > span {
-  color: #ff8b26;
-  background: linear-gradient(100deg, #ffa139, #ff6d0a);
+  color: var(--primary);
+  background: linear-gradient(100deg, var(--primary-light), var(--primary-dark));
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -217,8 +247,8 @@
   margin: 27px 0 0;
   font-size: 18px;
   line-height: 1.75;
-  color: #d1ddeb;
-  text-shadow: 0 1px 8px #00101d;
+  color: var(--text-soft);
+  text-shadow: 0 1px 8px var(--background);
 }
 .riskNote {
   position: absolute;
@@ -238,7 +268,7 @@
   width: 175px;
   height: 20px;
   margin: 12px 0 0 25px;
-  fill: #ff8823;
+  fill: var(--primary);
 }
 .actions {
   display: flex;
@@ -262,40 +292,40 @@
     background 0.2s;
 }
 .primaryButton {
-  color: #191006;
-  border: 1px solid #ffb45770;
-  background: linear-gradient(115deg, #ffa32f, #ff761d);
+  color: var(--primary-foreground);
+  border: 1px solid color-mix(in oklab, var(--primary-light) 44%, transparent);
+  background: linear-gradient(115deg, var(--primary-light), var(--primary-dark));
   box-shadow:
-    0 5px 24px #ff801c3d,
+    0 5px 24px color-mix(in oklab, var(--primary) 24%, transparent),
     inset 0 1px 0 #ffffff25;
 }
 .primaryButton:hover {
   transform: translateY(-2px);
-  box-shadow: 0 7px 32px #ff801c6a;
+  box-shadow: 0 7px 32px color-mix(in oklab, var(--primary) 42%, transparent);
 }
 .demoButton {
-  border: 1px solid #c2d6ee33;
-  color: #f4f7fd;
-  background: #111d2c8a;
+  border: 1px solid color-mix(in oklab, var(--foreground) 20%, transparent);
+  color: var(--foreground);
+  background: color-mix(in oklab, var(--card) 54%, transparent);
   backdrop-filter: blur(10px);
 }
 .demoButton:hover {
   transform: translateY(-2px);
-  background: #1a2c43d9;
+  background: color-mix(in oklab, var(--muted) 85%, transparent);
 }
 .trialNote {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 11px;
-  color: #d6dfe9;
+  color: var(--text-soft);
   margin-top: 16px;
 }
 .trialNote > svg {
-  color: #8edfbd;
+  color: var(--success);
 }
 .trialNote > span {
-  color: #fcb568;
+  color: var(--primary-light);
   padding: 0 1px;
 }
 .featureGrid {
@@ -310,9 +340,13 @@
   column-gap: 17px;
   align-items: center;
   padding: 24px;
-  border: 1px solid #809bbe33;
+  border: 1px solid color-mix(in oklab, var(--glow) 20%, transparent);
   border-radius: 12px;
-  background: linear-gradient(125deg, #152335ee, #0a1522e6);
+  background: linear-gradient(
+    125deg,
+    color-mix(in oklab, var(--card) 93%, transparent),
+    color-mix(in oklab, var(--background) 90%, transparent)
+  );
   backdrop-filter: blur(12px);
   box-shadow: 0 6px 18px #0002;
   transition:
@@ -321,7 +355,7 @@
   text-align: left;
 }
 .featureCard:hover {
-  border-color: #73a6ef6b;
+  border-color: color-mix(in oklab, var(--glow) 42%, transparent);
   transform: translateY(-4px);
 }
 .featureIcon {
@@ -335,21 +369,33 @@
 }
 .purple {
   color: #e8ddff;
-  background: linear-gradient(135deg, #5231a477, #2b1b55);
-  box-shadow: 0 0 22px #643cdc12;
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--review) 45%, transparent),
+    color-mix(in oklab, var(--review) 35%, black)
+  );
+  box-shadow: 0 0 22px color-mix(in oklab, var(--review) 7%, transparent);
 }
 .blue {
   color: #e0f2ff;
-  background: linear-gradient(135deg, #086edd, #063866);
-  box-shadow: 0 0 22px #087aee17;
+  background: linear-gradient(135deg, var(--glow), color-mix(in oklab, var(--glow) 45%, black));
+  box-shadow: 0 0 22px color-mix(in oklab, var(--glow) 9%, transparent);
 }
 .orange {
-  color: #ffad34;
-  background: linear-gradient(135deg, #77501b66, #281c13);
+  color: var(--primary-light);
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--primary) 30%, transparent),
+    color-mix(in oklab, var(--primary) 12%, black)
+  );
 }
 .green {
-  color: #36de8e;
-  background: linear-gradient(135deg, #0c553866, #082e22);
+  color: var(--success);
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklab, var(--success) 30%, transparent),
+    color-mix(in oklab, var(--success) 14%, black)
+  );
 }
 .featureCard strong {
   align-self: end;
@@ -361,15 +407,15 @@
   align-self: start;
   margin-top: 6px;
   font-size: 13px;
-  color: #b1c0d3;
+  color: var(--muted-foreground);
 }
 .trust {
   margin-top: 30px;
   padding-top: 24px;
-  border-top: 1px solid #90b2d41c;
+  border-top: 1px solid var(--border);
 }
 .trust > p {
-  color: #bdcadb;
+  color: var(--muted-foreground);
   text-align: center;
   font-size: 12px;
 }
@@ -380,10 +426,10 @@
   text-align: center;
 }
 .trustGrid > div + div {
-  border-left: 1px solid #6983a524;
+  border-left: 1px solid var(--border);
 }
 .trustGrid dt {
-  color: #ffa52e;
+  color: var(--primary-light);
   font-size: 28px;
   line-height: 1.2;
   font-weight: 650;
@@ -392,15 +438,20 @@
 .trustGrid dd {
   margin-top: 7px;
   font-size: 12px;
-  color: #cdd9e9;
+  color: var(--text-soft);
 }
 .benefits {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 28px;
   padding: 32px var(--page-gutter);
-  border-block: 1px solid #90b2d414;
-  background: linear-gradient(110deg, #0c1929, #09131f 65%, #19160f70);
+  border-block: 1px solid var(--border);
+  background: linear-gradient(
+    110deg,
+    color-mix(in oklab, var(--card) 70%, var(--background)),
+    var(--background) 65%,
+    color-mix(in oklab, var(--primary) 8%, transparent)
+  );
 }
 .benefits > li {
   display: flex;
@@ -413,15 +464,19 @@
   height: 52px;
   width: 52px;
   flex-shrink: 0;
-  color: #fff4e7;
-  border: 1px solid #ff9b3845;
+  color: var(--foreground);
+  border: 1px solid color-mix(in oklab, var(--primary) 27%, transparent);
   border-radius: 50%;
-  background: radial-gradient(ellipse at 50% 90%, #fc7c2025, transparent 80%);
+  background: radial-gradient(
+    ellipse at 50% 90%,
+    color-mix(in oklab, var(--primary) 15%, transparent),
+    transparent 80%
+  );
 }
 .benefits li:nth-child(2) .benefitIcon {
   color: #e7f3ff;
-  border-color: #188bff70;
-  background: #046be61c;
+  border-color: color-mix(in oklab, var(--glow) 44%, transparent);
+  background: color-mix(in oklab, var(--glow) 11%, transparent);
 }
 .benefits h2 {
   font-size: 16px;
@@ -431,7 +486,7 @@
 }
 .benefits p {
   font-size: 11px;
-  color: #b5c3d5;
+  color: var(--muted-foreground);
   margin-top: 5px;
 }
 .scrollHint {
@@ -439,7 +494,7 @@
   align-items: center;
   justify-content: center;
   gap: 9px;
-  color: #7e94ae;
+  color: color-mix(in oklab, var(--muted-foreground) 75%, var(--background));
   font-size: 11px;
   letter-spacing: 0.3px;
   padding: 22px 0 26px;
@@ -462,7 +517,7 @@
   }
 }
 @media (max-width: 1100px) {
-  .hero {
+  .page {
     --page-gutter: 32px;
   }
   .header {
@@ -502,7 +557,7 @@
     font-size: 16px;
   }
   .photo {
-    top: 88px;
+    top: 0;
     height: 700px;
   }
   .photo img {
@@ -552,13 +607,16 @@
   }
 }
 @media (max-width: 760px) {
-  .hero {
+  .page {
     --page-gutter: 24px;
   }
   .header {
     padding: 16px var(--page-gutter);
     min-height: 80px;
     gap: 12px;
+  }
+  .page [id] {
+    scroll-margin-top: 92px;
   }
   .headerActions > a:first-child {
     display: none;
@@ -610,7 +668,7 @@
     gap: 12px;
   }
   .photo {
-    top: 180px;
+    top: 100px;
     height: 600px;
   }
   .photo img {
@@ -660,7 +718,7 @@
   }
 }
 @media (max-width: 470px) {
-  .hero {
+  .page {
     --page-gutter: 20px;
   }
   .header {
@@ -727,7 +785,7 @@
     font-size: 11px;
   }
   .photo {
-    top: 260px;
+    top: 180px;
     height: 530px;
   }
 }

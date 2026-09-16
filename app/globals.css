@@ -2,7 +2,11 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
+/* `.theme-dark` forces the dark palette on a subtree regardless of the
+   html-level theme — the marketing page uses it (components/home/
+   landing.module.css). Listed here too so Tailwind `dark:` utilities
+   inside that subtree resolve the same way the tokens do. */
+@custom-variant dark (&:where(.dark, .dark *, .theme-dark, .theme-dark *));
 
 @theme inline {
     --font-heading: var(--font-sans);
@@ -119,8 +123,13 @@
  * vision and contrast checks against surface #0B1220. The reconciliation
  * donut on /dashboard is drawn from these, with a legend and counts so state
  * is never colour-alone.
+ *
+ * `.theme-dark` shares the block so a page can opt into this palette
+ * permanently (the marketing homepage does) without keeping its own copy
+ * of these values — one source of truth for the navy and the orange.
  */
-.dark {
+.dark,
+.theme-dark {
     --background: #0B1220;
     --foreground: oklch(0.97 0.01 260);
     --card: #111A2E;
