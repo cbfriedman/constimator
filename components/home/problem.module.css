@@ -1,0 +1,313 @@
+/*
+ * "The problem" section — the first thing under the hero. Same visual
+ * language as components/home/landing.module.css: tokens only (no palette of
+ * its own), edge-lit panels, an eyebrow, and a soft atmosphere. The dollar
+ * card is the section's evidence, so it sits beside the argument at desktop
+ * width rather than under it — the reader sees the claim and the number in
+ * one glance.
+ */
+.section {
+  position: relative;
+  isolation: isolate;
+  border-top: 1px solid var(--border);
+  background: var(--background);
+  overflow: clip;
+}
+.atmosphere {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background:
+    radial-gradient(
+      ellipse at 12% 85%,
+      color-mix(in oklab, var(--destructive) 10%, transparent),
+      transparent 42%
+    ),
+    radial-gradient(
+      ellipse at 92% 10%,
+      color-mix(in oklab, var(--glow) 10%, transparent),
+      transparent 38%
+    );
+}
+.inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: clamp(72px, 9vw, 120px) var(--page-gutter) clamp(40px, 5vw, 64px);
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+  gap: clamp(36px, 5vw, 80px);
+  align-items: center;
+}
+.eyebrow {
+  width: fit-content;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 13px;
+  border-radius: 30px;
+  border: 1px solid color-mix(in oklab, var(--destructive) 28%, transparent);
+  background: color-mix(in oklab, var(--destructive) 10%, transparent);
+  color: color-mix(in oklab, var(--destructive) 75%, white);
+  font-size: 11px;
+  letter-spacing: 1px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.eyebrow > span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--destructive);
+  box-shadow: 0 0 9px color-mix(in oklab, var(--destructive) 55%, transparent);
+}
+.title {
+  margin: 22px 0 0;
+  font-size: clamp(34px, 3.6vw, 52px);
+  line-height: 1.06;
+  font-weight: 750;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+.title > span {
+  color: var(--primary);
+}
+.lead {
+  margin: 22px 0 0;
+  max-width: 560px;
+  font-size: 17px;
+  line-height: 1.7;
+  color: var(--text-soft);
+  text-wrap: pretty;
+}
+.modes {
+  margin: 20px 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+  max-width: 560px;
+}
+.modes > li {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: color-mix(in oklab, var(--card) 70%, transparent);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--foreground);
+}
+.modes > li > span {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  border: 1px solid color-mix(in oklab, var(--warning) 25%, transparent);
+  background: color-mix(in oklab, var(--warning) 12%, transparent);
+  color: var(--warning);
+}
+.after {
+  margin: 22px 0 0;
+  max-width: 560px;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--muted-foreground);
+  text-wrap: pretty;
+}
+
+/* The evidence card. Edge-lit like the hero's tiles, with the red rail the
+   old card had — that rail is what says "this is a loss", and it's kept. */
+.card {
+  position: relative;
+  padding: 28px 30px 26px;
+  border-radius: 18px;
+  border: 1px solid color-mix(in oklab, var(--destructive) 28%, var(--border));
+  border-left: 4px solid var(--destructive);
+  background: linear-gradient(
+    140deg,
+    color-mix(in oklab, var(--card) 96%, transparent),
+    color-mix(in oklab, var(--background) 92%, transparent)
+  );
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--destructive) 8%, transparent),
+    0 0 32px color-mix(in oklab, var(--destructive) 12%, transparent),
+    0 24px 60px -30px color-mix(in oklab, var(--destructive) 45%, transparent);
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 11px;
+  border-radius: 20px;
+  border: 1px solid color-mix(in oklab, var(--destructive) 35%, transparent);
+  background: color-mix(in oklab, var(--destructive) 14%, transparent);
+  color: color-mix(in oklab, var(--destructive) 80%, white);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+.amount {
+  margin: 18px 0 0;
+  font-size: clamp(48px, 5vw, 64px);
+  line-height: 1;
+  font-weight: 750;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--destructive);
+  background: linear-gradient(
+    100deg,
+    color-mix(in oklab, var(--destructive) 80%, white),
+    var(--destructive) 55%,
+    color-mix(in oklab, var(--destructive) 85%, var(--primary))
+  );
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.detail {
+  margin: 14px 0 0;
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--text-soft);
+  text-wrap: pretty;
+}
+/* Single-value meter: 6.7% of the engineer's estimate. One state, one
+   colour, and the label carries the number so the bar is never the only
+   encoding. */
+.meter {
+  margin: 20px 0 0;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--muted);
+  overflow: hidden;
+}
+.meter > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--destructive), color-mix(in oklab, var(--destructive) 70%, var(--primary)));
+  box-shadow: 0 0 12px color-mix(in oklab, var(--destructive) 50%, transparent);
+}
+.meterLabel {
+  margin: 9px 0 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11px;
+  letter-spacing: 0.2px;
+  color: var(--muted-foreground);
+}
+.meterLabel > strong {
+  color: var(--foreground);
+  font-weight: 600;
+}
+.source {
+  margin: 18px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--muted-foreground);
+}
+.source > code {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--text-soft);
+}
+
+/* The hand-off line into the reconciliation section, styled as the thing
+   it is: a link to the proof. */
+.bridge {
+  display: flex;
+  justify-content: center;
+  padding: 0 var(--page-gutter) clamp(56px, 7vw, 96px);
+}
+.bridge > a {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 22px 16px 26px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--primary) 30%, transparent);
+  background: color-mix(in oklab, var(--primary) 9%, transparent);
+  color: var(--foreground);
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.2px;
+  transition:
+    transform 0.2s,
+    background 0.2s,
+    border-color 0.2s;
+}
+.bridge > a > span {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.bridge > a:hover {
+  transform: translateY(-2px);
+  background: color-mix(in oklab, var(--primary) 15%, transparent);
+  border-color: color-mix(in oklab, var(--primary) 50%, transparent);
+}
+
+@media (max-width: 1100px) {
+  .inner {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 0.9fr);
+    gap: 36px;
+  }
+}
+@media (max-width: 980px) {
+  .inner {
+    grid-template-columns: 1fr;
+    gap: 34px;
+    padding-top: 64px;
+  }
+  .lead,
+  .modes,
+  .after {
+    max-width: 640px;
+  }
+  .card {
+    max-width: 560px;
+  }
+}
+@media (max-width: 760px) {
+  .title {
+    font-size: clamp(30px, 7.4vw, 40px);
+  }
+  .lead {
+    font-size: 16px;
+  }
+  .modes > li {
+    font-size: 14px;
+    padding: 11px 12px;
+  }
+  .card {
+    padding: 22px 20px 20px;
+  }
+  .bridge > a {
+    font-size: 15px;
+    padding: 14px 16px 14px 20px;
+    text-align: left;
+  }
+}
+@media (max-width: 470px) {
+  .title {
+    font-size: clamp(27px, 8.4vw, 34px);
+  }
+  .amount {
+    font-size: 42px;
+  }
+  .meterLabel {
+    flex-direction: column;
+    gap: 3px;
+  }
+}
